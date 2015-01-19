@@ -98,6 +98,29 @@ GoQuicDispatcher *create_quic_dispatcher() {
   TestConnectionHelper *helper = new TestConnectionHelper(clock, random_generator);
   QuicVersionVector *versions = new QuicVersionVector(net::QuicSupportedVersions());
 
+  /* Initialize Configs ------------------------------------------------*/
+
+  // If an initial flow control window has not explicitly been set, then use a
+  // sensible value for a server: 1 MB for session, 64 KB for each stream.
+  const uint32 kInitialSessionFlowControlWindow = 1 * 1024 * 1024;  // 1 MB
+  const uint32 kInitialStreamFlowControlWindow = 64 * 1024;         // 64 KB
+  if (config->GetInitialStreamFlowControlWindowToSend() ==
+      kMinimumFlowControlSendWindow) {
+    config->SetInitialStreamFlowControlWindowToSend(
+        kInitialStreamFlowControlWindow);
+  }
+  if (config->GetInitialSessionFlowControlWindowToSend() ==
+      kMinimumFlowControlSendWindow) {
+    config->SetInitialSessionFlowControlWindowToSend(
+        kInitialSessionFlowControlWindow);
+  }
+
+  scoped_ptr<CryptoHandshakeMessage> scfg(
+      crypto_config->AddDefaultConfig(
+          helper->GetRandomGenerator(), helper->GetClock(),
+          QuicCryptoServerConfig::ConfigOptions()));
+  /* Initialize Configs Ends ----------------------------------------*/
+
   GoQuicDispatcher* dispatcher = new GoQuicDispatcher(*config,
       *crypto_config,
       *versions,
