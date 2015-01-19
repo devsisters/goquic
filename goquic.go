@@ -17,6 +17,10 @@ type QuicEncryptedPacket struct {
 	encrypted_packet unsafe.Pointer
 }
 
+type QuicDispatcher struct {
+	quic_dispatcher unsafe.Pointer
+}
+
 type IPAddressNumber struct {
 	ip_address_number unsafe.Pointer
 }
@@ -25,6 +29,7 @@ type IPEndPoint struct {
 	ip_end_point unsafe.Pointer
 }
 
+/*
 func CreateQuicConnection(connection_id int, ip_addr net.IP) QuicConnection {
 	ip := CreateIPAddressNumber(ip_addr)
 	defer DeleteIPAddressNumber(ip)
@@ -49,6 +54,7 @@ func (c *QuicConnection) ProcessUdpPacket(self_address *net.UDPAddr, peer_addres
 	defer DeleteIPEndPoint(peer_address_c)
 	C.quic_connection_process_udp_packet(c.quic_connection, self_address_c.ip_end_point, peer_address_c.ip_end_point, packet.encrypted_packet)
 }
+*/
 
 // Note that the buffer is NOT copied. So it is the callers responsibility to retain the buffer until it is processed by QuicConnection
 func CreateQuicEncryptedPacket(buffer []byte) QuicEncryptedPacket {
@@ -89,26 +95,30 @@ func DeleteIPEndPoint(ip_endpoint IPEndPoint) {
 	C.delete_ip_end_point(ip_endpoint.ip_end_point)
 }
 
+func CreateQuicDispatcher() QuicDispatcher {
+	return QuicDispatcher{
+		quic_dispatcher: C.create_quic_dispatcher(),
+	}
+}
+
+func (d *QuicDispatcher) ProcessPacket(self_address *net.UDPAddr, peer_address *net.UDPAddr, buffer []byte) {
+	packet := CreateQuicEncryptedPacket(buffer)
+	defer DeleteQuicEncryptedPacket(packet)
+	self_address_c := CreateIPEndPoint(self_address)
+	defer DeleteIPEndPoint(self_address_c)
+	peer_address_c := CreateIPEndPoint(peer_address)
+	defer DeleteIPEndPoint(peer_address_c)
+	C.quic_dispatcher_process_packet(d.quic_dispatcher, self_address_c.ip_end_point, peer_address_c.ip_end_point, packet.encrypted_packet)
+}
+
 func main() {
 	fmt.Printf("hello, world\n")
 	C.initialize()
 	C.set_log_level(-1)
 	//C.test_quic()
 
-	ip := net.IPv4(1, 2, 3, 4)
-	quic_connection := CreateQuicConnection(22, ip)
-	fmt.Printf("quic_connection: %v\n", quic_connection)
-	fmt.Printf("version: %v\n", quic_connection.Version())
-
-	buf := []byte("test")
-	packet := CreateQuicEncryptedPacket(buf)
-	defer DeleteQuicEncryptedPacket(packet)
-	fmt.Printf("quic_encrypted_packet: %v\n", packet)
-
-	//self_addr, _ := net.ResolveUDPAddr("udp", "1.2.3.4:80")
-	//peer_addr, _ := net.ResolveUDPAddr("udp", "1.2.3.4:80")
-	//quic_connection.ProcessUdpPacket(self_addr, peer_addr, buf)
-
+	buf := make([]byte, 1024)
+	dispatcher := CreateQuicDispatcher()
 	listen_addr := net.UDPAddr{
 		Port: 8080,
 		IP:   net.ParseIP("0.0.0.0"),
@@ -119,9 +129,10 @@ func main() {
 	}
 	for {
 		n, peer_addr, err := conn.ReadFromUDP(buf)
+
 		if err != nil {
 			panic(err)
 		}
-		quic_connection.ProcessUdpPacket(&listen_addr, peer_addr, buf[:n])
+		dispatcher.ProcessPacket(&listen_addr, peer_addr, buf[:n])
 	}
 }

@@ -1,7 +1,7 @@
 #include "go_quic_dispatcher.h"
 
 #include "go_quic_time_wait_list_manager.h"
-//#include "go_quic_per_connection_packet_writer.h"
+#include "go_quic_per_connection_packet_writer.h"
 
 #include "base/debug/stack_trace.h"
 #include "base/logging.h"
@@ -138,11 +138,9 @@ class GoQuicDispatcher::QuicFramerVisitor : public QuicFramerVisitorInterface {
 };
 
 QuicPacketWriter* GoQuicDispatcher::DefaultPacketWriterFactory::Create(
-    GoQuicPacketWriter* writer,
+    GoQuicServerPacketWriter* writer,
     QuicConnection* connection) {
-  return nullptr;
-//  return new GoQuicPerConnectionPacketWriter(writer, connection);
-//  TODO(hodduc)
+  return new GoQuicPerConnectionPacketWriter(writer, connection);
 }
 
 GoQuicDispatcher::PacketWriterFactoryAdapter::PacketWriterFactoryAdapter(
@@ -182,7 +180,7 @@ GoQuicDispatcher::~GoQuicDispatcher() {
   STLDeleteElements(&closed_session_list_);
 }
 
-void GoQuicDispatcher::Initialize(GoQuicPacketWriter* writer) {
+void GoQuicDispatcher::Initialize(GoQuicServerPacketWriter* writer) {
   DCHECK(writer_ == nullptr);
   writer_.reset(writer);
   time_wait_list_manager_.reset(CreateQuicTimeWaitListManager());

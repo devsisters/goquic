@@ -11,7 +11,7 @@
 #include <list>
 
 #include "go_quic_time_wait_list_manager.h"
-#include "go_quic_packet_writer.h"
+#include "go_quic_server_packet_writer.h"
 #include "go_quic_server_session.h"
 
 #include "base/basictypes.h"
@@ -55,7 +55,7 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
    public:
     virtual ~PacketWriterFactory() {}
 
-    virtual QuicPacketWriter* Create(GoQuicPacketWriter* writer,
+    virtual QuicPacketWriter* Create(GoQuicServerPacketWriter* writer,
                                      QuicConnection* connection) = 0;
   };
 
@@ -64,7 +64,7 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
    public:
     ~DefaultPacketWriterFactory() override {}
 
-    QuicPacketWriter* Create(GoQuicPacketWriter* writer,
+    QuicPacketWriter* Create(GoQuicServerPacketWriter* writer,
                              QuicConnection* connection) override;
   };
 
@@ -84,7 +84,7 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
   ~GoQuicDispatcher() override;
 
   // Takes ownership of the packet writer.
-  virtual void Initialize(GoQuicPacketWriter* writer);
+  virtual void Initialize(GoQuicServerPacketWriter* writer);
 
   // Process the incoming packet by creating a new session, passing it to
   // an existing session, or passing it to the TimeWaitListManager.
@@ -145,7 +145,7 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
   virtual GoQuicTimeWaitListManager* CreateQuicTimeWaitListManager();
 
   // Replaces the packet writer with |writer|. Takes ownership of |writer|.
-  void set_writer(GoQuicPacketWriter* writer) {
+  void set_writer(GoQuicServerPacketWriter* writer) {
     writer_.reset(writer);
   }
 
@@ -175,7 +175,7 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
 
   QuicConnectionHelperInterface* helper() { return helper_; }
 
-  GoQuicPacketWriter* writer() { return writer_.get(); }
+  GoQuicServerPacketWriter* writer() { return writer_.get(); }
 
   const QuicConnection::PacketWriterFactory& connection_writer_factory() {
     return connection_writer_factory_;
@@ -232,7 +232,7 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
   std::list<QuicSession*> closed_session_list_;
 
   // The writer to write to the socket with.
-  scoped_ptr<GoQuicPacketWriter> writer_;
+  scoped_ptr<GoQuicServerPacketWriter> writer_;
 
   // Used to create per-connection packet writers, not |writer_| itself.
   scoped_ptr<PacketWriterFactory> packet_writer_factory_;

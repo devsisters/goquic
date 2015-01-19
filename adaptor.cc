@@ -1,7 +1,8 @@
 #include "adaptor.h"
 
+#include "go_quic_dispatcher.h"
 #include "go_quic_connection_helper.h"
-#include "go_quic_packet_writer.h"
+#include "go_quic_server_packet_writer.h"
 
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_clock.h"
@@ -53,6 +54,7 @@ void set_log_level(int level) {
   logging::SetMinLogLevel(level);
 }
 
+/*
 void *create_quic_connection(int connection_id, IPEndPoint *ip_endpoint) {
   std::cout << "Hello world!" << std::endl;
 
@@ -85,6 +87,33 @@ int quic_connection_version(QuicConnection *conn) {
 void quic_connection_process_udp_packet(QuicConnection *conn, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet) {
   conn->ProcessUdpPacket(*self_address, *peer_address, *packet);
 }
+*/
+
+GoQuicDispatcher *create_quic_dispatcher() {
+  QuicConfig* config = new QuicConfig();
+  QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance());
+  QuicClock* clock = new QuicClock();
+  QuicRandom* random_generator = QuicRandom::GetInstance();
+
+  TestConnectionHelper *helper = new TestConnectionHelper(clock, random_generator);
+  QuicVersionVector *versions = new QuicVersionVector(net::QuicSupportedVersions());
+
+  GoQuicDispatcher* dispatcher = new GoQuicDispatcher(*config,
+      *crypto_config,
+      *versions,
+      new GoQuicDispatcher::DefaultPacketWriterFactory(),
+      helper);
+
+  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(dispatcher);
+
+  dispatcher->Initialize(writer);
+
+  return dispatcher;
+}
+
+void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet) {
+  dispatcher->ProcessPacket(*self_address, *peer_address, *packet);
+}
 
 QuicEncryptedPacket *create_quic_encrypted_packet(char *buffer, size_t length) {
   return new QuicEncryptedPacket(buffer, length, false /* Do not own the buffer, so will not free buffer in the destructor */);
@@ -114,6 +143,7 @@ void delete_ip_end_point(IPEndPoint *ip_end_point) {
   delete ip_end_point;
 }
 
+/*
 void test_quic() {
   std::cout << "Hello world!" << std::endl;
 
@@ -150,3 +180,4 @@ void test_quic() {
 
   std::cout << conn << std::endl;
 }
+*/
