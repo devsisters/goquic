@@ -117,7 +117,7 @@ func main() {
 	C.set_log_level(-1)
 	//C.test_quic()
 
-	buf := make([]byte, 1024)
+	buf := make([]byte, 65535)
 	dispatcher := CreateQuicDispatcher()
 	listen_addr := net.UDPAddr{
 		Port: 8080,
