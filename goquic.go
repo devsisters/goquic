@@ -91,13 +91,23 @@ func CreateIPEndPoint(ip_endpoint *net.UDPAddr) IPEndPoint {
 	}
 }
 
+func (ip_endpoint *IPEndPoint) UDPAddr() *net.UDPAddr {
+	ip_buf := make([]byte, 16)
+	ip_sz := C.ip_endpoint_ip_address(ip_endpoint.ip_end_point, unsafe.Pointer(&ip_buf[0]))
+	port := int(C.ip_endpoint_port(ip_endpoint.ip_end_point))
+	return &net.UDPAddr{
+		IP:   net.IP(ip_buf[:int(ip_sz)]),
+		Port: port,
+	}
+}
+
 func DeleteIPEndPoint(ip_endpoint IPEndPoint) {
 	C.delete_ip_end_point(ip_endpoint.ip_end_point)
 }
 
-func CreateQuicDispatcher() QuicDispatcher {
+func CreateQuicDispatcher(conn *net.UDPConn) QuicDispatcher {
 	return QuicDispatcher{
-		quic_dispatcher: C.create_quic_dispatcher(),
+		quic_dispatcher: C.create_quic_dispatcher(unsafe.Pointer(conn)),
 	}
 }
 
@@ -111,6 +121,19 @@ func (d *QuicDispatcher) ProcessPacket(self_address *net.UDPAddr, peer_address *
 	C.quic_dispatcher_process_packet(d.quic_dispatcher, self_address_c.ip_end_point, peer_address_c.ip_end_point, packet.encrypted_packet)
 }
 
+//export WriteToUDP
+func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c unsafe.Pointer, length_c C.size_t) {
+	conn := (*net.UDPConn)(conn_c)
+	ip_endpoint := IPEndPoint{
+		ip_end_point: ip_endpoint_c,
+	}
+	peer_addr := ip_endpoint.UDPAddr()
+	buf := C.GoBytes(buffer_c, C.int(length_c))
+	conn.WriteToUDP(buf, peer_addr)
+	fmt.Println("******************************************************************")
+	fmt.Println(int(length_c), conn, ip_endpoint, peer_addr)
+}
+
 func main() {
 	fmt.Printf("hello, world\n")
 	C.initialize()
@@ -118,15 +141,15 @@ func main() {
 	//C.test_quic()
 
 	buf := make([]byte, 65535)
-	dispatcher := CreateQuicDispatcher()
 	listen_addr := net.UDPAddr{
 		Port: 8080,
 		IP:   net.ParseIP("0.0.0.0"),
 	}
-	conn, err := net.ListenUDP("udp", &listen_addr)
+	conn, err := net.ListenUDP("udp4", &listen_addr)
 	if err != nil {
 		panic(err)
 	}
+	dispatcher := CreateQuicDispatcher(conn)
 	for {
 		n, peer_addr, err := conn.ReadFromUDP(buf)
 

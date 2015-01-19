@@ -89,7 +89,7 @@ void quic_connection_process_udp_packet(QuicConnection *conn, IPEndPoint *self_a
 }
 */
 
-GoQuicDispatcher *create_quic_dispatcher() {
+GoQuicDispatcher *create_quic_dispatcher(void *go_udp_conn) {
   QuicConfig* config = new QuicConfig();
   QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance());
   QuicClock* clock = new QuicClock();
@@ -127,7 +127,7 @@ GoQuicDispatcher *create_quic_dispatcher() {
       new GoQuicDispatcher::DefaultPacketWriterFactory(),
       helper);
 
-  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(dispatcher);
+  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_udp_conn, dispatcher);
 
   dispatcher->Initialize(writer);
 
@@ -149,7 +149,7 @@ void delete_quic_encrypted_packet(QuicEncryptedPacket *packet) {
 IPAddressNumber *create_ip_address_number(unsigned char *ip_buf, size_t length) {
   IPAddressNumber *ip = new IPAddressNumber;
   for (int i = 0; i < length; i++) {
-    ip->push_back(i);
+    ip->push_back(ip_buf[i]);
   }
   return ip;
 }
@@ -160,6 +160,20 @@ void delete_ip_address_number(IPAddressNumber *ip) {
 
 IPEndPoint *create_ip_end_point(IPAddressNumber *ip, uint16_t port) {
   return new IPEndPoint(*ip, port);
+}
+
+size_t ip_endpoint_ip_address(IPEndPoint *ip_end_point, void *address_buf) {
+  const IPAddressNumber &ip = ip_end_point->address();
+  const size_t size = ip.size();
+  for (int i = 0; i < size; i++) {
+    // XXX(serialx): Performance and safety issues here. Ensure address_buf is large enough for ipv6
+    ((char *)address_buf)[i] = ip[i];
+  }
+  return size;
+}
+
+uint16_t ip_endpoint_port(IPEndPoint *ip_end_point) {
+  return ip_end_point->port();
 }
 
 void delete_ip_end_point(IPEndPoint *ip_end_point) {

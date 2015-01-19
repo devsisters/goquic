@@ -33,8 +33,10 @@ void delete_ip_address_number(IPAddressNumber *ip);
 
 IPEndPoint *create_ip_end_point(IPAddressNumber *ip, uint16_t port);
 void delete_ip_end_point(IPEndPoint *ip_end_point);
+size_t ip_endpoint_ip_address(IPEndPoint *ip_end_point, void *address_buf);
+uint16_t ip_endpoint_port(IPEndPoint *ip_end_point);
 
-GoQuicDispatcher *create_quic_dispatcher();
+GoQuicDispatcher *create_quic_dispatcher(void *go_udp_conn);
 void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet);
 
 void test_quic();

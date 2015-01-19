@@ -11,12 +11,14 @@
 #include "net/base/io_buffer.h"
 #include "net/base/net_errors.h"
 
+#include "go_functions.h"
+
 namespace net {
 
 GoQuicServerPacketWriter::GoQuicServerPacketWriter(
-//    UDPServerSocket* socket,
+    void* go_udp_conn,
     QuicBlockedWriterInterface* blocked_writer)
-    :// socket_(socket),
+    : go_udp_conn_(go_udp_conn),
       blocked_writer_(blocked_writer),
       write_blocked_(false),
       weak_factory_(this) {
@@ -72,6 +74,7 @@ WriteResult GoQuicServerPacketWriter::WritePacket(
   DCHECK(!callback_.is_null());
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
+    WriteToUDP_C(go_udp_conn_, (void *)(&peer_address), (void *)buffer, buf_len);
 /*    rv = socket_->SendTo(buf.get(),
                          static_cast<int>(buf_len),
                          peer_address,
