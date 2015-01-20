@@ -1,26 +1,25 @@
 package goquic
 
 // #cgo CXXFLAGS: -DUSE_OPENSSL=1 -Iquic_test/src/ -std=gnu++11
-// #cgo LDFLAGS: -pthread -Lquic_test/boringssl/build/crypto -Lquic_test/boringssl/build/ssl quic_test/build/libquic.a -lssl -lcrypto -lz
+// #cgo LDFLAGS: -pthread -Lquic_test/boringssl/build/crypto -Lquic_test/boringssl/build/ssl quic_test/build/libquic.a -lssl -lcrypto
 // #include <stddef.h>
 // #include "adaptor.h"
 import "C"
-import "fmt"
 import "unsafe"
 import "net"
 
 // API Interfaces -------------------------------------------------------------
 //  -> For QuicSpdyServerStream
 type DataStreamProcessor interface {
-	ProcessData(buffer []byte) uint32
-	OnFinRead()
-	ParseRequestHeaders()
+	ProcessData(buffer []byte) int
+	//OnFinRead()
+	//ParseRequestHeaders()
 }
 
 //  -> For QuicServerSession
 
-type Session interface {
-	CreateIncomingDataStream(stream_id uint32) *DataStreamProcessor
+type DataStreamCreator interface {
+	CreateIncomingDataStream(stream_id uint32) DataStreamProcessor
 }
 
 // Go <-> C++ Intermediate objects --------------------------------------------
@@ -35,7 +34,7 @@ type QuicEncryptedPacket struct {
 type QuicDispatcher struct {
 	quic_dispatcher            unsafe.Pointer
 	quic_server_sessions       []*QuicServerSession
-	create_quic_server_session func() *Session
+	create_quic_server_session func() DataStreamCreator
 }
 
 type IPAddressNumber struct {
@@ -47,13 +46,13 @@ type IPEndPoint struct {
 }
 
 type QuicSpdyServerStream struct {
-	user_stream *DataStreamProcessor
+	user_stream DataStreamProcessor
 }
 
 type QuicServerSession struct {
 	quic_server_session unsafe.Pointer
-	quic_server_streams []QuicSpdyServerStream
-	stream_creator      *Session
+	quic_server_streams []*QuicSpdyServerStream
+	stream_creator      DataStreamCreator
 }
 
 /*
@@ -82,6 +81,14 @@ func (c *QuicConnection) ProcessUdpPacket(self_address *net.UDPAddr, peer_addres
 	C.quic_connection_process_udp_packet(c.quic_connection, self_address_c.ip_end_point, peer_address_c.ip_end_point, packet.encrypted_packet)
 }
 */
+
+func Initialize() {
+	C.initialize()
+}
+
+func SetLogLevel(level int) {
+	C.set_log_level(C.int(level))
+}
 
 // Note that the buffer is NOT copied. So it is the callers responsibility to retain the buffer until it is processed by QuicConnection
 func CreateQuicEncryptedPacket(buffer []byte) QuicEncryptedPacket {
@@ -132,7 +139,7 @@ func DeleteIPEndPoint(ip_endpoint IPEndPoint) {
 	C.delete_ip_end_point(ip_endpoint.ip_end_point)
 }
 
-func CreateQuicDispatcher(conn *net.UDPConn, create_quic_server_session func() *Session) *QuicDispatcher {
+func CreateQuicDispatcher(conn *net.UDPConn, create_quic_server_session func() DataStreamCreator) *QuicDispatcher {
 	dispatcher := &QuicDispatcher{
 		create_quic_server_session: create_quic_server_session,
 	}
@@ -173,21 +180,39 @@ func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c un
 	peer_addr := ip_endpoint.UDPAddr()
 	buf := C.GoBytes(buffer_c, C.int(length_c))
 	conn.WriteToUDP(buf, peer_addr)
-	fmt.Println("******************************************************************")
-	fmt.Println(int(length_c), conn, ip_endpoint, peer_addr)
+	//fmt.Println("******************************************************************")
+	//fmt.Println(int(length_c), conn, ip_endpoint, peer_addr)
 }
 
 //export CreateIncomingDataStream
 func CreateIncomingDataStream(session_c unsafe.Pointer, stream_id uint32) unsafe.Pointer {
 	session := (*QuicServerSession)(session_c)
+	//fmt.Println("session.stream_creator:", session.stream_creator.CreateIncomingDataStream(stream_id))
 	user_stream := session.stream_creator.CreateIncomingDataStream(stream_id)
-	session.quic_server_streams = append(session.quic_server_streams, user_stream)
 
 	stream := &QuicSpdyServerStream{
 		user_stream: user_stream,
 	}
 
+	session.quic_server_streams = append(session.quic_server_streams, stream)
+
 	return unsafe.Pointer(stream)
+}
+
+//export DataStreamProcessorProcessData
+func DataStreamProcessorProcessData(go_data_stream_processor_c unsafe.Pointer, data unsafe.Pointer, data_len uint32) uint32 {
+	server_stream := (*QuicSpdyServerStream)(go_data_stream_processor_c)
+	buf := C.GoBytes(data, C.int(data_len))
+	//processor_interface := (interface{})(go_data_stream_processor_c)
+	//processor, ok := processor_interface.(QuicSpdyServerStream)
+	//if !ok {
+	//	fmt.Println("****************************** ERROR *************************")
+	//	fmt.Println("buf:", buf)
+	//	fmt.Println("processor:", (interface{})(go_data_stream_processor_c))
+	//	fmt.Println("processor type:", reflect.TypeOf((interface{})(go_data_stream_processor_c)))
+	//	return data_len
+	//}
+	return uint32(server_stream.user_stream.ProcessData(buf))
 }
 
 // Library Ends --------------------------------------------------------------

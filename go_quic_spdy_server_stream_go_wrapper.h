@@ -9,7 +9,7 @@ class GoQuicSpdyServerStreamGoWrapper : public net::QuicDataStream {
   GoQuicSpdyServerStreamGoWrapper(net::QuicStreamId id, net::QuicSession* session, void* go_quic_spdy_server_stream);
   ~GoQuicSpdyServerStreamGoWrapper() override;
 
-  uint32 ProcessData(const char* data, uint32 data_len) override { }
+  uint32 ProcessData(const char* data, uint32 data_len) override;
   void OnFinRead() override { }
 
   void ParseRequestHeaders() { }
