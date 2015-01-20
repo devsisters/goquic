@@ -21,5 +21,5 @@ uint32 GoQuicSpdyServerStreamGoWrapper::ProcessData(const char* data, uint32 dat
 
   uint32_t ret_data_len = DataStreamProcessorProcessData_C(go_quic_spdy_server_stream_, data, data_len);
 
-  return data_len;
+  return ret_data_len;
 }
