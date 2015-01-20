@@ -3,6 +3,7 @@
 #include "go_quic_dispatcher.h"
 #include "go_quic_connection_helper.h"
 #include "go_quic_server_packet_writer.h"
+#include "go_quic_spdy_server_stream_go_wrapper.h"
 
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_clock.h"
@@ -89,7 +90,7 @@ void quic_connection_process_udp_packet(QuicConnection *conn, IPEndPoint *self_a
 }
 */
 
-GoQuicDispatcher *create_quic_dispatcher(void *go_udp_conn) {
+GoQuicDispatcher *create_quic_dispatcher(void *go_udp_conn, void *go_quic_dispatcher) {
   QuicConfig* config = new QuicConfig();
   QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance());
   QuicClock* clock = new QuicClock();
@@ -125,7 +126,8 @@ GoQuicDispatcher *create_quic_dispatcher(void *go_udp_conn) {
       *crypto_config,
       *versions,
       new GoQuicDispatcher::DefaultPacketWriterFactory(),
-      helper);
+      helper,
+      go_quic_dispatcher);
 
   GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_udp_conn, dispatcher);
 

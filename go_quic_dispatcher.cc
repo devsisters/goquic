@@ -2,6 +2,7 @@
 
 #include "go_quic_time_wait_list_manager.h"
 #include "go_quic_per_connection_packet_writer.h"
+#include "go_functions.h"
 
 #include "base/debug/stack_trace.h"
 #include "base/logging.h"
@@ -160,7 +161,8 @@ GoQuicDispatcher::GoQuicDispatcher(const QuicConfig& config,
                                    const QuicCryptoServerConfig& crypto_config,
                                    const QuicVersionVector& supported_versions,
                                    PacketWriterFactory* packet_writer_factory,
-                                   QuicConnectionHelperInterface* helper)
+                                   QuicConnectionHelperInterface* helper,
+                                   void *go_quic_dispatcher)
     : config_(config),
       crypto_config_(crypto_config),
       helper_(helper),
@@ -171,7 +173,8 @@ GoQuicDispatcher::GoQuicDispatcher(const QuicConfig& config,
       supported_versions_(supported_versions),
       current_packet_(nullptr),
       framer_(supported_versions, /*unused*/ QuicTime::Zero(), true),
-      framer_visitor_(new QuicFramerVisitor(this)) {
+      framer_visitor_(new QuicFramerVisitor(this)),
+      go_quic_dispatcher_(go_quic_dispatcher) {
   framer_.set_visitor(framer_visitor_.get());
 }
 
@@ -358,6 +361,8 @@ QuicSession* GoQuicDispatcher::CreateQuicSession(
       config_,
       CreateQuicConnection(connection_id, server_address, client_address),
       this);
+
+  session->SetGoSession(CreateGoSession_C(go_quic_dispatcher_, session));
   session->InitializeSession(crypto_config_);
   return session;
 }

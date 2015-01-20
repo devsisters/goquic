@@ -77,6 +77,10 @@ class GoQuicServerSession : public QuicSession {
     serving_region_ = serving_region;
   }
 
+  void SetGoSession(void* go_session) {
+    go_session_ = go_session;
+  }
+
  protected:
   // QuicSession methods:
   QuicDataStream* CreateIncomingDataStream(QuicStreamId id) override;
@@ -109,6 +113,8 @@ class GoQuicServerSession : public QuicSession {
 
   // Number of packets sent to the peer, at the time we last sent a SCUP.
   int64 last_scup_sequence_number_;
+
+  void *go_session_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicServerSession);
 };

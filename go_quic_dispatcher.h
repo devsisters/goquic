@@ -79,7 +79,8 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
                    const QuicCryptoServerConfig& crypto_config,
                    const QuicVersionVector& supported_versions,
                    PacketWriterFactory* packet_writer_factory,
-                   QuicConnectionHelperInterface* helper);
+                   QuicConnectionHelperInterface* helper,
+                   void *go_quic_dispatcher);
 
   ~GoQuicDispatcher() override;
 
@@ -253,6 +254,8 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
 
   QuicFramer framer_;
   scoped_ptr<QuicFramerVisitor> framer_visitor_;
+
+  void *go_quic_dispatcher_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicDispatcher);
 };

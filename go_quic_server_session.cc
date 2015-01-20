@@ -3,6 +3,8 @@
 // found in the LICENSE file.
 
 #include "go_quic_server_session.h"
+#include "go_quic_spdy_server_stream_go_wrapper.h"
+#include "go_functions.h"
 
 #include "base/logging.h"
 #include "net/quic/crypto/cached_network_parameters.h"
@@ -185,8 +187,7 @@ QuicDataStream* GoQuicServerSession::CreateIncomingDataStream(
     return nullptr;
   }
 
-//  return new GoQuicSpdyServerStream(id, this); TODO(hodduc)
-  return nullptr;
+  return new GoQuicSpdyServerStreamGoWrapper(id, this, CreateIncomingDataStream_C(go_session_, id));
 }
 
 QuicDataStream* GoQuicServerSession::CreateOutgoingDataStream() {

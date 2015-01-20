@@ -3,6 +3,7 @@
 
 #ifdef __cplusplus
 #include "go_quic_dispatcher.h"
+#include "go_quic_spdy_server_stream_go_wrapper.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_protocol.h"
 #include "net/base/net_util.h"
@@ -15,6 +16,7 @@ typedef void QuicEncryptedPacket;
 typedef void IPAddressNumber;
 typedef void IPEndPoint;
 typedef void GoQuicDispatcher;
+typedef void GoQuicSpdyServerStreamGoWrapper;
 #endif
 void initialize();
 void set_log_level(int level);
@@ -36,7 +38,7 @@ void delete_ip_end_point(IPEndPoint *ip_end_point);
 size_t ip_endpoint_ip_address(IPEndPoint *ip_end_point, void *address_buf);
 uint16_t ip_endpoint_port(IPEndPoint *ip_end_point);
 
-GoQuicDispatcher *create_quic_dispatcher(void *go_udp_conn);
+GoQuicDispatcher *create_quic_dispatcher(void *go_udp_conn, void *go_quic_dispatcher);
 void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet);
 
 void test_quic();

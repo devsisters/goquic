@@ -1,4 +1,4 @@
-package main
+package goquic
 
 // #cgo CXXFLAGS: -DUSE_OPENSSL=1 -Iquic_test/src/ -std=gnu++11
 // #cgo LDFLAGS: -pthread -Lquic_test/boringssl/build/crypto -Lquic_test/boringssl/build/ssl quic_test/build/libquic.a -lssl -lcrypto -lz
@@ -9,6 +9,21 @@ import "fmt"
 import "unsafe"
 import "net"
 
+// API Interfaces -------------------------------------------------------------
+//  -> For QuicSpdyServerStream
+type DataStreamProcessor interface {
+	ProcessData(buffer []byte) uint32
+	OnFinRead()
+	ParseRequestHeaders()
+}
+
+//  -> For QuicServerSession
+
+type Session interface {
+	CreateIncomingDataStream(stream_id uint32) *DataStreamProcessor
+}
+
+// Go <-> C++ Intermediate objects --------------------------------------------
 type QuicConnection struct {
 	quic_connection unsafe.Pointer
 }
@@ -18,7 +33,9 @@ type QuicEncryptedPacket struct {
 }
 
 type QuicDispatcher struct {
-	quic_dispatcher unsafe.Pointer
+	quic_dispatcher            unsafe.Pointer
+	quic_server_sessions       []*QuicServerSession
+	create_quic_server_session func() *Session
 }
 
 type IPAddressNumber struct {
@@ -27,6 +44,16 @@ type IPAddressNumber struct {
 
 type IPEndPoint struct {
 	ip_end_point unsafe.Pointer
+}
+
+type QuicSpdyServerStream struct {
+	user_stream *DataStreamProcessor
+}
+
+type QuicServerSession struct {
+	quic_server_session unsafe.Pointer
+	quic_server_streams []QuicSpdyServerStream
+	stream_creator      *Session
 }
 
 /*
@@ -105,10 +132,13 @@ func DeleteIPEndPoint(ip_endpoint IPEndPoint) {
 	C.delete_ip_end_point(ip_endpoint.ip_end_point)
 }
 
-func CreateQuicDispatcher(conn *net.UDPConn) QuicDispatcher {
-	return QuicDispatcher{
-		quic_dispatcher: C.create_quic_dispatcher(unsafe.Pointer(conn)),
+func CreateQuicDispatcher(conn *net.UDPConn, create_quic_server_session func() *Session) *QuicDispatcher {
+	dispatcher := &QuicDispatcher{
+		create_quic_server_session: create_quic_server_session,
 	}
+
+	dispatcher.quic_dispatcher = C.create_quic_dispatcher(unsafe.Pointer(conn), unsafe.Pointer(dispatcher))
+	return dispatcher
 }
 
 func (d *QuicDispatcher) ProcessPacket(self_address *net.UDPAddr, peer_address *net.UDPAddr, buffer []byte) {
@@ -119,6 +149,19 @@ func (d *QuicDispatcher) ProcessPacket(self_address *net.UDPAddr, peer_address *
 	peer_address_c := CreateIPEndPoint(peer_address)
 	defer DeleteIPEndPoint(peer_address_c)
 	C.quic_dispatcher_process_packet(d.quic_dispatcher, self_address_c.ip_end_point, peer_address_c.ip_end_point, packet.encrypted_packet)
+}
+
+//export CreateGoSession
+func CreateGoSession(dispatcher_c unsafe.Pointer, session_c unsafe.Pointer) unsafe.Pointer {
+	dispatcher := (*QuicDispatcher)(dispatcher_c)
+	user_session := dispatcher.create_quic_server_session()
+	session := &QuicServerSession{
+		quic_server_session: session_c,
+		stream_creator:      user_session,
+	}
+	dispatcher.quic_server_sessions = append(dispatcher.quic_server_sessions, session)
+
+	return unsafe.Pointer(session)
 }
 
 //export WriteToUDP
@@ -134,28 +177,17 @@ func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c un
 	fmt.Println(int(length_c), conn, ip_endpoint, peer_addr)
 }
 
-func main() {
-	fmt.Printf("hello, world\n")
-	C.initialize()
-	C.set_log_level(-1)
-	//C.test_quic()
+//export CreateIncomingDataStream
+func CreateIncomingDataStream(session_c unsafe.Pointer, stream_id uint32) unsafe.Pointer {
+	session := (*QuicServerSession)(session_c)
+	user_stream := session.stream_creator.CreateIncomingDataStream(stream_id)
+	session.quic_server_streams = append(session.quic_server_streams, user_stream)
 
-	buf := make([]byte, 65535)
-	listen_addr := net.UDPAddr{
-		Port: 8080,
-		IP:   net.ParseIP("0.0.0.0"),
+	stream := &QuicSpdyServerStream{
+		user_stream: user_stream,
 	}
-	conn, err := net.ListenUDP("udp4", &listen_addr)
-	if err != nil {
-		panic(err)
-	}
-	dispatcher := CreateQuicDispatcher(conn)
-	for {
-		n, peer_addr, err := conn.ReadFromUDP(buf)
 
-		if err != nil {
-			panic(err)
-		}
-		dispatcher.ProcessPacket(&listen_addr, peer_addr, buf[:n])
-	}
+	return unsafe.Pointer(stream)
 }
+
+// Library Ends --------------------------------------------------------------
