@@ -23,3 +23,7 @@ uint32 GoQuicSpdyServerStreamGoWrapper::ProcessData(const char* data, uint32 dat
 
   return ret_data_len;
 }
+
+void GoQuicSpdyServerStreamGoWrapper::OnFinRead() {
+  DataStreamProcessorOnFinRead_C(go_quic_spdy_server_stream_);
+}

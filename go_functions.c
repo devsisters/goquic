@@ -20,3 +20,7 @@ void* CreateIncomingDataStream_C(void* go_quic_server_session, uint32_t id) {
 uint32_t DataStreamProcessorProcessData_C(void* go_data_stream_processor, const char *data, uint32_t data_len) {
     return DataStreamProcessorProcessData(go_data_stream_processor, data, data_len);
 }
+
+void DataStreamProcessorOnFinRead_C(void* go_data_stream_processor) {
+    DataStreamProcessorOnFinRead(go_data_stream_processor);
+}

@@ -12,7 +12,7 @@ import "net"
 //  -> For QuicSpdyServerStream
 type DataStreamProcessor interface {
 	ProcessData(buffer []byte) int
-	//OnFinRead()
+	OnFinRead()
 	//ParseRequestHeaders()
 }
 
@@ -213,6 +213,12 @@ func DataStreamProcessorProcessData(go_data_stream_processor_c unsafe.Pointer, d
 	//	return data_len
 	//}
 	return uint32(server_stream.user_stream.ProcessData(buf))
+}
+
+//export DataStreamProcessorOnFinRead
+func DataStreamProcessorOnFinRead(go_data_stream_processor_c unsafe.Pointer) {
+	server_stream := (*QuicSpdyServerStream)(go_data_stream_processor_c)
+	server_stream.user_stream.OnFinRead()
 }
 
 // Library Ends --------------------------------------------------------------
