@@ -48,7 +48,7 @@ class GoQuicPacketWriterFactory : public QuicConnection::PacketWriterFactory {
 static base::AtExitManager *exit_manager;
 void initialize() {
   int argc = 1;
-  char *argv[] = {"test", nullptr};
+  const char *argv[] = {"test", nullptr};
   base::CommandLine::Init(argc, argv);
   exit_manager = new base::AtExitManager;
 }
