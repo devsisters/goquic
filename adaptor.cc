@@ -11,6 +11,7 @@
 #include "net/quic/crypto/quic_random.h"
 #include "net/base/net_util.h"
 #include "net/base/ip_endpoint.h"
+#include "base/strings/string_piece.h"
 
 #include "base/command_line.h"
 #include "base/at_exit.h"
@@ -23,6 +24,7 @@
 
 using namespace net;
 using namespace std;
+using base::StringPiece;
 
 
 
@@ -181,6 +183,25 @@ uint16_t ip_endpoint_port(IPEndPoint *ip_end_point) {
 void delete_ip_end_point(IPEndPoint *ip_end_point) {
   delete ip_end_point;
 }
+
+// Utility wrappers for C++ std::map
+MapStrStr* initialize_map() {
+  return new MapStrStr;
+}
+
+void insert_map(MapStrStr* map, char* key, char* value) {
+  map->insert(
+      std::pair<std::string, std::string>(std::string(key), std::string(value)));
+}
+
+void quic_spdy_server_stream_write_headers(GoQuicSpdyServerStreamGoWrapper* wrapper, MapStrStr* header, int is_empty_body) {
+  wrapper->WriteHeaders(*(SpdyHeaderBlock*)header, is_empty_body, nullptr);
+}
+
+void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrapper* wrapper, char* buf) {
+  wrapper->WriteOrBufferData_(StringPiece(buf), true, nullptr);
+}
+
 
 /*
 void test_quic() {

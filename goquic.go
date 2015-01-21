@@ -12,7 +12,7 @@ import "net"
 //  -> For QuicSpdyServerStream
 type DataStreamProcessor interface {
 	ProcessData(buffer []byte) int
-	OnFinRead()
+	OnFinRead(writer *QuicSpdyServerStream)
 	//ParseRequestHeaders()
 }
 
@@ -47,6 +47,7 @@ type IPEndPoint struct {
 
 type QuicSpdyServerStream struct {
 	user_stream DataStreamProcessor
+	wrapper     unsafe.Pointer
 }
 
 type QuicServerSession struct {
@@ -81,6 +82,23 @@ func (c *QuicConnection) ProcessUdpPacket(self_address *net.UDPAddr, peer_addres
 	C.quic_connection_process_udp_packet(c.quic_connection, self_address_c.ip_end_point, peer_address_c.ip_end_point, packet.encrypted_packet)
 }
 */
+
+func (writer *QuicSpdyServerStream) WriteHeaders(headers map[string]string, is_body_empty bool) {
+	header_c := C.initialize_map()
+	for key, value := range headers {
+		C.insert_map(header_c, C.CString(key), C.CString(value)) //(*C.char)(unsafe.Pointer(&key[0])), (*C.char)(unsafe.Pointer(&value[0])))
+	}
+
+	if is_body_empty {
+		C.quic_spdy_server_stream_write_headers(writer.wrapper, header_c, 1)
+	} else {
+		C.quic_spdy_server_stream_write_headers(writer.wrapper, header_c, 0)
+	}
+}
+
+func (writer *QuicSpdyServerStream) WriteOrBufferData(body []byte) {
+	C.quic_spdy_server_stream_write_or_buffer_data(writer.wrapper, (*C.char)(unsafe.Pointer(&body[0])))
+}
 
 func Initialize() {
 	C.initialize()
@@ -185,13 +203,14 @@ func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c un
 }
 
 //export CreateIncomingDataStream
-func CreateIncomingDataStream(session_c unsafe.Pointer, stream_id uint32) unsafe.Pointer {
+func CreateIncomingDataStream(session_c unsafe.Pointer, stream_id uint32, wrapper_c unsafe.Pointer) unsafe.Pointer {
 	session := (*QuicServerSession)(session_c)
 	//fmt.Println("session.stream_creator:", session.stream_creator.CreateIncomingDataStream(stream_id))
 	user_stream := session.stream_creator.CreateIncomingDataStream(stream_id)
 
 	stream := &QuicSpdyServerStream{
 		user_stream: user_stream,
+		wrapper:     wrapper_c,
 	}
 
 	session.quic_server_streams = append(session.quic_server_streams, stream)
@@ -218,7 +237,7 @@ func DataStreamProcessorProcessData(go_data_stream_processor_c unsafe.Pointer, d
 //export DataStreamProcessorOnFinRead
 func DataStreamProcessorOnFinRead(go_data_stream_processor_c unsafe.Pointer) {
 	server_stream := (*QuicSpdyServerStream)(go_data_stream_processor_c)
-	server_stream.user_stream.OnFinRead()
+	server_stream.user_stream.OnFinRead(server_stream)
 }
 
 // Library Ends --------------------------------------------------------------

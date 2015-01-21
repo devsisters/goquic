@@ -9,6 +9,8 @@
 #include "net/base/net_util.h"
 #include "net/base/ip_endpoint.h"
 using namespace net;
+
+typedef std::map<std::string, std::string> MapStrStr;
 extern "C" {
 #else
 typedef void QuicConnection;
@@ -17,6 +19,7 @@ typedef void IPAddressNumber;
 typedef void IPEndPoint;
 typedef void GoQuicDispatcher;
 typedef void GoQuicSpdyServerStreamGoWrapper;
+typedef void MapStrStr;
 #endif
 void initialize();
 void set_log_level(int level);
@@ -41,6 +44,11 @@ uint16_t ip_endpoint_port(IPEndPoint *ip_end_point);
 GoQuicDispatcher *create_quic_dispatcher(void *go_udp_conn, void *go_quic_dispatcher);
 void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet);
 
+MapStrStr* initialize_map();
+void insert_map(MapStrStr* map, char* key, char* value);
+
+void quic_spdy_server_stream_write_headers(GoQuicSpdyServerStreamGoWrapper* wrapper, MapStrStr* header, int is_empty_body);
+void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrapper* wrapper, char* buf);
 void test_quic();
 #ifdef __cplusplus
 }

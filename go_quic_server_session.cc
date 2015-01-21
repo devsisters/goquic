@@ -187,7 +187,10 @@ QuicDataStream* GoQuicServerSession::CreateIncomingDataStream(
     return nullptr;
   }
 
-  return new GoQuicSpdyServerStreamGoWrapper(id, this, CreateIncomingDataStream_C(go_session_, id));
+  GoQuicSpdyServerStreamGoWrapper* stream = new GoQuicSpdyServerStreamGoWrapper(id, this);
+  stream->SetGoQuicSpdyServerStream(CreateIncomingDataStream_C(go_session_, id, stream));
+
+  return stream;
 }
 
 QuicDataStream* GoQuicServerSession::CreateOutgoingDataStream() {

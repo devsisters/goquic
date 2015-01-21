@@ -13,8 +13,8 @@ void* CreateGoSession_C(void* go_quic_dispatcher, void* quic_server_session) {
     return CreateGoSession(go_quic_dispatcher, quic_server_session);
 }
 
-void* CreateIncomingDataStream_C(void* go_quic_server_session, uint32_t id) {
-    return CreateIncomingDataStream(go_quic_server_session, id);
+void* CreateIncomingDataStream_C(void* go_quic_server_session, uint32_t id, void* go_quic_spdy_server_stream_go_wrapper) {
+    return CreateIncomingDataStream(go_quic_server_session, id, go_quic_spdy_server_stream_go_wrapper);
 }
 
 uint32_t DataStreamProcessorProcessData_C(void* go_data_stream_processor, const char *data, uint32_t data_len) {
