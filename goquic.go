@@ -11,7 +11,7 @@ import "net"
 // API Interfaces -------------------------------------------------------------
 //  -> For QuicSpdyServerStream
 type DataStreamProcessor interface {
-	ProcessData(buffer []byte) int
+	ProcessData(writer *QuicSpdyServerStream, buffer []byte) int
 	OnFinRead(writer *QuicSpdyServerStream)
 	//ParseRequestHeaders()
 }
@@ -231,7 +231,7 @@ func DataStreamProcessorProcessData(go_data_stream_processor_c unsafe.Pointer, d
 	//	fmt.Println("processor type:", reflect.TypeOf((interface{})(go_data_stream_processor_c)))
 	//	return data_len
 	//}
-	return uint32(server_stream.user_stream.ProcessData(buf))
+	return uint32(server_stream.user_stream.ProcessData(server_stream, buf))
 }
 
 //export DataStreamProcessorOnFinRead
