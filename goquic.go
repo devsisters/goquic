@@ -97,7 +97,7 @@ func (writer *QuicSpdyServerStream) WriteHeaders(headers map[string]string, is_b
 }
 
 func (writer *QuicSpdyServerStream) WriteOrBufferData(body []byte) {
-	C.quic_spdy_server_stream_write_or_buffer_data(writer.wrapper, (*C.char)(unsafe.Pointer(&body[0])))
+	C.quic_spdy_server_stream_write_or_buffer_data(writer.wrapper, (*C.char)(unsafe.Pointer(&body[0])), C.size_t(len(body)))
 }
 
 func Initialize() {

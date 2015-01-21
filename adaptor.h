@@ -48,7 +48,7 @@ MapStrStr* initialize_map();
 void insert_map(MapStrStr* map, char* key, char* value);
 
 void quic_spdy_server_stream_write_headers(GoQuicSpdyServerStreamGoWrapper* wrapper, MapStrStr* header, int is_empty_body);
-void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrapper* wrapper, char* buf);
+void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrapper* wrapper, char* buf, size_t bufsize);
 void test_quic();
 #ifdef __cplusplus
 }
