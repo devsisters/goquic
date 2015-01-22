@@ -7,6 +7,7 @@ package goquic
 import "C"
 import "unsafe"
 import "net"
+import "strings"
 
 // API Interfaces -------------------------------------------------------------
 //  -> For QuicSpdyServerStream
@@ -48,12 +49,14 @@ type IPEndPoint struct {
 type QuicSpdyServerStream struct {
 	user_stream DataStreamProcessor
 	wrapper     unsafe.Pointer
+	session     *QuicServerSession
 }
 
 type QuicServerSession struct {
 	quic_server_session unsafe.Pointer
 	quic_server_streams []*QuicSpdyServerStream
 	stream_creator      DataStreamCreator
+	remote_addr         *net.UDPAddr
 }
 
 /*
@@ -83,9 +86,10 @@ func (c *QuicConnection) ProcessUdpPacket(self_address *net.UDPAddr, peer_addres
 }
 */
 
-func (writer *QuicSpdyServerStream) WriteHeaders(headers map[string]string, is_body_empty bool) {
+func (writer *QuicSpdyServerStream) WriteHeader(header map[string][]string, is_body_empty bool) {
 	header_c := C.initialize_map()
-	for key, value := range headers {
+	for key, values := range header {
+		value := strings.Join(values, ", ")
 		C.insert_map(header_c, C.CString(key), C.CString(value)) //(*C.char)(unsafe.Pointer(&key[0])), (*C.char)(unsafe.Pointer(&value[0])))
 	}
 
@@ -183,6 +187,7 @@ func CreateGoSession(dispatcher_c unsafe.Pointer, session_c unsafe.Pointer) unsa
 	session := &QuicServerSession{
 		quic_server_session: session_c,
 		stream_creator:      user_session,
+		// TODO(serialx): Set remoteAddr here
 	}
 	dispatcher.quic_server_sessions = append(dispatcher.quic_server_sessions, session)
 
@@ -205,11 +210,11 @@ func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c un
 //export CreateIncomingDataStream
 func CreateIncomingDataStream(session_c unsafe.Pointer, stream_id uint32, wrapper_c unsafe.Pointer) unsafe.Pointer {
 	session := (*QuicServerSession)(session_c)
-	//fmt.Println("session.stream_creator:", session.stream_creator.CreateIncomingDataStream(stream_id))
 	user_stream := session.stream_creator.CreateIncomingDataStream(stream_id)
 
 	stream := &QuicSpdyServerStream{
 		user_stream: user_stream,
+		session:     session,
 		wrapper:     wrapper_c,
 	}
 
