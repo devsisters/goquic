@@ -4,14 +4,17 @@
 #include "go_quic_connection_helper.h"
 #include "go_quic_server_packet_writer.h"
 #include "go_quic_spdy_server_stream_go_wrapper.h"
+#include "go_quic_alarm_go_wrapper.h"
 
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_clock.h"
+#include "net/quic/quic_time.h"
 #include "net/quic/quic_protocol.h"
 #include "net/quic/crypto/quic_random.h"
 #include "net/base/net_util.h"
 #include "net/base/ip_endpoint.h"
 #include "base/strings/string_piece.h"
+#include "base/basictypes.h"
 
 #include "base/command_line.h"
 #include "base/at_exit.h"
@@ -92,13 +95,13 @@ void quic_connection_process_udp_packet(QuicConnection *conn, IPEndPoint *self_a
 }
 */
 
-GoQuicDispatcher *create_quic_dispatcher(void *go_udp_conn, void *go_quic_dispatcher) {
+GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispatcher, void* task_runner) {
   QuicConfig* config = new QuicConfig();
   QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance());
   QuicClock* clock = new QuicClock();
   QuicRandom* random_generator = QuicRandom::GetInstance();
 
-  TestConnectionHelper *helper = new TestConnectionHelper(clock, random_generator);
+  TestConnectionHelper *helper = new TestConnectionHelper(task_runner, clock, random_generator);
   QuicVersionVector *versions = new QuicVersionVector(net::QuicSupportedVersions());
 
   /* Initialize Configs ------------------------------------------------*/
@@ -202,6 +205,13 @@ void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrappe
   wrapper->WriteOrBufferData_(StringPiece(buf, bufsize), true, nullptr);
 }
 
+void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm) {
+  go_quic_alarm->Fire_();
+}
+
+int64_t clock_now(QuicClock* quic_clock) {
+  return quic_clock->Now().Subtract(QuicTime::Zero()).ToMicroseconds();
+}
 
 /*
 void test_quic() {

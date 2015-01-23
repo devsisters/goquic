@@ -1,12 +1,15 @@
+#ifndef __GO_QUIC_CONNECTION_HELPER_H__
+#define __GO_QUIC_CONNECTION_HELPER_H__
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_clock.h"
 #include "net/quic/crypto/quic_random.h"
 
 namespace net {
 
+// TODO(hodduc) rename TestConnectionHelper
 class TestConnectionHelper : public QuicConnectionHelperInterface {
   public:
-    TestConnectionHelper(QuicClock* clock, QuicRandom* random_generator);
+    TestConnectionHelper(void* task_runner, QuicClock* clock, QuicRandom* random_generator);
 
     // QuicConnectionHelperInterface
     const QuicClock* GetClock() const override;
@@ -16,8 +19,10 @@ class TestConnectionHelper : public QuicConnectionHelperInterface {
     QuicAlarm* CreateAlarm(QuicAlarm::Delegate* delegate) override;
 
   private:
+    void* task_runner_;
     QuicClock* clock_;
     QuicRandom* random_generator_;
 };
 
 }   // namespace net
+#endif

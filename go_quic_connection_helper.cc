@@ -1,4 +1,5 @@
 #include "go_quic_connection_helper.h"
+#include "go_quic_alarm_go_wrapper.h"
 
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_clock.h"
@@ -7,17 +8,7 @@
 
 namespace net {
 
-class TestAlarm : public QuicAlarm {
-  public:
-    explicit TestAlarm(QuicAlarm::Delegate* delegate)
-      : QuicAlarm(delegate) {
-      }
-
-    void SetImpl() override {}
-    void CancelImpl() override {}
-    using QuicAlarm::Fire;
-};
-
+// TODO(hodduc) Rename TestConnectionHelper
 const QuicClock* TestConnectionHelper::GetClock() const {
   return clock_;
 }
@@ -25,12 +16,13 @@ const QuicClock* TestConnectionHelper::GetClock() const {
 QuicRandom* TestConnectionHelper::GetRandomGenerator() { return random_generator_; }
 
 QuicAlarm* TestConnectionHelper::CreateAlarm(QuicAlarm::Delegate* delegate) {
-  return new TestAlarm(delegate);
+  return new GoQuicAlarmGoWrapper(clock_, task_runner_, delegate);
 }
 
-TestConnectionHelper::TestConnectionHelper(QuicClock* clock, QuicRandom* random_generator)
-  : clock_(clock),
-  random_generator_(random_generator) {
+TestConnectionHelper::TestConnectionHelper(void* task_runner, QuicClock* clock, QuicRandom* random_generator)
+  : task_runner_(task_runner),
+    clock_(clock),
+    random_generator_(random_generator) {
   }
 
 }   // namespace net

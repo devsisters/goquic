@@ -5,7 +5,11 @@ package goquic
 // #include <stddef.h>
 // #include "adaptor.h"
 import "C"
-import "unsafe"
+import (
+	"fmt"
+	"time"
+	"unsafe"
+)
 import "net"
 import "strings"
 
@@ -35,6 +39,7 @@ type QuicEncryptedPacket struct {
 type QuicDispatcher struct {
 	quic_dispatcher            unsafe.Pointer
 	quic_server_sessions       []*QuicServerSession
+	task_runner                *TaskRunner
 	create_quic_server_session func() DataStreamCreator
 }
 
@@ -57,6 +62,21 @@ type QuicServerSession struct {
 	quic_server_streams []*QuicSpdyServerStream
 	stream_creator      DataStreamCreator
 	remote_addr         *net.UDPAddr
+}
+
+type GoQuicAlarm struct {
+	deadline     int64
+	isCanceled   bool
+	invalidateCh chan bool
+	wrapper      unsafe.Pointer
+	clock        unsafe.Pointer
+	taskRunner   *TaskRunner
+	timer        *time.Timer
+}
+
+type TaskRunner struct {
+	AlarmChan chan *GoQuicAlarm
+	alarmList []*GoQuicAlarm
 }
 
 /*
@@ -161,12 +181,13 @@ func DeleteIPEndPoint(ip_endpoint IPEndPoint) {
 	C.delete_ip_end_point(ip_endpoint.ip_end_point)
 }
 
-func CreateQuicDispatcher(conn *net.UDPConn, create_quic_server_session func() DataStreamCreator) *QuicDispatcher {
+func CreateQuicDispatcher(conn *net.UDPConn, create_quic_server_session func() DataStreamCreator, taskRunner *TaskRunner) *QuicDispatcher {
 	dispatcher := &QuicDispatcher{
 		create_quic_server_session: create_quic_server_session,
+		task_runner:                taskRunner,
 	}
 
-	dispatcher.quic_dispatcher = C.create_quic_dispatcher(unsafe.Pointer(conn), unsafe.Pointer(dispatcher))
+	dispatcher.quic_dispatcher = C.create_quic_dispatcher(unsafe.Pointer(conn), unsafe.Pointer(dispatcher), unsafe.Pointer(taskRunner))
 	return dispatcher
 }
 
@@ -192,6 +213,69 @@ func CreateGoSession(dispatcher_c unsafe.Pointer, session_c unsafe.Pointer) unsa
 	dispatcher.quic_server_sessions = append(dispatcher.quic_server_sessions, session)
 
 	return unsafe.Pointer(session)
+}
+
+func (t *TaskRunner) RunAlarm(alarm *GoQuicAlarm) {
+	go func() {
+		if alarm.timer == nil {
+			return
+		}
+
+		//fmt.Println("@@@@@@@@@@@@@@@@@@@@@@ Timer start !", alarm.wrapper)
+
+		select {
+		//TODO (hodduc) alarm.timer.C will block infinitely if timer is resetted before deadline.
+		case <-alarm.timer.C:
+			if !alarm.isCanceled {
+				t.AlarmChan <- alarm // To keep thread-safety, callback should be called in the main message loop, not in seperated goroutine.
+			}
+		}
+	}()
+}
+
+func (t *TaskRunner) Register(alarm *GoQuicAlarm) {
+	t.alarmList = append(t.alarmList, alarm)
+}
+
+func (alarm *GoQuicAlarm) SetImpl(now int64) {
+	alarm.isCanceled = false
+
+	duration_i64 := alarm.deadline - now
+	if duration_i64 < 0 {
+		duration_i64 = 0
+	}
+
+	if alarm.timer != nil {
+		alarm.timer.Reset(time.Duration(duration_i64) * time.Microsecond)
+	} else {
+		alarm.timer = time.NewTimer(time.Duration(duration_i64) * time.Microsecond)
+		alarm.taskRunner.RunAlarm(alarm)
+	}
+
+	fmt.Println("@@@@@@@@@@@@@@@@@ SetImpl", alarm.wrapper, alarm.deadline, alarm.isCanceled, int64(C.clock_now(alarm.clock)), now)
+
+}
+
+func (alarm *GoQuicAlarm) CancelImpl(now int64) {
+	alarm.isCanceled = true
+
+	if alarm.timer != nil {
+		alarm.timer.Stop()
+		alarm.timer = nil
+	}
+	fmt.Println("@@@@@@@@@@@@@@@@@ CancelImpl", alarm.wrapper, alarm.deadline, alarm.isCanceled, int64(C.clock_now(alarm.clock)), now)
+}
+
+func (alarm *GoQuicAlarm) OnAlarm() {
+	fmt.Println("@@@@@@@@@@@@@@@@@ OnAlarm", alarm.wrapper, alarm.deadline, alarm.isCanceled, int64(C.clock_now(alarm.clock)))
+	if now := int64(C.clock_now(alarm.clock)); now < alarm.deadline {
+		alarm.SetImpl(now)
+		return
+	}
+
+	alarm.timer = nil
+	C.go_quic_alarm_fire(alarm.wrapper)
+	fmt.Println("@@@@@@@@@@@@@@@@@ OnAlarm Fire ended", alarm.wrapper, alarm.deadline, alarm.isCanceled, int64(C.clock_now(alarm.clock)))
 }
 
 //export WriteToUDP
@@ -243,6 +327,36 @@ func DataStreamProcessorProcessData(go_data_stream_processor_c unsafe.Pointer, d
 func DataStreamProcessorOnFinRead(go_data_stream_processor_c unsafe.Pointer) {
 	server_stream := (*QuicSpdyServerStream)(go_data_stream_processor_c)
 	server_stream.user_stream.OnFinRead(server_stream)
+}
+
+//export CreateGoQuicAlarm
+func CreateGoQuicAlarm(go_quic_alarm_go_wrapper_c unsafe.Pointer, clock_c unsafe.Pointer, task_runner_c unsafe.Pointer) unsafe.Pointer {
+	fmt.Println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$", clock_c)
+	alarm := &GoQuicAlarm{
+		wrapper:    go_quic_alarm_go_wrapper_c,
+		taskRunner: (*TaskRunner)(task_runner_c),
+		clock:      clock_c,
+		timer:      nil,
+		isCanceled: false,
+	}
+	alarm.taskRunner.Register(alarm) // TODO(hodduc): Should unregister somewhen
+
+	fmt.Println("@@@@@@@@@@@@@@@@@ CreateAlarm", alarm.wrapper, alarm.deadline, alarm.isCanceled, int64(C.clock_now(alarm.clock)))
+
+	return unsafe.Pointer(alarm)
+}
+
+//export GoQuicAlarmSetImpl
+func GoQuicAlarmSetImpl(alarm_c unsafe.Pointer, deadline int64, now int64) {
+	alarm := (*GoQuicAlarm)(alarm_c)
+	alarm.deadline = deadline
+	alarm.SetImpl(now)
+}
+
+//export GoQuicAlarmCancelImpl
+func GoQuicAlarmCancelImpl(alarm_c unsafe.Pointer, now int64) {
+	alarm := (*GoQuicAlarm)(alarm_c)
+	alarm.CancelImpl(now)
 }
 
 // Library Ends --------------------------------------------------------------

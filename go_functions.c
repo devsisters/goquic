@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 #include "_cgo_export.h"
 
@@ -23,4 +24,16 @@ uint32_t DataStreamProcessorProcessData_C(void* go_data_stream_processor, const 
 
 void DataStreamProcessorOnFinRead_C(void* go_data_stream_processor) {
     DataStreamProcessorOnFinRead(go_data_stream_processor);
+}
+
+void* CreateGoQuicAlarm_C(void* go_quic_alarm_go_wrapper, void* clock, void* task_runner) {
+    return CreateGoQuicAlarm(go_quic_alarm_go_wrapper, clock, task_runner);
+}
+
+void GoQuicAlarmSetImpl_C(void *go_quic_alarm, int64_t deadline, int64_t now) {
+    GoQuicAlarmSetImpl(go_quic_alarm, deadline, now);
+}
+
+void GoQuicAlarmCancelImpl_C(void *go_quic_alarm, int64_t now) {
+    GoQuicAlarmCancelImpl(go_quic_alarm, now);
 }

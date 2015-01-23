@@ -4,6 +4,8 @@
 #ifdef __cplusplus
 #include "go_quic_dispatcher.h"
 #include "go_quic_spdy_server_stream_go_wrapper.h"
+#include "go_quic_alarm_go_wrapper.h"
+#include "base/basictypes.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_protocol.h"
 #include "net/base/net_util.h"
@@ -20,6 +22,8 @@ typedef void IPEndPoint;
 typedef void GoQuicDispatcher;
 typedef void GoQuicSpdyServerStreamGoWrapper;
 typedef void MapStrStr;
+typedef void GoQuicAlarmGoWrapper;
+typedef void QuicClock;
 #endif
 void initialize();
 void set_log_level(int level);
@@ -41,7 +45,7 @@ void delete_ip_end_point(IPEndPoint *ip_end_point);
 size_t ip_endpoint_ip_address(IPEndPoint *ip_end_point, void *address_buf);
 uint16_t ip_endpoint_port(IPEndPoint *ip_end_point);
 
-GoQuicDispatcher *create_quic_dispatcher(void *go_udp_conn, void *go_quic_dispatcher);
+GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispatcher, void* task_runner);
 void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet);
 
 MapStrStr* initialize_map();
@@ -49,6 +53,8 @@ void insert_map(MapStrStr* map, char* key, char* value);
 
 void quic_spdy_server_stream_write_headers(GoQuicSpdyServerStreamGoWrapper* wrapper, MapStrStr* header, int is_empty_body);
 void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrapper* wrapper, char* buf, size_t bufsize);
+void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm);
+int64_t clock_now(QuicClock* clock);
 void test_quic();
 #ifdef __cplusplus
 }
