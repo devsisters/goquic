@@ -17,8 +17,10 @@ namespace net {
 
 GoQuicServerPacketWriter::GoQuicServerPacketWriter(
     void* go_udp_conn,
-    QuicBlockedWriterInterface* blocked_writer)
+    QuicBlockedWriterInterface* blocked_writer,
+    void* go_task_runner)
     : go_udp_conn_(go_udp_conn),
+      go_task_runner_(go_task_runner),
       blocked_writer_(blocked_writer),
       write_blocked_(false),
       weak_factory_(this) {
@@ -72,17 +74,18 @@ WriteResult GoQuicServerPacketWriter::WritePacket(
       new StringIOBuffer(std::string(buffer, buf_len)));
   DCHECK(!IsWriteBlocked());
 //  DCHECK(!callback_.is_null());
-/*  TODO(hodduc) See quic_time_wait_list_manager.cc:WriteToWire. It should call WritePacketWithCallback to hold callback, but it isn't now. We turn of this check temporarily. */
+/*  TODO(hodduc) See quic_time_wait_list_manager.cc:WriteToWire. It should call WritePacketWithCallback to hold callback, but it isn't now. We turn off this check temporarily. */
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
-    WriteToUDP_C(go_udp_conn_, (void *)(&peer_address), (void *)buffer, buf_len);
+    WriteToUDP_C(go_udp_conn_, (void *)(&peer_address), (void *)buffer, buf_len, (void *)this, go_task_runner_);
 
 /*    rv = socket_->SendTo(buf.get(),
                          static_cast<int>(buf_len),
                          peer_address,
                          base::Bind(&GoQuicServerPacketWriter::OnWriteComplete,
                                     weak_factory_.GetWeakPtr()));                                  TODO(hodduc) */
-    rv = static_cast<int>(buf_len);
+    rv = ERR_IO_PENDING;                      // TODO(hodduc)
+
     DVLOG(1) << "SENDTO:" << /*self_address << "->" << peer_address << */ ":" << buf.get();
   } else {
     rv = ERR_MSG_TOO_BIG;

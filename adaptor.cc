@@ -134,7 +134,7 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispat
       helper,
       go_quic_dispatcher);
 
-  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_udp_conn, dispatcher);
+  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_udp_conn, dispatcher, task_runner);
 
   dispatcher->Initialize(writer);
 
@@ -211,6 +211,10 @@ void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm) {
 
 int64_t clock_now(QuicClock* quic_clock) {
   return quic_clock->Now().Subtract(QuicTime::Zero()).ToMicroseconds();
+}
+
+void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv) {
+  cb->OnWriteComplete(rv);
 }
 
 /*

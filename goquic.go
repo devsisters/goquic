@@ -76,7 +76,13 @@ type GoQuicAlarm struct {
 
 type TaskRunner struct {
 	AlarmChan chan *GoQuicAlarm
+	WriteChan chan *WriteCallback
 	alarmList []*GoQuicAlarm
+}
+
+type WriteCallback struct {
+	rv                   int
+	server_packet_writer unsafe.Pointer
 }
 
 /*
@@ -233,8 +239,15 @@ func (t *TaskRunner) RunAlarm(alarm *GoQuicAlarm) {
 	}()
 }
 
-func (t *TaskRunner) Register(alarm *GoQuicAlarm) {
+func (t *TaskRunner) RegisterAlarm(alarm *GoQuicAlarm) {
 	t.alarmList = append(t.alarmList, alarm)
+}
+
+func (t *TaskRunner) CallWriteCallback(server_packet_writer_c unsafe.Pointer, rv int) {
+	t.WriteChan <- (&WriteCallback{
+		rv:                   rv,
+		server_packet_writer: server_packet_writer_c,
+	})
 }
 
 func (alarm *GoQuicAlarm) SetImpl(now int64) {
@@ -278,15 +291,24 @@ func (alarm *GoQuicAlarm) OnAlarm() {
 	fmt.Println("@@@@@@@@@@@@@@@@@ OnAlarm Fire ended", alarm.wrapper, alarm.deadline, alarm.isCanceled, int64(C.clock_now(alarm.clock)))
 }
 
+func (cb *WriteCallback) Callback() {
+	C.packet_writer_on_write_complete(cb.server_packet_writer, C.int(cb.rv))
+}
+
 //export WriteToUDP
-func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c unsafe.Pointer, length_c C.size_t) {
+func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c unsafe.Pointer, length_c C.size_t, server_packet_writer_c unsafe.Pointer, task_runner_c unsafe.Pointer) {
 	conn := (*net.UDPConn)(conn_c)
 	ip_endpoint := IPEndPoint{
 		ip_end_point: ip_endpoint_c,
 	}
 	peer_addr := ip_endpoint.UDPAddr()
 	buf := C.GoBytes(buffer_c, C.int(length_c))
-	conn.WriteToUDP(buf, peer_addr)
+	task_runner := (*TaskRunner)(task_runner_c)
+
+	go func() {
+		conn.WriteToUDP(buf, peer_addr)
+		task_runner.CallWriteCallback(server_packet_writer_c, len(buf))
+	}()
 	//fmt.Println("******************************************************************")
 	//fmt.Println(int(length_c), conn, ip_endpoint, peer_addr)
 }
@@ -339,7 +361,7 @@ func CreateGoQuicAlarm(go_quic_alarm_go_wrapper_c unsafe.Pointer, clock_c unsafe
 		timer:      nil,
 		isCanceled: false,
 	}
-	alarm.taskRunner.Register(alarm) // TODO(hodduc): Should unregister somewhen
+	alarm.taskRunner.RegisterAlarm(alarm) // TODO(hodduc): Should unregister somewhen
 
 	fmt.Println("@@@@@@@@@@@@@@@@@ CreateAlarm", alarm.wrapper, alarm.deadline, alarm.isCanceled, int64(C.clock_now(alarm.clock)))
 

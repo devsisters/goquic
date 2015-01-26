@@ -26,7 +26,8 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
   typedef base::Callback<void(WriteResult)> WriteCallback;
 
   GoQuicServerPacketWriter(void *go_udp_conn,
-      QuicBlockedWriterInterface* blocked_writer);
+      QuicBlockedWriterInterface* blocked_writer,
+      void* go_task_runner);
   ~GoQuicServerPacketWriter() override;
 
   // Use this method to write packets rather than WritePacket:
@@ -55,7 +56,9 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
 
  private:
   //UDPServerSocket* socket_;
-  void *go_udp_conn_;
+  void* go_udp_conn_;
+
+  void* go_task_runner_;
 
   // To be notified after every successful asynchronous write.
   QuicBlockedWriterInterface* blocked_writer_;

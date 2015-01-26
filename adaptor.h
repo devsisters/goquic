@@ -5,6 +5,7 @@
 #include "go_quic_dispatcher.h"
 #include "go_quic_spdy_server_stream_go_wrapper.h"
 #include "go_quic_alarm_go_wrapper.h"
+#include "go_quic_server_packet_writer.h"
 #include "base/basictypes.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_protocol.h"
@@ -24,6 +25,7 @@ typedef void GoQuicSpdyServerStreamGoWrapper;
 typedef void MapStrStr;
 typedef void GoQuicAlarmGoWrapper;
 typedef void QuicClock;
+typedef void GoQuicServerPacketWriter;
 #endif
 void initialize();
 void set_log_level(int level);
@@ -55,6 +57,7 @@ void quic_spdy_server_stream_write_headers(GoQuicSpdyServerStreamGoWrapper* wrap
 void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrapper* wrapper, char* buf, size_t bufsize);
 void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm);
 int64_t clock_now(QuicClock* clock);
+void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv);
 void test_quic();
 #ifdef __cplusplus
 }
