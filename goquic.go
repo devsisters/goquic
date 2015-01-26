@@ -276,7 +276,7 @@ func (alarm *GoQuicAlarm) CancelImpl(now int64) {
 	alarm.isCanceled = true
 
 	if alarm.timer != nil {
-		alarm.timer.Stop()
+		alarm.timer.Reset(0)
 		alarm.timer = nil
 	}
 }
