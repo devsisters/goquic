@@ -201,8 +201,8 @@ void quic_spdy_server_stream_write_headers(GoQuicSpdyServerStreamGoWrapper* wrap
   wrapper->WriteHeaders(*(SpdyHeaderBlock*)header, is_empty_body, nullptr);
 }
 
-void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrapper* wrapper, char* buf, size_t bufsize) {
-  wrapper->WriteOrBufferData_(StringPiece(buf, bufsize), true, nullptr);
+void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrapper* wrapper, char* buf, size_t bufsize, int fin) {
+  wrapper->WriteOrBufferData_(StringPiece(buf, bufsize), (fin != 0), nullptr);
 }
 
 void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm) {
