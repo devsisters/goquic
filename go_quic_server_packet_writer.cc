@@ -48,7 +48,9 @@ void GoQuicServerPacketWriter::OnWriteComplete(int rv) {
   DCHECK_NE(rv, ERR_IO_PENDING);
   write_blocked_ = false;
   WriteResult result(rv < 0 ? WRITE_STATUS_ERROR : WRITE_STATUS_OK, rv);
-  base::ResetAndReturn(&callback_).Run(result);
+  if (!callback_.is_null()) {
+    base::ResetAndReturn(&callback_).Run(result);
+  }
   blocked_writer_->OnCanWrite();
 }
 
