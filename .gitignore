@@ -1,4 +1,4 @@
 *.swp
 *.swo
-quic_test
 tags
+build/
