@@ -6,61 +6,55 @@ package goquic
 // #include "adaptor.h"
 import "C"
 import (
+	"net"
+	"strings"
 	"time"
 	"unsafe"
 )
-import "net"
-import "strings"
 
-// API Interfaces -------------------------------------------------------------
-//  -> For QuicSpdyServerStream
+// User API Interfaces --------------------------------------------------------
+//   (For QuicSpdyServerStream)
 type DataStreamProcessor interface {
 	ProcessData(writer *QuicSpdyServerStream, buffer []byte) int
 	OnFinRead(writer *QuicSpdyServerStream)
-	//ParseRequestHeaders()
 }
 
-//  -> For QuicServerSession
-
+//   (For QuicServerSession)
 type DataStreamCreator interface {
-	CreateIncomingDataStream(stream_id uint32) DataStreamProcessor
+	CreateIncomingDataStream(streamId uint32) DataStreamProcessor
 }
 
 // Go <-> C++ Intermediate objects --------------------------------------------
-type QuicConnection struct {
-	quic_connection unsafe.Pointer
-}
-
 type QuicEncryptedPacket struct {
-	encrypted_packet unsafe.Pointer
+	encryptedPacket unsafe.Pointer
 }
 
 type QuicDispatcher struct {
-	quic_dispatcher            unsafe.Pointer
-	quic_server_sessions       []*QuicServerSession
-	task_runner                *TaskRunner
-	create_quic_server_session func() DataStreamCreator
+	quicDispatcher          unsafe.Pointer
+	quicServerSessions      []*QuicServerSession
+	taskRunner              *TaskRunner
+	createQuicServerSession func() DataStreamCreator
 }
 
 type IPAddressNumber struct {
-	ip_address_number unsafe.Pointer
+	ipAddressNumber unsafe.Pointer
 }
 
 type IPEndPoint struct {
-	ip_end_point unsafe.Pointer
+	ipEndPoint unsafe.Pointer
 }
 
 type QuicSpdyServerStream struct {
-	user_stream DataStreamProcessor
-	wrapper     unsafe.Pointer
-	session     *QuicServerSession
+	userStream DataStreamProcessor
+	wrapper    unsafe.Pointer
+	session    *QuicServerSession
 }
 
 type QuicServerSession struct {
-	quic_server_session unsafe.Pointer
-	quic_server_streams []*QuicSpdyServerStream
-	stream_creator      DataStreamCreator
-	remote_addr         *net.UDPAddr
+	quicServerSession unsafe.Pointer
+	quicServerStreams []*QuicSpdyServerStream
+	streamCreator     DataStreamCreator
+	remoteAddr        *net.UDPAddr
 }
 
 type GoQuicAlarm struct {
@@ -80,42 +74,16 @@ type TaskRunner struct {
 }
 
 type WriteCallback struct {
-	rv                   int
-	server_packet_writer unsafe.Pointer
+	rv                 int
+	serverPacketWriter unsafe.Pointer
 }
 
-/*
-func CreateQuicConnection(connection_id int, ip_addr net.IP) QuicConnection {
-	ip := CreateIPAddressNumber(ip_addr)
-	defer DeleteIPAddressNumber(ip)
-	ip_endpoint := CreateIPEndPointC(ip, 80)
-	defer DeleteIPEndPoint(ip_endpoint)
-	ptr := C.create_quic_connection(C.int(connection_id), unsafe.Pointer(ip_endpoint.ip_end_point))
-
-	return QuicConnection{quic_connection: ptr}
-}
-
-func (c *QuicConnection) Version() int {
-	ver := C.quic_connection_version(c.quic_connection)
-	return int(ver)
-}
-
-func (c *QuicConnection) ProcessUdpPacket(self_address *net.UDPAddr, peer_address *net.UDPAddr, buffer []byte) {
-	packet := CreateQuicEncryptedPacket(buffer)
-	defer DeleteQuicEncryptedPacket(packet)
-	self_address_c := CreateIPEndPoint(self_address)
-	defer DeleteIPEndPoint(self_address_c)
-	peer_address_c := CreateIPEndPoint(peer_address)
-	defer DeleteIPEndPoint(peer_address_c)
-	C.quic_connection_process_udp_packet(c.quic_connection, self_address_c.ip_end_point, peer_address_c.ip_end_point, packet.encrypted_packet)
-}
-*/
-
+// functions -----------------------------------------------------------------_
 func (writer *QuicSpdyServerStream) WriteHeader(header map[string][]string, is_body_empty bool) {
 	header_c := C.initialize_map()
 	for key, values := range header {
 		value := strings.Join(values, ", ")
-		C.insert_map(header_c, C.CString(key), C.CString(value)) //(*C.char)(unsafe.Pointer(&key[0])), (*C.char)(unsafe.Pointer(&value[0])))
+		C.insert_map(header_c, C.CString(key), C.CString(value))
 	}
 
 	if is_body_empty {
@@ -149,59 +117,59 @@ func SetLogLevel(level int) {
 // Note that the buffer is NOT copied. So it is the callers responsibility to retain the buffer until it is processed by QuicConnection
 func CreateQuicEncryptedPacket(buffer []byte) QuicEncryptedPacket {
 	return QuicEncryptedPacket{
-		encrypted_packet: C.create_quic_encrypted_packet((*C.char)(unsafe.Pointer(&buffer[0])), C.size_t(len(buffer))),
+		encryptedPacket: C.create_quic_encrypted_packet((*C.char)(unsafe.Pointer(&buffer[0])), C.size_t(len(buffer))),
 	}
 }
 
 func DeleteQuicEncryptedPacket(packet QuicEncryptedPacket) {
-	C.delete_quic_encrypted_packet(packet.encrypted_packet)
+	C.delete_quic_encrypted_packet(packet.encryptedPacket)
 }
 
 func CreateIPAddressNumber(ip net.IP) IPAddressNumber {
 	return IPAddressNumber{
-		ip_address_number: (C.create_ip_address_number((*C.uchar)(unsafe.Pointer(&ip[0])), C.size_t(len(ip)))),
+		ipAddressNumber: (C.create_ip_address_number((*C.uchar)(unsafe.Pointer(&ip[0])), C.size_t(len(ip)))),
 	}
 }
 
-func DeleteIPAddressNumber(ip_address IPAddressNumber) {
-	C.delete_ip_address_number(ip_address.ip_address_number)
+func DeleteIPAddressNumber(ipAddr IPAddressNumber) {
+	C.delete_ip_address_number(ipAddr.ipAddressNumber)
 }
 
-func CreateIPEndPointC(ip_address IPAddressNumber, port uint16) IPEndPoint {
+func CreateIPEndPointC(ipAddr IPAddressNumber, port uint16) IPEndPoint {
 	return IPEndPoint{
-		ip_end_point: (C.create_ip_end_point(unsafe.Pointer(ip_address.ip_address_number), C.uint16_t(port))),
+		ipEndPoint: (C.create_ip_end_point(unsafe.Pointer(ipAddr.ipAddressNumber), C.uint16_t(port))),
 	}
 }
 
-func CreateIPEndPoint(ip_endpoint *net.UDPAddr) IPEndPoint {
-	ip_address_c := CreateIPAddressNumber(ip_endpoint.IP)
+func CreateIPEndPoint(udpAddr *net.UDPAddr) IPEndPoint {
+	ip_address_c := CreateIPAddressNumber(udpAddr.IP)
 	defer DeleteIPAddressNumber(ip_address_c)
 	return IPEndPoint{
-		ip_end_point: (C.create_ip_end_point(unsafe.Pointer(ip_address_c.ip_address_number), C.uint16_t(ip_endpoint.Port))),
+		ipEndPoint: (C.create_ip_end_point(unsafe.Pointer(ip_address_c.ipAddressNumber), C.uint16_t(udpAddr.Port))),
 	}
 }
 
-func (ip_endpoint *IPEndPoint) UDPAddr() *net.UDPAddr {
+func (endpoint *IPEndPoint) UDPAddr() *net.UDPAddr {
 	ip_buf := make([]byte, 16)
-	ip_sz := C.ip_endpoint_ip_address(ip_endpoint.ip_end_point, unsafe.Pointer(&ip_buf[0]))
-	port := int(C.ip_endpoint_port(ip_endpoint.ip_end_point))
+	ip_sz := C.ip_endpoint_ip_address(endpoint.ipEndPoint, unsafe.Pointer(&ip_buf[0]))
+	port := int(C.ip_endpoint_port(endpoint.ipEndPoint))
 	return &net.UDPAddr{
 		IP:   net.IP(ip_buf[:int(ip_sz)]),
 		Port: port,
 	}
 }
 
-func DeleteIPEndPoint(ip_endpoint IPEndPoint) {
-	C.delete_ip_end_point(ip_endpoint.ip_end_point)
+func DeleteIPEndPoint(endpoint IPEndPoint) {
+	C.delete_ip_end_point(endpoint.ipEndPoint)
 }
 
-func CreateQuicDispatcher(conn *net.UDPConn, create_quic_server_session func() DataStreamCreator, taskRunner *TaskRunner) *QuicDispatcher {
+func CreateQuicDispatcher(conn *net.UDPConn, createQuicServerSession func() DataStreamCreator, taskRunner *TaskRunner) *QuicDispatcher {
 	dispatcher := &QuicDispatcher{
-		create_quic_server_session: create_quic_server_session,
-		task_runner:                taskRunner,
+		createQuicServerSession: createQuicServerSession,
+		taskRunner:              taskRunner,
 	}
 
-	dispatcher.quic_dispatcher = C.create_quic_dispatcher(unsafe.Pointer(conn), unsafe.Pointer(dispatcher), unsafe.Pointer(taskRunner))
+	dispatcher.quicDispatcher = C.create_quic_dispatcher(unsafe.Pointer(conn), unsafe.Pointer(dispatcher), unsafe.Pointer(taskRunner))
 	return dispatcher
 }
 
@@ -212,21 +180,7 @@ func (d *QuicDispatcher) ProcessPacket(self_address *net.UDPAddr, peer_address *
 	defer DeleteIPEndPoint(self_address_c)
 	peer_address_c := CreateIPEndPoint(peer_address)
 	defer DeleteIPEndPoint(peer_address_c)
-	C.quic_dispatcher_process_packet(d.quic_dispatcher, self_address_c.ip_end_point, peer_address_c.ip_end_point, packet.encrypted_packet)
-}
-
-//export CreateGoSession
-func CreateGoSession(dispatcher_c unsafe.Pointer, session_c unsafe.Pointer) unsafe.Pointer {
-	dispatcher := (*QuicDispatcher)(dispatcher_c)
-	user_session := dispatcher.create_quic_server_session()
-	session := &QuicServerSession{
-		quic_server_session: session_c,
-		stream_creator:      user_session,
-		// TODO(serialx): Set remoteAddr here
-	}
-	dispatcher.quic_server_sessions = append(dispatcher.quic_server_sessions, session)
-
-	return unsafe.Pointer(session)
+	C.quic_dispatcher_process_packet(d.quicDispatcher, self_address_c.ipEndPoint, peer_address_c.ipEndPoint, packet.encryptedPacket)
 }
 
 func (t *TaskRunner) RunAlarm(alarm *GoQuicAlarm) {
@@ -251,8 +205,8 @@ func (t *TaskRunner) RegisterAlarm(alarm *GoQuicAlarm) {
 
 func (t *TaskRunner) CallWriteCallback(server_packet_writer_c unsafe.Pointer, rv int) {
 	t.WriteChan <- (&WriteCallback{
-		rv:                   rv,
-		server_packet_writer: server_packet_writer_c,
+		rv:                 rv,
+		serverPacketWriter: server_packet_writer_c,
 	})
 }
 
@@ -292,56 +246,72 @@ func (alarm *GoQuicAlarm) OnAlarm() {
 }
 
 func (cb *WriteCallback) Callback() {
-	C.packet_writer_on_write_complete(cb.server_packet_writer, C.int(cb.rv))
+	C.packet_writer_on_write_complete(cb.serverPacketWriter, C.int(cb.rv))
+}
+
+// Export to C ----------------------------------------------------------------
+
+//export CreateGoSession
+func CreateGoSession(dispatcher_c unsafe.Pointer, session_c unsafe.Pointer) unsafe.Pointer {
+	dispatcher := (*QuicDispatcher)(dispatcher_c)
+	userSession := dispatcher.createQuicServerSession()
+	session := &QuicServerSession{
+		quicServerSession: session_c,
+		streamCreator:     userSession,
+		// TODO(serialx): Set remoteAddr here
+	}
+	dispatcher.quicServerSessions = append(dispatcher.quicServerSessions, session) // TODO(hodduc): cleanup
+
+	return unsafe.Pointer(session)
 }
 
 //export WriteToUDP
 func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c unsafe.Pointer, length_c C.size_t, server_packet_writer_c unsafe.Pointer, task_runner_c unsafe.Pointer) {
 	conn := (*net.UDPConn)(conn_c)
-	ip_endpoint := IPEndPoint{
-		ip_end_point: ip_endpoint_c,
+	endpoint := IPEndPoint{
+		ipEndPoint: ip_endpoint_c,
 	}
-	peer_addr := ip_endpoint.UDPAddr()
+	peer_addr := endpoint.UDPAddr()
 
-	buf_orig := C.GoBytes(buffer_c, C.int(length_c))
-	buf := make([]byte, len(buf_orig))
-	copy(buf, buf_orig) // XXX(hodduc) buffer copy?
+	bufOrig := C.GoBytes(buffer_c, C.int(length_c))
+	buf := make([]byte, len(bufOrig))
+	copy(buf, bufOrig) // XXX(hodduc) buffer copy?
 
-	task_runner := (*TaskRunner)(task_runner_c)
+	taskRunner := (*TaskRunner)(task_runner_c)
 
 	go func() {
 		conn.WriteToUDP(buf, peer_addr)
-		task_runner.CallWriteCallback(server_packet_writer_c, len(buf))
+		taskRunner.CallWriteCallback(server_packet_writer_c, len(buf))
 	}()
 }
 
 //export CreateIncomingDataStream
 func CreateIncomingDataStream(session_c unsafe.Pointer, stream_id uint32, wrapper_c unsafe.Pointer) unsafe.Pointer {
 	session := (*QuicServerSession)(session_c)
-	user_stream := session.stream_creator.CreateIncomingDataStream(stream_id)
+	userStream := session.streamCreator.CreateIncomingDataStream(stream_id)
 
 	stream := &QuicSpdyServerStream{
-		user_stream: user_stream,
-		session:     session,
-		wrapper:     wrapper_c,
+		userStream: userStream,
+		session:    session,
+		wrapper:    wrapper_c,
 	}
 
-	session.quic_server_streams = append(session.quic_server_streams, stream)
+	session.quicServerStreams = append(session.quicServerStreams, stream) // TODO(hodduc): cleanup
 
 	return unsafe.Pointer(stream)
 }
 
 //export DataStreamProcessorProcessData
 func DataStreamProcessorProcessData(go_data_stream_processor_c unsafe.Pointer, data unsafe.Pointer, data_len uint32) uint32 {
-	server_stream := (*QuicSpdyServerStream)(go_data_stream_processor_c)
+	serverStream := (*QuicSpdyServerStream)(go_data_stream_processor_c)
 	buf := C.GoBytes(data, C.int(data_len))
-	return uint32(server_stream.user_stream.ProcessData(server_stream, buf))
+	return uint32(serverStream.userStream.ProcessData(serverStream, buf))
 }
 
 //export DataStreamProcessorOnFinRead
 func DataStreamProcessorOnFinRead(go_data_stream_processor_c unsafe.Pointer) {
-	server_stream := (*QuicSpdyServerStream)(go_data_stream_processor_c)
-	server_stream.user_stream.OnFinRead(server_stream)
+	serverStream := (*QuicSpdyServerStream)(go_data_stream_processor_c)
+	serverStream.userStream.OnFinRead(serverStream)
 }
 
 //export CreateGoQuicAlarm
