@@ -302,7 +302,11 @@ func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c un
 		ip_end_point: ip_endpoint_c,
 	}
 	peer_addr := ip_endpoint.UDPAddr()
-	buf := C.GoBytes(buffer_c, C.int(length_c))
+
+	buf_orig := C.GoBytes(buffer_c, C.int(length_c))
+	buf := make([]byte, len(buf_orig))
+	copy(buf, buf_orig) // XXX(hodduc) buffer copy?
+
 	task_runner := (*TaskRunner)(task_runner_c)
 
 	go func() {
