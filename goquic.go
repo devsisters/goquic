@@ -1,7 +1,7 @@
 package goquic
 
-// #cgo CXXFLAGS: -DUSE_OPENSSL=1 -Iquic_test/src/ -std=gnu++11
-// #cgo LDFLAGS: -pthread -Lquic_test/boringssl/build/crypto -Lquic_test/boringssl/build/ssl quic_test/build/libquic.a -lssl -lcrypto
+// #cgo CXXFLAGS: -DUSE_OPENSSL=1 -std=gnu++11
+// #cgo LDFLAGS: -pthread -lgoquic -lquic -lstdc++ -lm
 // #include <stddef.h>
 // #include "adaptor.h"
 import "C"
