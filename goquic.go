@@ -1,7 +1,8 @@
 package goquic
 
 // #cgo CXXFLAGS: -DUSE_OPENSSL=1 -std=gnu++11
-// #cgo LDFLAGS: -pthread -lgoquic -lquic -lstdc++ -lm
+// #cgo LDFLAGS: -pthread -lgoquic -lquic -lssl -lcrypto -lstdc++ -lm
+// #cgo darwin LDFLAGS: -framework CoreFoundation -framework Cocoa
 // #include <stddef.h>
 // #include "adaptor.h"
 import "C"
