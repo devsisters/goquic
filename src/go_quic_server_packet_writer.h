@@ -16,11 +16,8 @@
 namespace net {
 
 class QuicBlockedWriterInterface;
-class UDPServerSocket;
 struct WriteResult;
 
-// Chrome specific packet writer which uses a UDPServerSocket for writing
-// data.
 class GoQuicServerPacketWriter : public QuicPacketWriter {
  public:
   typedef base::Callback<void(WriteResult)> WriteCallback;
@@ -55,7 +52,6 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
                           const IPEndPoint& peer_address) override;
 
  private:
-  //UDPServerSocket* socket_;
   void* go_udp_conn_;
 
   void* go_task_runner_;

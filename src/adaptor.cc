@@ -31,23 +31,6 @@ using base::StringPiece;
 
 
 
-class GoQuicPacketWriterFactory : public QuicConnection::PacketWriterFactory {
- public:
-  explicit GoQuicPacketWriterFactory(QuicPacketWriter* writer) {
-//    ON_CALL(*this, Create(_)).WillByDefault(Return(writer));
-    writer_ = writer;
-  }
-  virtual ~GoQuicPacketWriterFactory() override {}
-
-  virtual QuicPacketWriter *Create(QuicConnection* connection) const override {
-    return writer_;
-  }
-
- private:
-  QuicPacketWriter *writer_;
-};
-
-
 static base::AtExitManager *exit_manager;
 void initialize() {
   int argc = 1;
