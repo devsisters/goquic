@@ -23,3 +23,7 @@ $(LIB_FILE): $(OBJ_FILES)
 build/%.o: src/%.cc
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+
+clean:
+	rm -f build/*
+	rm -f libgoquic.a
