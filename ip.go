@@ -17,6 +17,11 @@ type IPEndPoint struct {
 }
 
 func CreateIPAddressNumber(ip net.IP) IPAddressNumber {
+	ip4 := ip.To4()
+	if ip4 != nil {
+		ip = ip4
+	}
+
 	return IPAddressNumber{
 		ipAddressNumber: (C.create_ip_address_number((*C.uchar)(unsafe.Pointer(&ip[0])), C.size_t(len(ip)))),
 	}
