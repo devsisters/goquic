@@ -1,3 +1,5 @@
+#ifndef __ADAPTOR_H__
+#define __ADAPTOR_H__
 #include <stddef.h>
 #include <stdint.h>
 
@@ -62,3 +64,4 @@ void test_quic();
 #ifdef __cplusplus
 }
 #endif
+#endif  // __ADAPTOR_H__

@@ -1,0 +1,145 @@
+package goquic
+
+// #cgo CXXFLAGS: -DUSE_OPENSSL=1 -std=gnu++11
+// #cgo LDFLAGS: -pthread -lgoquic -lquic -lssl -lcrypto -lstdc++ -lm
+// #cgo darwin LDFLAGS: -framework CoreFoundation -framework Cocoa
+// #include <stddef.h>
+// #include "adaptor.h"
+// #include "adaptor_client.h"
+import "C"
+import (
+	"fmt"
+	"net"
+	"strings"
+	"time"
+	"unsafe"
+)
+
+type QuicConn interface { // implements net.Conn
+	Write(b []byte) (int, error)
+	Read(b []byte) (int, error)
+	Close() error
+	SetDeadline(t time.Time) error
+	SetReadDeadline(t time.Time) error
+	SetWriteDeadline(t time.Time) error
+	Socket() *net.UDPConn
+}
+
+// TODO(hodduc) multi-stream support ?
+type QuicClient struct {
+	addr                    *net.UDPAddr
+	conn                    QuicConn
+	session                 *QuicClientSession
+	Events                  chan bool
+	createQuicClientSession func() DataStreamCreator
+	taskRunner              *TaskRunner
+}
+
+type QuicClientSession struct {
+	quicClientSession unsafe.Pointer
+	quicClientStreams []*QuicClientStream
+	streamCreator     DataStreamCreator
+}
+
+type QuicClientStream struct {
+	userStream DataStreamProcessor
+	wrapper    unsafe.Pointer
+	session    *QuicClientSession
+}
+
+func CreateQuicClient(addr *net.UDPAddr, conn QuicConn, createQuicClientSession func() DataStreamCreator, taskRunner *TaskRunner) (qc *QuicClient, err error) {
+	return &QuicClient{
+		addr:                    addr,
+		conn:                    conn,
+		taskRunner:              taskRunner,
+		createQuicClientSession: createQuicClientSession,
+		Events:                  make(chan bool, 10000),
+	}, nil
+}
+
+func (qc *QuicClient) StartConnect() {
+	fmt.Println("START CONNECT", qc.addr.IP)
+	addr_c := CreateIPEndPoint(qc.addr)
+	fmt.Println(" -- START CONNECT", qc.addr.IP)
+	qc.session = &QuicClientSession{
+		quicClientSession: C.create_go_quic_client_session_and_initialize(unsafe.Pointer(qc.conn.Socket()), unsafe.Pointer(qc.taskRunner), addr_c.ipEndPoint),
+		streamCreator:     qc.createQuicClientSession(),
+	}
+}
+
+func (qc *QuicClient) Connect() bool {
+	qc.StartConnect()
+	for qc.EncryptionBeingEstablished() {
+		qc.WaitForEvents()
+	}
+	// TODO(hodduc) when to return false? does WaitForEvents fails?
+	return true
+}
+
+func (qc *QuicClient) EncryptionBeingEstablished() bool {
+	v := C.go_quic_client_encryption_being_established(qc.session.quicClientSession)
+	return (v != 0)
+}
+
+func (qc *QuicClient) WaitForEvents() bool {
+	_ = <-qc.Events
+
+	return int(C.quic_client_session_num_active_requests(qc.session.quicClientSession)) != 0
+}
+
+func (qc *QuicClient) CreateReliableQuicStream() *QuicClientStream {
+	stream := &QuicClientStream{
+		userStream: qc.session.streamCreator.CreateOutgoingDataStream(),
+		session:    qc.session,
+	}
+	stream.wrapper = C.quic_client_session_create_reliable_quic_stream(qc.session.quicClientSession, unsafe.Pointer(stream))
+
+	qc.session.quicClientStreams = append(qc.session.quicClientStreams, stream)
+	return stream
+}
+
+func (qc *QuicClient) ProcessPacket(self_address *net.UDPAddr, peer_address *net.UDPAddr, buffer []byte) {
+	packet := CreateQuicEncryptedPacket(buffer)
+	defer DeleteQuicEncryptedPacket(packet)
+	self_address_c := CreateIPEndPoint(self_address)
+	defer DeleteIPEndPoint(self_address_c)
+	peer_address_c := CreateIPEndPoint(peer_address)
+	defer DeleteIPEndPoint(peer_address_c)
+
+	C.go_quic_client_session_process_packet(qc.session.quicClientSession, self_address_c.ipEndPoint, peer_address_c.ipEndPoint, packet.encryptedPacket)
+}
+
+func (stream *QuicClientStream) WriteHeader(header map[string][]string, is_body_empty bool) {
+	header_c := C.initialize_map()
+	for key, values := range header {
+		value := strings.Join(values, ", ")
+		C.insert_map(header_c, C.CString(key), C.CString(value))
+	}
+
+	if is_body_empty {
+		C.quic_reliable_client_stream_write_headers(stream.wrapper, header_c, 1)
+	} else {
+		C.quic_reliable_client_stream_write_headers(stream.wrapper, header_c, 0)
+	}
+}
+
+func (stream *QuicClientStream) WriteOrBufferData(body []byte, fin bool) {
+	fin_int := C.int(0)
+	if fin {
+		fin_int = C.int(1)
+	}
+
+	if len(body) == 0 {
+		C.quic_reliable_client_stream_write_or_buffer_data(stream.wrapper, (*C.char)(unsafe.Pointer(nil)), C.size_t(0), fin_int)
+	} else {
+		C.quic_reliable_client_stream_write_or_buffer_data(stream.wrapper, (*C.char)(unsafe.Pointer(&body[0])), C.size_t(len(body)), fin_int)
+	}
+}
+
+func (writer *QuicClientStream) ProcessData(buf []byte) uint32 {
+	return uint32(writer.userStream.ProcessData(writer, buf))
+}
+
+func (writer *QuicClientStream) OnFinRead() {
+	writer.userStream.OnFinRead(writer)
+}

@@ -20,7 +20,7 @@ func SetLogLevel(level int) {
 }
 
 //export WriteToUDP
-func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c unsafe.Pointer, length_c C.size_t, server_packet_writer_c unsafe.Pointer, task_runner_c unsafe.Pointer) {
+func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c unsafe.Pointer, length_c C.size_t, server_packet_writer_c unsafe.Pointer, task_runner_c unsafe.Pointer, isSynchronous bool) {
 	conn := (*net.UDPConn)(conn_c)
 	endpoint := IPEndPoint{
 		ipEndPoint: ip_endpoint_c,
@@ -33,8 +33,13 @@ func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c un
 
 	taskRunner := (*TaskRunner)(task_runner_c)
 
-	go func() {
-		conn.WriteToUDP(buf, peer_addr)
-		taskRunner.CallWriteCallback(server_packet_writer_c, len(buf))
-	}()
+	if isSynchronous {
+		//		conn.WriteToUDP(buf, peer_addr)
+		conn.Write(buf)
+	} else {
+		go func() {
+			conn.WriteToUDP(buf, peer_addr)
+			taskRunner.CallWriteCallback(server_packet_writer_c, len(buf))
+		}()
+	}
 }

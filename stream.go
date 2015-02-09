@@ -10,13 +10,19 @@ import (
 
 //   (For QuicSpdyServerStream)
 type DataStreamProcessor interface {
-	ProcessData(writer *QuicSpdyServerStream, buffer []byte) int
-	OnFinRead(writer *QuicSpdyServerStream)
+	ProcessData(writer QuicStream, buffer []byte) int
+	OnFinRead(writer QuicStream)
 }
 
 //   (For QuicServerSession)
 type DataStreamCreator interface {
 	CreateIncomingDataStream(streamId uint32) DataStreamProcessor
+	CreateOutgoingDataStream() DataStreamProcessor
+}
+
+type QuicStream interface {
+	ProcessData(buf []byte) uint32
+	OnFinRead()
 }
 
 type QuicSpdyServerStream struct {
@@ -52,6 +58,14 @@ func (writer *QuicSpdyServerStream) WriteOrBufferData(body []byte, fin bool) {
 	}
 }
 
+func (writer *QuicSpdyServerStream) ProcessData(buf []byte) uint32 {
+	return uint32(writer.userStream.ProcessData(writer, buf))
+}
+
+func (writer *QuicSpdyServerStream) OnFinRead() {
+	writer.userStream.OnFinRead(writer)
+}
+
 //export CreateIncomingDataStream
 func CreateIncomingDataStream(session_c unsafe.Pointer, stream_id uint32, wrapper_c unsafe.Pointer) unsafe.Pointer {
 	session := (*QuicServerSession)(session_c)
@@ -69,14 +83,24 @@ func CreateIncomingDataStream(session_c unsafe.Pointer, stream_id uint32, wrappe
 }
 
 //export DataStreamProcessorProcessData
-func DataStreamProcessorProcessData(go_data_stream_processor_c unsafe.Pointer, data unsafe.Pointer, data_len uint32) uint32 {
-	serverStream := (*QuicSpdyServerStream)(go_data_stream_processor_c)
+func DataStreamProcessorProcessData(go_data_stream_processor_c unsafe.Pointer, data unsafe.Pointer, data_len uint32, isServer int) uint32 {
+	var stream QuicStream
+	if isServer > 0 {
+		stream = (*QuicSpdyServerStream)(go_data_stream_processor_c)
+	} else {
+		stream = (*QuicClientStream)(go_data_stream_processor_c)
+	}
 	buf := C.GoBytes(data, C.int(data_len))
-	return uint32(serverStream.userStream.ProcessData(serverStream, buf))
+	return stream.ProcessData(buf)
 }
 
 //export DataStreamProcessorOnFinRead
-func DataStreamProcessorOnFinRead(go_data_stream_processor_c unsafe.Pointer) {
-	serverStream := (*QuicSpdyServerStream)(go_data_stream_processor_c)
-	serverStream.userStream.OnFinRead(serverStream)
+func DataStreamProcessorOnFinRead(go_data_stream_processor_c unsafe.Pointer, isServer int) {
+	var stream QuicStream
+	if isServer > 0 {
+		stream = (*QuicSpdyServerStream)(go_data_stream_processor_c)
+	} else {
+		stream = (*QuicClientStream)(go_data_stream_processor_c)
+	}
+	stream.OnFinRead()
 }
