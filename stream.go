@@ -23,6 +23,8 @@ type DataStreamCreator interface {
 type QuicStream interface {
 	ProcessData(buf []byte) uint32
 	OnFinRead()
+	WriteHeader(header map[string][]string, is_body_empty bool)
+	WriteOrBufferData(body []byte, fin bool)
 }
 
 type QuicSpdyServerStream struct {
