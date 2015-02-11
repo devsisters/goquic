@@ -94,11 +94,6 @@ class GoQuicDispatcher::QuicFramerVisitor : public QuicFramerVisitorInterface {
     DCHECK(false);
     return false;
   }
-  bool OnCongestionFeedbackFrame(
-      const QuicCongestionFeedbackFrame& /*frame*/) override {
-    DCHECK(false);
-    return false;
-  }
   bool OnStopWaitingFrame(const QuicStopWaitingFrame& /*frame*/) override {
     DCHECK(false);
     return false;
@@ -206,6 +201,13 @@ void GoQuicDispatcher::ProcessPacket(const IPEndPoint& server_address,
 bool GoQuicDispatcher::OnUnauthenticatedPublicHeader(
     const QuicPacketPublicHeader& header) {
   QuicSession* session = nullptr;
+
+  // Port zero is only allowed for unidirectional UDP, so is disallowed by QUIC.
+  // Given that we can't even send a reply rejecting the packet, just black hole
+  // it.
+  if (current_client_address_.port() == 0) {
+    return false;
+  }
 
   QuicConnectionId connection_id = header.connection_id;
   SessionMap::iterator it = session_map_.find(connection_id);
