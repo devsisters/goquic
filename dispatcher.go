@@ -8,11 +8,16 @@ import (
 	"unsafe"
 )
 
+type ProofSource interface {
+	GetProof(addr *net.UDPAddr, hostname []byte, serverConfig []byte, ecdsaOk bool) (outCerts [][]byte, outSignature []byte)
+}
+
 type QuicDispatcher struct {
 	quicDispatcher          unsafe.Pointer
 	quicServerSessions      []*QuicServerSession
 	taskRunner              *TaskRunner
 	createQuicServerSession func() DataStreamCreator
+	proofSource             ProofSource
 }
 
 type QuicServerSession struct {
@@ -26,10 +31,11 @@ type QuicEncryptedPacket struct {
 	encryptedPacket unsafe.Pointer
 }
 
-func CreateQuicDispatcher(conn *net.UDPConn, createQuicServerSession func() DataStreamCreator, taskRunner *TaskRunner) *QuicDispatcher {
+func CreateQuicDispatcher(conn *net.UDPConn, createQuicServerSession func() DataStreamCreator, taskRunner *TaskRunner, proofSource ProofSource) *QuicDispatcher {
 	dispatcher := &QuicDispatcher{
 		createQuicServerSession: createQuicServerSession,
 		taskRunner:              taskRunner,
+		proofSource:             proofSource,
 	}
 
 	dispatcher.quicDispatcher = C.create_quic_dispatcher(unsafe.Pointer(conn), unsafe.Pointer(dispatcher), unsafe.Pointer(taskRunner))
@@ -58,6 +64,35 @@ func CreateGoSession(dispatcher_c unsafe.Pointer, session_c unsafe.Pointer) unsa
 	dispatcher.quicServerSessions = append(dispatcher.quicServerSessions, session) // TODO(hodduc): cleanup
 
 	return unsafe.Pointer(session)
+}
+
+//export GetProof
+func GetProof(dispatcher_c unsafe.Pointer, server_ip_c unsafe.Pointer, hostname_c unsafe.Pointer, hostname_sz_c C.size_t, server_config_c unsafe.Pointer, server_config_sz_c C.size_t, ecdsa_ok_c C.int, out_certs_c ***C.char, out_certs_sz_c *C.int, out_certs_item_sz_c **C.size_t, out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
+	dispatcher := (*QuicDispatcher)(dispatcher_c)
+	endpoint := IPEndPoint{
+		ipEndPoint: server_ip_c,
+	}
+	serverIp := endpoint.UDPAddr()
+	hostname := C.GoBytes(hostname_c, C.int(hostname_sz_c))
+	serverConfig := C.GoBytes(server_config_c, C.int(server_config_sz_c))
+	ecdsaOk := int(ecdsa_ok_c) > 0
+
+	certs, sig := dispatcher.proofSource.GetProof(serverIp, hostname, serverConfig, ecdsaOk)
+	certsCStrList := make([](*C.char), 0, 10)
+	certsCStrSzList := make([](C.size_t), 0, 10)
+	for _, outCert := range certs {
+		outCert_c := C.CString(string(outCert)) // Must free this C string in C code
+		certsCStrList = append(certsCStrList, outCert_c)
+		certsCStrSzList = append(certsCStrSzList, C.size_t(len(outCert)))
+	}
+
+	*out_certs_c = (**C.char)(unsafe.Pointer(&certsCStrList[0]))
+	*out_certs_sz_c = C.int(len(certsCStrList))
+	*out_certs_item_sz_c = (*C.size_t)(unsafe.Pointer(&certsCStrSzList[0]))
+	*out_signature_c = C.CString(string(sig)) // Must free C string
+	*out_signature_sz_c = C.size_t(len(sig))
+
+	return C.int(1)
 }
 
 // Note that the buffer is NOT copied. So it is the callers responsibility to retain the buffer until it is processed by QuicConnection

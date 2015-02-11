@@ -5,6 +5,7 @@
 #include "go_quic_server_packet_writer.h"
 #include "go_quic_spdy_server_stream_go_wrapper.h"
 #include "go_quic_alarm_go_wrapper.h"
+#include "go_proof_source.h"
 
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_clock.h"
@@ -78,13 +79,13 @@ void quic_connection_process_udp_packet(QuicConnection *conn, IPEndPoint *self_a
 }
 */
 
-GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispatcher, void* task_runner) {
+GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispatcher, void* go_task_runner) {
   QuicConfig* config = new QuicConfig();
   QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance());
   QuicClock* clock = new QuicClock();
   QuicRandom* random_generator = QuicRandom::GetInstance();
 
-  TestConnectionHelper *helper = new TestConnectionHelper(task_runner, clock, random_generator);
+  TestConnectionHelper *helper = new TestConnectionHelper(go_task_runner, clock, random_generator);
   QuicVersionVector *versions = new QuicVersionVector(net::QuicSupportedVersions());
 
   /* Initialize Configs ------------------------------------------------*/
@@ -104,6 +105,9 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispat
         kInitialSessionFlowControlWindow);
   }
 
+  GoProofSource *proofSource = new GoProofSource(go_quic_dispatcher);
+  crypto_config->SetProofSource(proofSource);
+
   scoped_ptr<CryptoHandshakeMessage> scfg(
       crypto_config->AddDefaultConfig(
           helper->GetRandomGenerator(), helper->GetClock(),
@@ -117,7 +121,7 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispat
       helper,
       go_quic_dispatcher);
 
-  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_udp_conn, dispatcher, task_runner);
+  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_udp_conn, dispatcher, go_task_runner);
 
   dispatcher->Initialize(writer);
 
