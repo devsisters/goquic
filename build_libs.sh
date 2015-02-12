@@ -41,11 +41,12 @@ ninja
 
 cd ../..
 
-cp libquic/build/boringssl/crypto/libcrypto.a libquic/build/boringssl/ssl/libssl.a libquic/build/libquic.a lib/darwin_amd64/
+TARGET_DIR=lib/${GOOS}_${GOARCH}/
+cp libquic/build/boringssl/crypto/libcrypto.a libquic/build/boringssl/ssl/libssl.a libquic/build/libquic.a $TARGET_DIR
 
 rm -fr build libgoquic.a
 
 make -j
-mv libgoquic.a lib/${GOOS}_${GOARCH}/
+mv libgoquic.a $TARGET_DIR
 
-echo lib/${GOOS}_${GOARCH}/ updated
+echo $TARGET_DIR updated
