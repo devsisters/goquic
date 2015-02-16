@@ -31,6 +31,11 @@ uint32 GoQuicReliableClientStream::ProcessData(const char* data,
   return ret_data_len;
 }
 
+void GoQuicReliableClientStream::OnClose() {
+  QuicDataStream::OnClose();
+  DataStreamProcessorOnClose_C(go_quic_client_stream_);
+}
+
 void GoQuicReliableClientStream::WriteOrBufferData_(
     base::StringPiece buffer, bool fin, net::QuicAckNotifier::DelegateInterface* delegate) {
   WriteOrBufferData(buffer, fin, delegate);

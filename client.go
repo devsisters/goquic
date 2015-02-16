@@ -1,145 +1,351 @@
 package goquic
 
-// #cgo CXXFLAGS: -DUSE_OPENSSL=1 -std=gnu++11
-// #cgo LDFLAGS: -pthread -lgoquic -lquic -lssl -lcrypto -lstdc++ -lm
-// #cgo darwin LDFLAGS: -framework CoreFoundation -framework Cocoa
-// #include <stddef.h>
-// #include "adaptor.h"
-// #include "adaptor_client.h"
-import "C"
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"strings"
 	"time"
-	"unsafe"
+
+	"github.com/oleiade/lane"
 )
 
-type QuicConn interface { // implements net.Conn
-	Write(b []byte) (int, error)
-	Read(b []byte) (int, error)
-	Close() error
-	SetDeadline(t time.Time) error
-	SetReadDeadline(t time.Time) error
-	SetWriteDeadline(t time.Time) error
-	Socket() *net.UDPConn
+type Conn struct {
+	addr       *net.UDPAddr
+	sock       *net.UDPConn
+	quicClient *QuicClient
+	readChan   chan udpData
+	buffer     bytes.Buffer
+	header     http.Header
 }
 
-// TODO(hodduc) multi-stream support ?
-type QuicClient struct {
-	addr                    *net.UDPAddr
-	conn                    QuicConn
-	session                 *QuicClientSession
-	Events                  chan bool
-	createQuicClientSession func() DataStreamCreator
-	taskRunner              *TaskRunner
+type Stream struct {
+	conn             *Conn
+	quicClientStream *QuicClientStream
+	pendingReads     *lane.Queue
+	buf              bytes.Buffer
+	header           http.Header
+	headerParsed     bool
+	// True writeFinished means that this stream is half-closed on our side
+	writeFinished bool
+	// True when connection is closed fully
+	closed bool
 }
 
-type QuicClientSession struct {
-	quicClientSession unsafe.Pointer
-	quicClientStreams []*QuicClientStream
-	streamCreator     DataStreamCreator
+type errorString struct {
+	s string
 }
 
-type QuicClientStream struct {
-	userStream DataStreamProcessor
-	wrapper    unsafe.Pointer
-	session    *QuicClientSession
+type udpData struct {
+	n    int
+	addr *net.UDPAddr
+	buf  []byte
 }
 
-func CreateQuicClient(addr *net.UDPAddr, conn QuicConn, createQuicClientSession func() DataStreamCreator, taskRunner *TaskRunner) (qc *QuicClient, err error) {
-	return &QuicClient{
-		addr:                    addr,
-		conn:                    conn,
-		taskRunner:              taskRunner,
-		createQuicClientSession: createQuicClientSession,
-		Events:                  make(chan bool, 10000),
-	}, nil
+func (e *errorString) Error() string {
+	return e.s
 }
 
-func (qc *QuicClient) StartConnect() {
-	fmt.Println("START CONNECT", qc.addr.IP)
-	addr_c := CreateIPEndPoint(qc.addr)
-	fmt.Println(" -- START CONNECT", qc.addr.IP)
-	qc.session = &QuicClientSession{
-		quicClientSession: C.create_go_quic_client_session_and_initialize(unsafe.Pointer(qc.conn.Socket()), unsafe.Pointer(qc.taskRunner), addr_c.ipEndPoint),
-		streamCreator:     qc.createQuicClientSession(),
+func (c *Conn) Close() (err error) {
+	return c.sock.Close()
+}
+
+func (c *Conn) SetDeadline(t time.Time) (err error) {
+	// TODO(hodduc) not supported yet
+	return &errorString{"Not Supported"}
+}
+
+func (c *Conn) SetReadDeadline(t time.Time) (err error) {
+	// TODO(hodduc) not supported yet
+	return &errorString{"Not Supported"}
+}
+
+func (c *Conn) SetWriteDeadline(t time.Time) (err error) {
+	// TODO(hodduc) not supported yet
+	return &errorString{"Not Supported"}
+}
+
+func (c *Conn) Socket() *net.UDPConn {
+	return c.sock
+}
+
+func (c *Conn) processEvents() {
+	c.processEventsWithDeadline(time.Time{})
+}
+
+func (c *Conn) processEventsWithDeadline(deadline time.Time) {
+	//c.sock.SetDeadline(time.Now().Add(60 * time.Second)) // TIMEOUT = 60 sec
+
+	localAddr, ok := c.sock.LocalAddr().(*net.UDPAddr)
+	if !ok {
+		panic("Cannot convert localAddr")
+	}
+
+	var timeoutCh <-chan time.Time
+	if !deadline.IsZero() {
+		timeoutCh = time.After(-time.Since(deadline))
+	} else {
+		timeoutCh = make(chan time.Time, 1)
+	}
+
+	fmt.Println("Select! ##################################")
+	select {
+	case result, ok := <-c.readChan:
+		fmt.Println("Read! ##################################", result.n)
+		if result.n == 0 {
+			break
+		}
+		if !ok {
+			break
+		}
+		c.quicClient.ProcessPacket(localAddr, result.addr, result.buf[:result.n])
+		fmt.Println("Read Done! ##################################", result.n)
+	case alarm, ok := <-c.quicClient.taskRunner.AlarmChan:
+		fmt.Println("Alarm! ##############################")
+		if !ok {
+			break
+		}
+		alarm.OnAlarm()
+	case <-timeoutCh:
+		fmt.Println("Timeout! ##############################")
+		// Break when past deadline
 	}
 }
 
-func (qc *QuicClient) Connect() bool {
+func (c *Conn) waitForEvents() bool {
+	c.processEvents()
+	return c.quicClient.session.NumActiveRequests() != 0
+}
+
+func (c *Conn) Connect() bool {
+	qc := c.quicClient
 	qc.StartConnect()
 	for qc.EncryptionBeingEstablished() {
-		qc.WaitForEvents()
+		// Busy loop waiting for connection to be established
+		// TODO(serialx): Maybe we can add some tiny deadlines instead of time.Now to decrease busy waiting?
+		c.waitForEvents()
 	}
-	// TODO(hodduc) when to return false? does WaitForEvents fails?
+	// TODO(hodduc) when to return false? does waitForEvents fails?
+	// TODO(serialx): Ask hodduc what the comment above means
 	return true
 }
 
-func (qc *QuicClient) EncryptionBeingEstablished() bool {
-	v := C.go_quic_client_encryption_being_established(qc.session.quicClientSession)
-	return (v != 0)
-}
-
-func (qc *QuicClient) WaitForEvents() bool {
-	_ = <-qc.Events
-
-	return int(C.quic_client_session_num_active_requests(qc.session.quicClientSession)) != 0
-}
-
-func (qc *QuicClient) CreateReliableQuicStream() *QuicClientStream {
-	stream := &QuicClientStream{
-		userStream: qc.session.streamCreator.CreateOutgoingDataStream(),
-		session:    qc.session,
+func (c *Conn) CreateStream() *Stream {
+	quicClientStream := c.quicClient.CreateReliableQuicStream()
+	stream := &Stream{
+		conn:             c,
+		quicClientStream: quicClientStream,
+		pendingReads:     lane.NewQueue(),
 	}
-	stream.wrapper = C.quic_client_session_create_reliable_quic_stream(qc.session.quicClientSession, unsafe.Pointer(stream))
-
-	qc.session.quicClientStreams = append(qc.session.quicClientStreams, stream)
+	quicClientStream.UserStream.(*ClientStreamImpl).stream = stream
 	return stream
 }
 
-func (qc *QuicClient) ProcessPacket(self_address *net.UDPAddr, peer_address *net.UDPAddr, buffer []byte) {
-	packet := CreateQuicEncryptedPacket(buffer)
-	defer DeleteQuicEncryptedPacket(packet)
-	self_address_c := CreateIPEndPoint(self_address)
-	defer DeleteIPEndPoint(self_address_c)
-	peer_address_c := CreateIPEndPoint(peer_address)
-	defer DeleteIPEndPoint(peer_address_c)
-
-	C.go_quic_client_session_process_packet(qc.session.quicClientSession, self_address_c.ipEndPoint, peer_address_c.ipEndPoint, packet.encryptedPacket)
-}
-
-func (stream *QuicClientStream) WriteHeader(header map[string][]string, is_body_empty bool) {
-	header_c := C.initialize_map()
-	for key, values := range header {
-		value := strings.Join(values, ", ")
-		C.insert_map(header_c, C.CString(key), C.CString(value))
-	}
-
-	if is_body_empty {
-		C.quic_reliable_client_stream_write_headers(stream.wrapper, header_c, 1)
-	} else {
-		C.quic_reliable_client_stream_write_headers(stream.wrapper, header_c, 0)
+func (s *Stream) WriteHeader(header http.Header, isBodyEmpty bool) {
+	s.quicClientStream.WriteHeader(header, isBodyEmpty)
+	if isBodyEmpty {
+		s.writeFinished = true
 	}
 }
 
-func (stream *QuicClientStream) WriteOrBufferData(body []byte, fin bool) {
-	fin_int := C.int(0)
-	if fin {
-		fin_int = C.int(1)
+func (s *Stream) Write(buf []byte) (int, error) {
+	if s.writeFinished {
+		return 0, errors.New("Write already finished")
+	}
+	s.quicClientStream.WriteOrBufferData(buf, false)
+	return len(buf), nil
+}
+
+func (s *Stream) FinWrite() error {
+	if s.writeFinished {
+		return errors.New("Write already finished")
+	}
+	s.quicClientStream.WriteOrBufferData(nil, true)
+	s.writeFinished = true
+	return nil
+}
+
+func (s *Stream) onFinRead() {
+	// XXX(serialx): This does not seem to be called at all?
+}
+
+func (s *Stream) onClose() {
+	s.closed = true
+	fmt.Println("*********************************************")
+	fmt.Println("*********************************************")
+	fmt.Println("**************  ON CLOSE     ****************")
+	fmt.Println("*********************************************")
+	fmt.Println("*********************************************")
+}
+
+func min(a, b int) int {
+	if a > b {
+		return b
+	}
+	return a
+}
+
+func (s *Stream) ReadHeader() (http.Header, error) {
+	if !s.headerParsed {
+		// Read until header parsing is successful
+		for {
+			fmt.Println("$$$$$$$$$$$$$$$$$$$$$$$$$$ ReadHeader")
+			for s.pendingReads.Empty() {
+				s.conn.waitForEvents()
+			}
+
+			_, err := s.buf.Write(s.pendingReads.Dequeue().([]byte))
+			if err != nil {
+				return nil, err
+			}
+
+			headerBuf := bytes.NewBuffer(s.buf.Bytes()) // Create a temporary buf just in case for parsing failure
+			header, err := ParseHeaders(headerBuf)
+			if err == nil { // If parsing successful
+				// XXX(serialx): Is it correct to assume headers are in proper packet frame boundary?
+				//               What if theres some parts of body left in headerBuf?
+				s.header = header
+				s.headerParsed = true
+				break
+			}
+		}
 	}
 
-	if len(body) == 0 {
-		C.quic_reliable_client_stream_write_or_buffer_data(stream.wrapper, (*C.char)(unsafe.Pointer(nil)), C.size_t(0), fin_int)
-	} else {
-		C.quic_reliable_client_stream_write_or_buffer_data(stream.wrapper, (*C.char)(unsafe.Pointer(&body[0])), C.size_t(len(body)), fin_int)
+	return s.header, nil
+}
+
+func (s *Stream) Read(buf []byte) (int, error) {
+	fmt.Println("$$$$$$$$$$$$$$$$$$$$$$$$ TRY READ", s.headerParsed)
+
+	s.conn.processEventsWithDeadline(time.Now()) // Process any pending events
+
+	// We made sure we've processed all events. So pendingReads.Empty() means that it is really empty
+	if s.closed && s.pendingReads.Empty() {
+		return 0, io.EOF
+	}
+
+	if !s.headerParsed {
+		s.ReadHeader()
+	}
+
+	// Wait for body
+	for s.pendingReads.Empty() {
+		s.conn.waitForEvents()
+	}
+
+	buffer := s.pendingReads.Dequeue().([]byte)
+	fmt.Println("$$$$$$$$$$$$$$$$$$$$$$$$ READ", buffer)
+	return copy(buf, buffer), nil // XXX(serialx): Must do buffering to respect io.Reader specs
+}
+
+func Dial(network, address string) (c *Conn, err error) {
+	i := strings.LastIndex(network, ":")
+	if i > 0 { // has colon
+		return nil, &errorString{"Not supported yet"} // TODO
+	}
+
+	ra, err := net.ResolveUDPAddr(network, address)
+	if err != nil {
+		return nil, err
+	}
+
+	return dialQuic(network, net.Addr(ra).(*net.UDPAddr))
+}
+
+type ClientSessionImpl struct {
+	conn *Conn
+}
+
+type ClientStreamImpl struct {
+	conn   *Conn
+	stream *Stream
+}
+
+func (c *ClientSessionImpl) CreateIncomingDataStream(stream_id uint32) DataStreamProcessor {
+	// NOT SUPPORTED
+	return nil
+}
+
+func (c *ClientSessionImpl) CreateOutgoingDataStream() DataStreamProcessor {
+	return &ClientStreamImpl{
+		conn: c.conn,
 	}
 }
 
-func (writer *QuicClientStream) ProcessData(buf []byte) uint32 {
-	return uint32(writer.userStream.ProcessData(writer, buf))
+func (cs *ClientStreamImpl) ProcessData(writer QuicStream, buffer []byte) int {
+	//cs.conn.buffer.Write(buffer)
+	fmt.Println("ProcessData #########################################################", buffer)
+	cs.stream.pendingReads.Enqueue(buffer)
+	return len(buffer)
 }
 
-func (writer *QuicClientStream) OnFinRead() {
-	writer.userStream.OnFinRead(writer)
+func (cs *ClientStreamImpl) OnFinRead(writer QuicStream) {
+	cs.stream.onFinRead()
+}
+
+func (cs *ClientStreamImpl) OnClose(writer QuicStream) {
+	cs.stream.onClose()
+}
+
+func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
+	switch network {
+	case "udp", "udp4", "udp6":
+	default:
+		return nil, &errorString{"Unknown network"}
+	}
+	if addr == nil {
+		return nil, &errorString{"Missing address"}
+	}
+
+	fmt.Println("Connect to ", network, " - ", addr)
+	conn_udp, err := net.DialUDP(network, nil, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	quic_conn := &Conn{
+		addr: addr,
+		sock: conn_udp,
+	}
+
+	createQuicClientSessionImpl := func() DataStreamCreator {
+		return &ClientSessionImpl{conn: quic_conn}
+	}
+
+	taskRunner := &TaskRunner{AlarmChan: make(chan *GoQuicAlarm)}
+	quicClient, err := CreateQuicClient(addr, quic_conn, createQuicClientSessionImpl, taskRunner)
+	if err != nil {
+		return nil, err
+	}
+	quic_conn.quicClient = quicClient
+
+	quic_conn.readChan = make(chan udpData)
+
+	go func() {
+		buf := make([]byte, 65535)
+		for {
+			fmt.Println("another reading start ***********************")
+			n, peer_addr, err := quic_conn.sock.ReadFromUDP(buf)
+			fmt.Println("another reading ***********************")
+			if err == nil {
+				buf_new := make([]byte, n)
+				copy(buf_new, buf) // XXX(hodduc) buffer copy?
+				quic_conn.readChan <- udpData{n: n, addr: peer_addr, buf: buf_new}
+				fmt.Println("********************************************", n)
+				//			} else if err.(net.Error).Timeout() {
+				//				continue
+			} else {
+				panic(err)
+			}
+		}
+	}()
+
+	if quic_conn.Connect() == false {
+		return nil, &errorString{"Cannot connect"}
+	}
+
+	return quic_conn, nil
 }

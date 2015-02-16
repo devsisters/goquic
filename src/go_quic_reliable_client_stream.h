@@ -25,6 +25,7 @@ class NET_EXPORT_PRIVATE GoQuicReliableClientStream : public QuicDataStream {
 
   // QuicDataStream
   uint32 ProcessData(const char* data, uint32 data_len) override;
+  void OnClose() override;
 
   // we need a proxy because ReliableQuicStream::WriteOrBufferData is protected.
   // we could access this function from C (go) side.

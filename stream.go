@@ -4,6 +4,7 @@ package goquic
 // #include "adaptor.h"
 import "C"
 import (
+	"net/http"
 	"strings"
 	"unsafe"
 )
@@ -12,6 +13,7 @@ import (
 type DataStreamProcessor interface {
 	ProcessData(writer QuicStream, buffer []byte) int
 	OnFinRead(writer QuicStream)
+	OnClose(writer QuicStream)
 }
 
 //   (For QuicServerSession)
@@ -23,7 +25,8 @@ type DataStreamCreator interface {
 type QuicStream interface {
 	ProcessData(buf []byte) uint32
 	OnFinRead()
-	WriteHeader(header map[string][]string, is_body_empty bool)
+	OnClose()
+	WriteHeader(header http.Header, is_body_empty bool)
 	WriteOrBufferData(body []byte, fin bool)
 }
 
@@ -33,7 +36,7 @@ type QuicSpdyServerStream struct {
 	session    *QuicServerSession
 }
 
-func (writer *QuicSpdyServerStream) WriteHeader(header map[string][]string, is_body_empty bool) {
+func (writer *QuicSpdyServerStream) WriteHeader(header http.Header, is_body_empty bool) {
 	header_c := C.initialize_map()
 	for key, values := range header {
 		value := strings.Join(values, ", ")
@@ -66,6 +69,10 @@ func (writer *QuicSpdyServerStream) ProcessData(buf []byte) uint32 {
 
 func (writer *QuicSpdyServerStream) OnFinRead() {
 	writer.userStream.OnFinRead(writer)
+}
+
+func (writer *QuicSpdyServerStream) OnClose() {
+	writer.userStream.OnClose(writer)
 }
 
 //export CreateIncomingDataStream
@@ -105,4 +112,15 @@ func DataStreamProcessorOnFinRead(go_data_stream_processor_c unsafe.Pointer, isS
 		stream = (*QuicClientStream)(go_data_stream_processor_c)
 	}
 	stream.OnFinRead()
+}
+
+//export DataStreamProcessorOnClose
+func DataStreamProcessorOnClose(go_data_stream_processor_c unsafe.Pointer, isServer int) {
+	var stream QuicStream
+	if isServer > 0 {
+		stream = (*QuicSpdyServerStream)(go_data_stream_processor_c)
+	} else {
+		stream = (*QuicClientStream)(go_data_stream_processor_c)
+	}
+	stream.OnClose()
 }

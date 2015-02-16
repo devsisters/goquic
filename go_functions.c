@@ -38,8 +38,8 @@ void DataStreamProcessorOnFinRead_C(void* go_data_stream_processor) {
     DataStreamProcessorOnFinRead(go_data_stream_processor, 1);
 }
 
-void DataStreamProcessorOnFinReadClient_C(void* go_data_stream_processor) {
-    DataStreamProcessorOnFinRead(go_data_stream_processor, 0);
+void DataStreamProcessorOnClose_C(void* go_data_stream_processor) {
+    DataStreamProcessorOnClose(go_data_stream_processor, 0);
 }
 
 void* CreateGoQuicAlarm_C(void* go_quic_alarm_go_wrapper, void* clock, void* task_runner) {
