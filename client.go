@@ -3,7 +3,6 @@ package goquic
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -91,10 +90,8 @@ func (c *Conn) processEventsWithDeadline(deadline time.Time) {
 		timeoutCh = make(chan time.Time, 1)
 	}
 
-	fmt.Println("Select! ##################################")
 	select {
 	case result, ok := <-c.readChan:
-		fmt.Println("Read! ##################################", result.n)
 		if result.n == 0 {
 			break
 		}
@@ -102,15 +99,12 @@ func (c *Conn) processEventsWithDeadline(deadline time.Time) {
 			break
 		}
 		c.quicClient.ProcessPacket(localAddr, result.addr, result.buf[:result.n])
-		fmt.Println("Read Done! ##################################", result.n)
 	case alarm, ok := <-c.quicClient.taskRunner.AlarmChan:
-		fmt.Println("Alarm! ##############################")
 		if !ok {
 			break
 		}
 		alarm.OnAlarm()
 	case <-timeoutCh:
-		fmt.Println("Timeout! ##############################")
 		// Break when past deadline
 	}
 }
@@ -174,11 +168,6 @@ func (s *Stream) onFinRead() {
 
 func (s *Stream) onClose() {
 	s.closed = true
-	fmt.Println("*********************************************")
-	fmt.Println("*********************************************")
-	fmt.Println("**************  ON CLOSE     ****************")
-	fmt.Println("*********************************************")
-	fmt.Println("*********************************************")
 }
 
 func min(a, b int) int {
@@ -192,7 +181,6 @@ func (s *Stream) ReadHeader() (http.Header, error) {
 	if !s.headerParsed {
 		// Read until header parsing is successful
 		for {
-			fmt.Println("$$$$$$$$$$$$$$$$$$$$$$$$$$ ReadHeader")
 			for s.pendingReads.Empty() {
 				s.conn.waitForEvents()
 			}
@@ -218,8 +206,6 @@ func (s *Stream) ReadHeader() (http.Header, error) {
 }
 
 func (s *Stream) Read(buf []byte) (int, error) {
-	fmt.Println("$$$$$$$$$$$$$$$$$$$$$$$$ TRY READ", s.headerParsed)
-
 	s.conn.processEventsWithDeadline(time.Now()) // Process any pending events
 
 	// We made sure we've processed all events. So pendingReads.Empty() means that it is really empty
@@ -237,7 +223,6 @@ func (s *Stream) Read(buf []byte) (int, error) {
 	}
 
 	buffer := s.pendingReads.Dequeue().([]byte)
-	fmt.Println("$$$$$$$$$$$$$$$$$$$$$$$$ READ", buffer)
 	return copy(buf, buffer), nil // XXX(serialx): Must do buffering to respect io.Reader specs
 }
 
@@ -277,7 +262,6 @@ func (c *ClientSessionImpl) CreateOutgoingDataStream() DataStreamProcessor {
 
 func (cs *ClientStreamImpl) ProcessData(writer QuicStream, buffer []byte) int {
 	//cs.conn.buffer.Write(buffer)
-	fmt.Println("ProcessData #########################################################", buffer)
 	cs.stream.pendingReads.Enqueue(buffer)
 	return len(buffer)
 }
@@ -300,7 +284,6 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 		return nil, &errorString{"Missing address"}
 	}
 
-	fmt.Println("Connect to ", network, " - ", addr)
 	conn_udp, err := net.DialUDP(network, nil, addr)
 	if err != nil {
 		return nil, err
@@ -327,14 +310,11 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 	go func() {
 		buf := make([]byte, 65535)
 		for {
-			fmt.Println("another reading start ***********************")
 			n, peer_addr, err := quic_conn.sock.ReadFromUDP(buf)
-			fmt.Println("another reading ***********************")
 			if err == nil {
 				buf_new := make([]byte, n)
 				copy(buf_new, buf) // XXX(hodduc) buffer copy?
 				quic_conn.readChan <- udpData{n: n, addr: peer_addr, buf: buf_new}
-				fmt.Println("********************************************", n)
 				//			} else if err.(net.Error).Timeout() {
 				//				continue
 			} else {
