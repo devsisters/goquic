@@ -24,7 +24,9 @@ type DataStreamCreator interface {
 
 type QuicStream interface {
 	ProcessData(buf []byte) uint32
+	// Called when there's nothing to read. Called on server XXX(serialx): Not called on client
 	OnFinRead()
+	// Called when the connection is closed. Called on client XXX(serialx): Not called on server
 	OnClose()
 	WriteHeader(header http.Header, is_body_empty bool)
 	WriteOrBufferData(body []byte, fin bool)
