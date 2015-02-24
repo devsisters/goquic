@@ -21,6 +21,8 @@ func main() {
 	goquic.Initialize()
 	goquic.SetLogLevel(logLevel)
 
+	flag.Parse()
+
 	conn, err := goquic.Dial("udp4", host)
 	if err != nil {
 		panic(err)
