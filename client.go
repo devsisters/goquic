@@ -122,8 +122,6 @@ func (c *Conn) Connect() bool {
 		// TODO(serialx): Maybe we can add some tiny deadlines instead of time.Now to decrease busy waiting?
 		c.waitForEvents()
 	}
-	// TODO(hodduc) when to return false? does waitForEvents fails?
-	// TODO(serialx): Ask hodduc what the comment above means
 	return true
 }
 
