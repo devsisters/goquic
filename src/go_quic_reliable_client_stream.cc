@@ -26,7 +26,6 @@ void GoQuicReliableClientStream::SetGoQuicClientStream(void* go_quic_client_stre
 
 uint32 GoQuicReliableClientStream::ProcessData(const char* data,
                                              uint32 data_len) {
-  // TODO call go function
   uint32_t ret_data_len = DataStreamProcessorProcessData_C(go_quic_client_stream_, data, data_len);
   return ret_data_len;
 }
