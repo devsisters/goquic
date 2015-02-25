@@ -60,7 +60,10 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_udp_c
         /* is_https= */ false,
         supported_versions));
 
-  session->InitializeSession(QuicServerId(), new QuicCryptoClientConfig());
+  session->InitializeSession(QuicServerId(
+        /* host */ std::string(),//server_address->ToStringWithoutPort(),
+        /* port */ server_address->port(),
+        /* is_https */ false), new QuicCryptoClientConfig());
   // TODO(hodduc) crypto config set
   // TODO(hodduc) cryptostreamfactory needed?
 
