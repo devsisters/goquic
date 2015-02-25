@@ -19,6 +19,8 @@ type Conn struct {
 	readChan   chan udpData
 	buffer     bytes.Buffer
 	header     http.Header
+	readQuitCh chan bool
+	closed     bool
 }
 
 type Stream struct {
@@ -49,7 +51,11 @@ func (e *errorString) Error() string {
 }
 
 func (c *Conn) Close() (err error) {
-	return c.sock.Close()
+	if !c.closed {
+		c.readQuitCh <- true
+		c.closed = true
+	}
+	return nil
 }
 
 func (c *Conn) SetDeadline(t time.Time) (err error) {
@@ -76,8 +82,6 @@ func (c *Conn) processEvents() {
 }
 
 func (c *Conn) processEventsWithDeadline(deadline time.Time) {
-	//c.sock.SetDeadline(time.Now().Add(60 * time.Second)) // TIMEOUT = 60 sec
-
 	localAddr, ok := c.sock.LocalAddr().(*net.UDPAddr)
 	if !ok {
 		panic("Cannot convert localAddr")
@@ -288,8 +292,9 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 	}
 
 	quic_conn := &Conn{
-		addr: addr,
-		sock: conn_udp,
+		addr:       addr,
+		sock:       conn_udp,
+		readQuitCh: make(chan bool, 1),
 	}
 
 	createQuicClientSessionImpl := func() DataStreamCreator {
@@ -307,18 +312,33 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 
 	go func() {
 		buf := make([]byte, 65535)
+
 		for {
+
+			quic_conn.sock.SetReadDeadline(time.Now().Add(time.Second)) // TIMEOUT = 1 sec
 			n, peer_addr, err := quic_conn.sock.ReadFromUDP(buf)
+
 			if err == nil {
 				buf_new := make([]byte, n)
 				copy(buf_new, buf) // XXX(hodduc) buffer copy?
-				quic_conn.readChan <- udpData{n: n, addr: peer_addr, buf: buf_new}
-				//			} else if err.(net.Error).Timeout() {
-				//				continue
+
+				select {
+				case <-quic_conn.readQuitCh:
+					break
+				case quic_conn.readChan <- udpData{n: n, addr: peer_addr, buf: buf_new}:
+				}
+			} else if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+				select {
+				case <-quic_conn.readQuitCh:
+					break
+				default:
+				}
 			} else {
 				panic(err)
 			}
 		}
+		quic_conn.sock.Close()
+		return
 	}()
 
 	if quic_conn.Connect() == false {
