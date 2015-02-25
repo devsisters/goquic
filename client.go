@@ -52,10 +52,11 @@ func (e *errorString) Error() string {
 
 func (c *Conn) Close() (err error) {
 	if !c.closed {
+		c.quicClient.SendConnectionClosePacket()
 		c.readQuitCh <- true
 		c.closed = true
 	}
-	return nil
+	return c.quicClient.Close()
 }
 
 func (c *Conn) SetDeadline(t time.Time) (err error) {
@@ -99,12 +100,12 @@ func (c *Conn) processEventsWithDeadline(deadline time.Time) {
 		if result.n == 0 {
 			break
 		}
-		if !ok {
+		if !ok || c.closed {
 			break
 		}
 		c.quicClient.ProcessPacket(localAddr, result.addr, result.buf[:result.n])
 	case alarm, ok := <-c.quicClient.taskRunner.AlarmChan:
-		if !ok {
+		if !ok || c.closed {
 			break
 		}
 		alarm.OnAlarm()
@@ -314,7 +315,6 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 		buf := make([]byte, 65535)
 
 		for {
-
 			quic_conn.sock.SetReadDeadline(time.Now().Add(time.Second)) // TIMEOUT = 1 sec
 			n, peer_addr, err := quic_conn.sock.ReadFromUDP(buf)
 

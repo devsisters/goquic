@@ -61,9 +61,8 @@ func CreateQuicClient(addr *net.UDPAddr, conn QuicConn, createQuicClientSession 
 func (qc *QuicClient) StartConnect() {
 	fmt.Println("START CONNECT", qc.addr.IP)
 	addr_c := CreateIPEndPoint(qc.addr)
-	fmt.Println(" -- START CONNECT", qc.addr.IP)
 	qc.session = &QuicClientSession{
-		quicClientSession: C.create_go_quic_client_session_and_initialize(unsafe.Pointer(qc.conn.Socket()), unsafe.Pointer(qc.taskRunner), addr_c.ipEndPoint),
+		quicClientSession: C.create_go_quic_client_session_and_initialize(unsafe.Pointer(qc.conn.Socket()), unsafe.Pointer(qc.taskRunner), addr_c.ipEndPoint), // Deleted on QuicClient.Close()
 		streamCreator:     qc.createQuicClientSession(),
 	}
 }
@@ -75,7 +74,7 @@ func (qc *QuicClient) EncryptionBeingEstablished() bool {
 
 func (qc *QuicClient) CreateReliableQuicStream() *QuicClientStream {
 	stream := &QuicClientStream{
-		UserStream: qc.session.streamCreator.CreateOutgoingDataStream(),
+		UserStream: qc.session.streamCreator.CreateOutgoingDataStream(), // Deleted on qc.Close()
 		session:    qc.session,
 	}
 	stream.wrapper = C.quic_client_session_create_reliable_quic_stream(qc.session.quicClientSession, unsafe.Pointer(stream))
@@ -93,6 +92,18 @@ func (qc *QuicClient) ProcessPacket(self_address *net.UDPAddr, peer_address *net
 	defer DeleteIPEndPoint(peer_address_c)
 
 	C.go_quic_client_session_process_packet(qc.session.quicClientSession, self_address_c.ipEndPoint, peer_address_c.ipEndPoint, packet.encryptedPacket)
+}
+
+func (qc *QuicClient) SendConnectionClosePacket() {
+	C.go_quic_client_session_connection_send_connection_close_packet(qc.session.quicClientSession)
+}
+
+func (qc *QuicClient) Close() (err error) {
+	if qc.session != nil {
+		C.delete_go_quic_client_session(unsafe.Pointer(qc.session.quicClientSession))
+		qc.session = nil
+	}
+	return nil
 }
 
 func (stream *QuicClientStream) WriteHeader(header http.Header, is_body_empty bool) {

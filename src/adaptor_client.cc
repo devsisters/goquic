@@ -35,40 +35,49 @@ class GoQuicPacketWriterFactory : public QuicConnection::PacketWriterFactory {
 
 
 GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_udp_conn, void* task_runner, IPEndPoint* server_address) {
-  QuicConfig* config = new QuicConfig();
-  QuicClock* clock = new QuicClock();
+  QuicConfig config = QuicConfig();
+  QuicClock* clock = new QuicClock(); // Deleted by scoped ptr of TestConnectionHelper
   QuicRandom* random_generator = QuicRandom::GetInstance();
 
-  TestConnectionHelper* helper = new TestConnectionHelper(task_runner, clock, random_generator);
+  TestConnectionHelper* helper = new TestConnectionHelper(task_runner, clock, random_generator); // Deleted by delete_go_quic_client_session()
 
-  QuicPacketWriter* writer = new GoQuicClientPacketWriter(go_udp_conn, task_runner);
+  QuicPacketWriter* writer = new GoQuicClientPacketWriter(go_udp_conn, task_runner); // Deleted by ~QuicConnection() because owns_writer is true
 
   QuicVersionVector supported_versions;
   for (size_t i = 0; i < arraysize(kSupportedQuicVersions); ++i) {
     supported_versions.push_back(kSupportedQuicVersions[i]);
   }
 
-  GoQuicClientSession* session = new GoQuicClientSession(
-      *config,
-      new QuicConnection(
-        QuicRandom::GetInstance()->RandUint64(),   // Connection ID
-        *server_address,
-        helper,
-        GoQuicPacketWriterFactory(writer),
-        /* owns_writer= */ false,
-        /* is_server= */ false,
-        /* is_https= */ false,
-        supported_versions));
+  // Deleted automatically by scoped ptr of GoQuicClientSession
+  QuicConnection* conn = new QuicConnection(
+      QuicRandom::GetInstance()->RandUint64(),   // Connection ID
+      *server_address,
+      helper,
+      GoQuicPacketWriterFactory(writer),
+      /* owns_writer= */ true,
+      /* is_server= */ false,
+      /* is_https= */ false,
+      supported_versions);
+
+  GoQuicClientSession* session = new GoQuicClientSession(config, conn, helper);  // Deleted by delete_go_quic_client_session()
+
+  // TODO(hodduc) "crypto_config" should be shared as global constant, but there is no clean way to do it now T.T
+  // Deleted by ~GoQuicClientSession()
+  QuicCryptoClientConfig* crypto_config = new QuicCryptoClientConfig();
 
   session->InitializeSession(QuicServerId(
         /* host */ std::string(),//server_address->ToStringWithoutPort(),
         /* port */ server_address->port(),
-        /* is_https */ false), new QuicCryptoClientConfig());
-  // TODO(hodduc) crypto config set
-  // TODO(hodduc) cryptostreamfactory needed?
+        /* is_https */ false), crypto_config);
 
   session->CryptoConnect();
   return session;
+}
+
+void delete_go_quic_client_session(GoQuicClientSession* go_quic_client_session) {
+  QuicConnectionHelperInterface* helper = go_quic_client_session->helper();
+  delete go_quic_client_session;
+  delete helper;
 }
 
 int go_quic_client_encryption_being_established(GoQuicClientSession* session) {
@@ -96,4 +105,8 @@ void quic_reliable_client_stream_write_or_buffer_data(GoQuicReliableClientStream
 
 void go_quic_client_session_process_packet(GoQuicClientSession *session, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet) {
   session->connection()->ProcessUdpPacket(*self_address, *peer_address, *packet);
+}
+
+void go_quic_client_session_connection_send_connection_close_packet(GoQuicClientSession* session) {
+  session->connection()->SendConnectionClosePacket(QUIC_PEER_GOING_AWAY, "");
 }

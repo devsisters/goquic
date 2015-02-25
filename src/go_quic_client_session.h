@@ -10,9 +10,12 @@
 
 namespace net {
 
+class QuicConnectionHelperInterface;
+class QuicCryptoClientConfig;
+
 class NET_EXPORT_PRIVATE GoQuicClientSession : public QuicClientSessionBase {
  public:
-   GoQuicClientSession(const QuicConfig& config, QuicConnection* connection);
+   GoQuicClientSession(const QuicConfig& config, QuicConnection* connection, QuicConnectionHelperInterface* helper);
    ~GoQuicClientSession() override;
 
    void InitializeSession(const QuicServerId& server_id,
@@ -30,10 +33,15 @@ class NET_EXPORT_PRIVATE GoQuicClientSession : public QuicClientSessionBase {
    // Performs a crypto handshake with the server
    void CryptoConnect();
 
+   QuicConnectionHelperInterface* helper() { return helper_; }
+
  protected:
   QuicDataStream* CreateIncomingDataStream(QuicStreamId id) override;
  private:
   scoped_ptr<QuicCryptoClientStream> crypto_stream_;
+  QuicConnectionHelperInterface* helper_;
+
+  QuicCryptoClientConfig* crypto_config_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicClientSession);
 };

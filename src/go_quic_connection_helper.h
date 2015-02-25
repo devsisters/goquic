@@ -20,7 +20,7 @@ class TestConnectionHelper : public QuicConnectionHelperInterface {
 
   private:
     void* task_runner_;
-    QuicClock* clock_;
+    scoped_ptr<QuicClock> clock_;
     QuicRandom* random_generator_;
 };
 
