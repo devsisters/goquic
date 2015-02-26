@@ -127,7 +127,7 @@ func (c *Conn) Connect() bool {
 		// TODO(serialx): Maybe we can add some tiny deadlines instead of time.Now to decrease busy waiting?
 		c.waitForEvents()
 	}
-	return true
+	return qc.IsConnected()
 }
 
 func (c *Conn) CreateStream() *Stream {

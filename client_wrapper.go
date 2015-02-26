@@ -8,7 +8,6 @@ package goquic
 // #include "adaptor_client.h"
 import "C"
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -59,7 +58,6 @@ func CreateQuicClient(addr *net.UDPAddr, conn QuicConn, createQuicClientSession 
 }
 
 func (qc *QuicClient) StartConnect() {
-	fmt.Println("START CONNECT", qc.addr.IP)
 	addr_c := CreateIPEndPoint(qc.addr)
 	qc.session = &QuicClientSession{
 		quicClientSession: C.create_go_quic_client_session_and_initialize(unsafe.Pointer(qc.conn.Socket()), unsafe.Pointer(qc.taskRunner), addr_c.ipEndPoint), // Deleted on QuicClient.Close()
@@ -69,6 +67,11 @@ func (qc *QuicClient) StartConnect() {
 
 func (qc *QuicClient) EncryptionBeingEstablished() bool {
 	v := C.go_quic_client_encryption_being_established(qc.session.quicClientSession)
+	return (v != 0)
+}
+
+func (qc *QuicClient) IsConnected() bool {
+	v := C.go_quic_client_session_is_connected(qc.session.quicClientSession)
 	return (v != 0)
 }
 

@@ -85,6 +85,10 @@ int go_quic_client_encryption_being_established(GoQuicClientSession* session) {
     session->connection()->connected()) ? 1 : 0;
 }
 
+int go_quic_client_session_is_connected(GoQuicClientSession* session) {
+  return session->connection()->connected() ? 1 : 0;
+}
+
 GoQuicReliableClientStream* quic_client_session_create_reliable_quic_stream(GoQuicClientSession* session, void* go_client_stream_) {
   GoQuicReliableClientStream* stream = session->CreateOutgoingDataStream();
   stream->SetGoQuicClientStream(go_client_stream_);

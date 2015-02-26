@@ -22,6 +22,7 @@ typedef void QuicEncryptedPacket;
 GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_udp_conn, void* task_runner, IPEndPoint* server_address);
 void delete_go_quic_client_session(GoQuicClientSession* go_quic_client_session);
 int go_quic_client_encryption_being_established(GoQuicClientSession* session);
+int go_quic_client_session_is_connected(GoQuicClientSession* session);
 GoQuicReliableClientStream* quic_client_session_create_reliable_quic_stream(GoQuicClientSession* session, void* go_quic_client_stream);
 int quic_client_session_num_active_requests(GoQuicClientSession* session);
 void quic_reliable_client_stream_write_headers(GoQuicReliableClientStream* stream, MapStrStr* header, int is_empty_body);
