@@ -28,6 +28,7 @@ func (alarm *GoQuicAlarm) SetImpl(now int64) {
 
 	if alarm.timer != nil {
 		alarm.timer.Reset(time.Duration(duration_i64) * time.Microsecond)
+		// If Reset fails (means OnAlarm already fired), SetImpl will called again automatically by OnAlarm() because alarm.deadline changed by caller. So no special handling is needed here.
 	} else {
 		alarm.timer = time.NewTimer(time.Duration(duration_i64) * time.Microsecond)
 		alarm.taskRunner.RunAlarm(alarm)

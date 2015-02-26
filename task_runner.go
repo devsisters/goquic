@@ -22,13 +22,14 @@ func (cb *WriteCallback) Callback() {
 
 func (t *TaskRunner) RunAlarm(alarm *GoQuicAlarm) {
 	go func() {
-		if alarm.timer == nil {
+		timer := alarm.timer // alarm.timer may be nil by race condition with CancelImpl() / OnAlarm()
+		if timer == nil {
 			return
 		}
 
 		select {
 		//TODO (hodduc) alarm.timer.C will block infinitely if timer is resetted before deadline.
-		case <-alarm.timer.C:
+		case <-timer.C:
 			if !alarm.isCanceled {
 				t.AlarmChan <- alarm // To keep thread-safety, callback should be called in the main message loop, not in seperated goroutine.
 			}
