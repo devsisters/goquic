@@ -37,7 +37,7 @@ void initialize() {
   int argc = 1;
   const char *argv[] = {"test", nullptr};
   base::CommandLine::Init(argc, argv);
-  exit_manager = new base::AtExitManager;
+  exit_manager = new base::AtExitManager;   // Deleted at the end
 }
 
 void set_log_level(int level) {
@@ -45,13 +45,17 @@ void set_log_level(int level) {
 }
 
 GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispatcher, void* go_task_runner) {
-  QuicConfig* config = new QuicConfig();
+  QuicConfig config;
+
+  // TODO(serialx, hodduc): What is "secret"?
+  // TODO(hodduc) "crypto_config" should be shared as global constant, but there is no clean way to do it now T.T
+  // Deleted by ~GoQuicDispatcher()
   QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance());
-  QuicClock* clock = new QuicClock();
+  QuicClock* clock = new QuicClock(); // Deleted by scoped ptr of TestConnectionHelper
   QuicRandom* random_generator = QuicRandom::GetInstance();
 
-  TestConnectionHelper *helper = new TestConnectionHelper(go_task_runner, clock, random_generator);
-  QuicVersionVector *versions = new QuicVersionVector(net::QuicSupportedVersions());
+  TestConnectionHelper *helper = new TestConnectionHelper(go_task_runner, clock, random_generator); // Deleted by delete_go_quic_dispatcher()
+  QuicVersionVector versions(net::QuicSupportedVersions());
 
   /* Initialize Configs ------------------------------------------------*/
 
@@ -59,18 +63,18 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispat
   // sensible value for a server: 1 MB for session, 64 KB for each stream.
   const uint32 kInitialSessionFlowControlWindow = 1 * 1024 * 1024;  // 1 MB
   const uint32 kInitialStreamFlowControlWindow = 64 * 1024;         // 64 KB
-  if (config->GetInitialStreamFlowControlWindowToSend() ==
+  if (config.GetInitialStreamFlowControlWindowToSend() ==
       kMinimumFlowControlSendWindow) {
-    config->SetInitialStreamFlowControlWindowToSend(
+    config.SetInitialStreamFlowControlWindowToSend(
         kInitialStreamFlowControlWindow);
   }
-  if (config->GetInitialSessionFlowControlWindowToSend() ==
+  if (config.GetInitialSessionFlowControlWindowToSend() ==
       kMinimumFlowControlSendWindow) {
-    config->SetInitialSessionFlowControlWindowToSend(
+    config.SetInitialSessionFlowControlWindowToSend(
         kInitialSessionFlowControlWindow);
   }
 
-  GoProofSource *proofSource = new GoProofSource(go_quic_dispatcher);
+  GoProofSource *proofSource = new GoProofSource(go_quic_dispatcher);  // Deleted by scoped ptr of QuicCryptoServerConfig
   crypto_config->SetProofSource(proofSource);
 
   scoped_ptr<CryptoHandshakeMessage> scfg(
@@ -79,18 +83,25 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispat
           QuicCryptoServerConfig::ConfigOptions()));
   /* Initialize Configs Ends ----------------------------------------*/
 
-  GoQuicDispatcher* dispatcher = new GoQuicDispatcher(*config,
+  // Deleted by delete_go_quic_dispatcher()
+  GoQuicDispatcher* dispatcher = new GoQuicDispatcher(config,
       *crypto_config,
-      *versions,
-      new GoQuicDispatcher::DefaultPacketWriterFactory(),
+      versions,
+      new GoQuicDispatcher::DefaultPacketWriterFactory(),  // Delete by scoped ptr of GoQuicDispatcher
       helper,
       go_quic_dispatcher);
 
-  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_udp_conn, dispatcher, go_task_runner);
+  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_udp_conn, dispatcher, go_task_runner); // Deleted by scoped ptr of GoQuicDispatcher
 
   dispatcher->Initialize(writer);
 
   return dispatcher;
+}
+
+void delete_go_quic_dispatcher(GoQuicDispatcher *dispatcher) {
+  QuicConnectionHelperInterface* helper = dispatcher->helper();
+  delete dispatcher;
+  delete helper;
 }
 
 void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet) {
@@ -98,7 +109,7 @@ void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, IPEndPoint *se
 }
 
 QuicEncryptedPacket *create_quic_encrypted_packet(char *buffer, size_t length) {
-  return new QuicEncryptedPacket(buffer, length, false /* Do not own the buffer, so will not free buffer in the destructor */);
+  return new QuicEncryptedPacket(buffer, length, false /* Do not own the buffer, so will not free buffer in the destructor */);  // Deleted by delete_quic_encrypted_packet()
 }
 
 void delete_quic_encrypted_packet(QuicEncryptedPacket *packet) {
@@ -106,7 +117,7 @@ void delete_quic_encrypted_packet(QuicEncryptedPacket *packet) {
 }
 
 IPAddressNumber *create_ip_address_number(unsigned char *ip_buf, size_t length) {
-  IPAddressNumber *ip = new IPAddressNumber;
+  IPAddressNumber *ip = new IPAddressNumber; // Deleted by delete_ip_address_number()
   for (size_t i = 0; i < length; i++) {
     ip->push_back(ip_buf[i]);
   }
@@ -118,7 +129,7 @@ void delete_ip_address_number(IPAddressNumber *ip) {
 }
 
 IPEndPoint *create_ip_end_point(IPAddressNumber *ip, uint16_t port) {
-  return new IPEndPoint(*ip, port);
+  return new IPEndPoint(*ip, port); // Deleted by delete_ip_end_point()
 }
 
 size_t ip_endpoint_ip_address(IPEndPoint *ip_end_point, void *address_buf) {
@@ -141,7 +152,11 @@ void delete_ip_end_point(IPEndPoint *ip_end_point) {
 
 // Utility wrappers for C++ std::map
 MapStrStr* initialize_map() {
-  return new MapStrStr;
+  return new MapStrStr; // Delete by delete_map
+}
+
+void delete_map(MapStrStr* map) {
+  delete map;
 }
 
 void insert_map(MapStrStr* map, char* key, char* value) {

@@ -176,6 +176,7 @@ GoQuicDispatcher::GoQuicDispatcher(const QuicConfig& config,
 GoQuicDispatcher::~GoQuicDispatcher() {
   STLDeleteValues(&session_map_);
   STLDeleteElements(&closed_session_list_);
+  delete &crypto_config_;
 }
 
 void GoQuicDispatcher::Initialize(GoQuicServerPacketWriter* writer) {

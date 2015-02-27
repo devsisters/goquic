@@ -50,6 +50,7 @@ func (writer *QuicSpdyServerStream) WriteHeader(header http.Header, is_body_empt
 	} else {
 		C.quic_spdy_server_stream_write_headers(writer.wrapper, header_c, 0)
 	}
+	C.delete_map(header_c)
 }
 
 func (writer *QuicSpdyServerStream) WriteOrBufferData(body []byte, fin bool) {

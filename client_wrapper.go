@@ -121,6 +121,7 @@ func (stream *QuicClientStream) WriteHeader(header http.Header, is_body_empty bo
 	} else {
 		C.quic_reliable_client_stream_write_headers(stream.wrapper, header_c, 0)
 	}
+	C.delete_map(header_c)
 }
 
 func (stream *QuicClientStream) WriteOrBufferData(body []byte, fin bool) {

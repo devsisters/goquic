@@ -127,6 +127,8 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
 
   const SessionMap& session_map() const { return session_map_; }
 
+  QuicConnectionHelperInterface* helper() { return helper_; }
+
  protected:
   virtual QuicSession* CreateQuicSession(QuicConnectionId connection_id,
                                          const IPEndPoint& server_address,
@@ -174,8 +176,6 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
 
   QuicFramer* framer() { return &framer_; }
 
-  QuicConnectionHelperInterface* helper() { return helper_; }
-
   GoQuicServerPacketWriter* writer() { return writer_.get(); }
 
   const QuicConnection::PacketWriterFactory& connection_writer_factory() {
@@ -211,7 +211,7 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
 
   bool HandlePacketForTimeWait(const QuicPacketPublicHeader& header);
 
-  const QuicConfig& config_;
+  const QuicConfig config_;
 
   const QuicCryptoServerConfig& crypto_config_;
 
