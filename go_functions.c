@@ -53,3 +53,7 @@ void GoQuicAlarmSetImpl_C(void *go_quic_alarm, int64_t deadline, int64_t now) {
 void GoQuicAlarmCancelImpl_C(void *go_quic_alarm, int64_t now) {
     GoQuicAlarmCancelImpl(go_quic_alarm, now);
 }
+
+void GoQuicAlarmDestroy_C(void *go_quic_alarm) {
+    GoQuicAlarmDestroy(go_quic_alarm);
+}

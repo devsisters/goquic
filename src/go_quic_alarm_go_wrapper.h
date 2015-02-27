@@ -4,6 +4,7 @@
 #include "net/quic/quic_clock.h"
 #include "net/quic/quic_alarm.h"
 #include "base/basictypes.h"
+#include "base/logging.h"
 
 namespace net {
 
@@ -15,6 +16,11 @@ class GoQuicAlarmGoWrapper : public QuicAlarm {
       : QuicAlarm(delegate),
         clock_(clock),
         go_quic_alarm_(CreateGoQuicAlarm_C(this, clock, task_runner)) {}
+
+    virtual ~GoQuicAlarmGoWrapper() {
+      // Notify go object that we are destroyed
+      GoQuicAlarmDestroy_C(go_quic_alarm_);
+    }
 
     // Should be called by gowrapper only
     void Fire_() {

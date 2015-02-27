@@ -10,6 +10,7 @@ import (
 
 type GoQuicAlarm struct {
 	deadline     int64
+	isDestroyed  bool
 	isCanceled   bool
 	invalidateCh chan bool
 	wrapper      unsafe.Pointer
@@ -19,6 +20,9 @@ type GoQuicAlarm struct {
 }
 
 func (alarm *GoQuicAlarm) SetImpl(now int64) {
+	if alarm.isDestroyed {
+		return
+	}
 	alarm.isCanceled = false
 
 	duration_i64 := alarm.deadline - now
@@ -35,6 +39,12 @@ func (alarm *GoQuicAlarm) SetImpl(now int64) {
 	}
 }
 
+// Called by C++ side when the C++ wrapper object is destoryed
+func (alarm *GoQuicAlarm) Destroy() {
+	alarm.isDestroyed = true
+	alarm.CancelImpl(0)
+}
+
 func (alarm *GoQuicAlarm) CancelImpl(now int64) {
 	alarm.isCanceled = true
 
@@ -47,6 +57,11 @@ func (alarm *GoQuicAlarm) CancelImpl(now int64) {
 func (alarm *GoQuicAlarm) OnAlarm() {
 	if now := int64(C.clock_now(alarm.clock)); now < alarm.deadline {
 		alarm.SetImpl(now)
+		return
+	}
+
+	// There can be race condition between QuicAlarm destruction and OnAlarm callback. So this check is needed
+	if alarm.isCanceled {
 		return
 	}
 
@@ -79,4 +94,10 @@ func GoQuicAlarmSetImpl(alarm_c unsafe.Pointer, deadline int64, now int64) {
 func GoQuicAlarmCancelImpl(alarm_c unsafe.Pointer, now int64) {
 	alarm := (*GoQuicAlarm)(alarm_c)
 	alarm.CancelImpl(now)
+}
+
+//export GoQuicAlarmDestroy
+func GoQuicAlarmDestroy(alarm_c unsafe.Pointer) {
+	alarm := (*GoQuicAlarm)(alarm_c)
+	alarm.Destroy()
 }

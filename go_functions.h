@@ -17,6 +17,7 @@ void DataStreamProcessorOnClose_C(void* go_data_stream_processor);
 void* CreateGoQuicAlarm_C(void* go_quic_alarm_go_wrapper, void* clock, void* go_task_runner);
 void GoQuicAlarmSetImpl_C(void* go_quic_alarm, int64_t deadline, int64_t now);
 void GoQuicAlarmCancelImpl_C(void* go_quic_alarm, int64_t now);
+void GoQuicAlarmDestroy_C(void *go_quic_alarm);
 #ifdef __cplusplus
 }
 #endif
