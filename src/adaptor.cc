@@ -44,41 +44,6 @@ void set_log_level(int level) {
   logging::SetMinLogLevel(level);
 }
 
-/*
-void *create_quic_connection(int connection_id, IPEndPoint *ip_endpoint) {
-  std::cout << "Hello world!" << std::endl;
-
-  //TestConnectionHelper helper_ = new TestConnectionHelper(&clock_, &random_generator_);
-  //GoQuicPacketWriter writer_ = new GoQuicPacketWriter(version(), &clock_);
-  //NiceQuic<QuicPacketWriterFactory> factory_;
-
-  //QuicConnection* conn = new QuicConnection(connection_id, IPEndPoint(), helper_.get(), factory_, true, true, true, version());
-
-  //
-  QuicClock clock_;
-  QuicRandom* random_generator_ = QuicRandom::GetInstance();
-
-  TestConnectionHelper *helper = new TestConnectionHelper(&clock_, random_generator_);
-  GoQuicPacketWriter *writer = new GoQuicPacketWriter(&clock_);
-  QuicVersionVector supported_versions;
-  for (size_t i = 0; i < arraysize(kSupportedQuicVersions); ++i) {
-    supported_versions.push_back(kSupportedQuicVersions[i]);
-  }
-  GoQuicPacketWriterFactory factory(writer);
-
-  QuicConnection* conn = new QuicConnection(connection_id, *ip_endpoint, helper, factory, true, true, true, supported_versions); 
-  return conn;
-}
-
-int quic_connection_version(QuicConnection *conn) {
-  return conn->version();
-}
-
-void quic_connection_process_udp_packet(QuicConnection *conn, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet) {
-  conn->ProcessUdpPacket(*self_address, *peer_address, *packet);
-}
-*/
-
 GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispatcher, void* go_task_runner) {
   QuicConfig* config = new QuicConfig();
   QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance());
@@ -203,42 +168,3 @@ int64_t clock_now(QuicClock* quic_clock) {
 void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv) {
   cb->OnWriteComplete(rv);
 }
-
-/*
-void test_quic() {
-  std::cout << "Hello world!" << std::endl;
-
-  //TestConnectionHelper helper_ = new TestConnectionHelper(&clock_, &random_generator_);
-  //GoQuicPacketWriter writer_ = new GoQuicPacketWriter(version(), &clock_);
-  //NiceQuic<QuicPacketWriterFactory> factory_;
-
-  //QuicConnection* conn = new QuicConnection(connection_id, IPEndPoint(), helper_.get(), factory_, true, true, true, version());
-
-  //
-  QuicConnectionId connection_id = 42;
-  QuicClock clock_;
-  QuicRandom* random_generator_ = QuicRandom::GetInstance();
-
-  TestConnectionHelper *helper = new TestConnectionHelper(&clock_, random_generator_);
-  GoQuicPacketWriter *writer = new GoQuicPacketWriter(&clock_);
-  QuicVersionVector supported_versions;
-  for (size_t i = 0; i < arraysize(kSupportedQuicVersions); ++i) {
-    supported_versions.push_back(kSupportedQuicVersions[i]);
-  }
-  GoQuicPacketWriterFactory factory(writer);
-
-  QuicConnection* conn = new QuicConnection(connection_id, IPEndPoint(), helper, factory, true, true, true, supported_versions); 
-
-  QuicPublicResetPacket header;
-  QuicFramer framer_(QuicSupportedVersions(), QuicTime::Zero(), true);
-  header.public_header.connection_id = 42;
-  header.public_header.reset_flag = true;
-  header.public_header.version_flag = false;
-  header.rejected_sequence_number = 10101;
-  scoped_ptr<QuicEncryptedPacket> packet(
-      framer_.BuildPublicResetPacket(header));
-  conn->ProcessUdpPacket(IPEndPoint(), IPEndPoint(), *packet);
-
-  std::cout << conn << std::endl;
-}
-*/
