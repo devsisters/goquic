@@ -18,6 +18,10 @@ void* CreateGoSession_C(void* go_quic_dispatcher, void* quic_server_session) {
     return CreateGoSession(go_quic_dispatcher, quic_server_session);
 }
 
+void* DeleteGoSession_C(void* go_quic_dispatcher, void* go_quic_server_session) {
+    DeleteGoSession(go_quic_dispatcher, go_quic_server_session);
+}
+
 int GetProof_C(void* go_quic_dispatcher, void* server_ip, char* hostname, size_t hostname_sz, char* server_config, size_t server_config_sz, int ecdsa_ok, char ***out_certs, int *out_certs_sz, size_t **out_certs_item_sz, char **out_signature, size_t *out_signature_sz) {
     return GetProof(go_quic_dispatcher, server_ip, hostname, hostname_sz, server_config, server_config_sz, ecdsa_ok, out_certs, out_certs_sz, out_certs_item_sz, out_signature, out_signature_sz);
 }

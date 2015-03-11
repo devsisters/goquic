@@ -76,6 +76,8 @@ func (writer *QuicSpdyServerStream) OnFinRead() {
 
 func (writer *QuicSpdyServerStream) OnClose() {
 	writer.userStream.OnClose(writer)
+	delete(writer.session.quicServerStreams, writer)
+
 }
 
 //export CreateIncomingDataStream
@@ -89,7 +91,8 @@ func CreateIncomingDataStream(session_c unsafe.Pointer, stream_id uint32, wrappe
 		wrapper:    wrapper_c,
 	}
 
-	session.quicServerStreams = append(session.quicServerStreams, stream) // TODO(hodduc): cleanup
+	// This is to prevent garbage collection. This is cleaned up on QuicSpdyServerStream.OnClose()
+	session.quicServerStreams[stream] = true
 
 	return unsafe.Pointer(stream)
 }

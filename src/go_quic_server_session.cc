@@ -23,7 +23,9 @@ GoQuicServerSession::GoQuicServerSession(const QuicConfig& config,
       last_scup_time_(QuicTime::Zero()),
       last_scup_sequence_number_(0) {}
 
-GoQuicServerSession::~GoQuicServerSession() {}
+GoQuicServerSession::~GoQuicServerSession() {
+  DeleteGoSession_C(go_quic_dispatcher_, go_session_);
+}
 
 void GoQuicServerSession::InitializeSession(
     const QuicCryptoServerConfig& crypto_config) {

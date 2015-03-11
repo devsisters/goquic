@@ -77,8 +77,13 @@ class GoQuicServerSession : public QuicSession {
     serving_region_ = serving_region;
   }
 
-  void SetGoSession(void* go_session) {
+  void SetGoSession(void* go_quic_dispatcher, void* go_session) {
+    go_quic_dispatcher_ = go_quic_dispatcher;
     go_session_ = go_session;
+  }
+
+  void* GetGoSession() {
+    return go_session_;
   }
 
  protected:
@@ -115,6 +120,7 @@ class GoQuicServerSession : public QuicSession {
   int64 last_scup_sequence_number_;
 
   void *go_session_;
+  void *go_quic_dispatcher_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicServerSession);
 };

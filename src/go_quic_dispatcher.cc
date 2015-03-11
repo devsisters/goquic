@@ -365,7 +365,7 @@ QuicSession* GoQuicDispatcher::CreateQuicSession(
       CreateQuicConnection(connection_id, server_address, client_address),
       this);
 
-  session->SetGoSession(CreateGoSession_C(go_quic_dispatcher_, session));
+  session->SetGoSession(go_quic_dispatcher_, CreateGoSession_C(go_quic_dispatcher_, session));
   session->InitializeSession(crypto_config_);
   return session;
 }

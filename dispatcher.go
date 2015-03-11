@@ -14,7 +14,7 @@ type ProofSource interface {
 
 type QuicDispatcher struct {
 	quicDispatcher          unsafe.Pointer
-	quicServerSessions      []*QuicServerSession
+	quicServerSessions      map[*QuicServerSession]bool
 	taskRunner              *TaskRunner
 	createQuicServerSession func() DataStreamCreator
 	proofSource             ProofSource
@@ -22,7 +22,7 @@ type QuicDispatcher struct {
 
 type QuicServerSession struct {
 	quicServerSession unsafe.Pointer
-	quicServerStreams []*QuicSpdyServerStream
+	quicServerStreams map[*QuicSpdyServerStream]bool
 	streamCreator     DataStreamCreator
 	remoteAddr        *net.UDPAddr
 }
@@ -33,8 +33,9 @@ type QuicEncryptedPacket struct {
 
 func CreateQuicDispatcher(conn *net.UDPConn, createQuicServerSession func() DataStreamCreator, taskRunner *TaskRunner, proofSource ProofSource) *QuicDispatcher {
 	dispatcher := &QuicDispatcher{
-		createQuicServerSession: createQuicServerSession,
+		quicServerSessions:      make(map[*QuicServerSession]bool),
 		taskRunner:              taskRunner,
+		createQuicServerSession: createQuicServerSession,
 		proofSource:             proofSource,
 	}
 
@@ -58,12 +59,22 @@ func CreateGoSession(dispatcher_c unsafe.Pointer, session_c unsafe.Pointer) unsa
 	userSession := dispatcher.createQuicServerSession()
 	session := &QuicServerSession{
 		quicServerSession: session_c,
+		quicServerStreams: make(map[*QuicSpdyServerStream]bool),
 		streamCreator:     userSession,
 		// TODO(serialx): Set remoteAddr here
 	}
-	dispatcher.quicServerSessions = append(dispatcher.quicServerSessions, session) // TODO(hodduc): cleanup
+
+	// This is to prevent garbage collection. This is cleaned up on DeleteGoSession()
+	dispatcher.quicServerSessions[session] = true
 
 	return unsafe.Pointer(session)
+}
+
+//export DeleteGoSession
+func DeleteGoSession(dispatcher_c unsafe.Pointer, go_session_c unsafe.Pointer) {
+	dispatcher := (*QuicDispatcher)(dispatcher_c)
+	go_session := (*QuicServerSession)(go_session_c)
+	delete(dispatcher.quicServerSessions, go_session)
 }
 
 //export GetProof
