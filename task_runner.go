@@ -8,7 +8,7 @@ import "unsafe"
 type TaskRunner struct {
 	AlarmChan chan *GoQuicAlarm
 	WriteChan chan *WriteCallback
-	alarmList []*GoQuicAlarm
+	alarmList map[*GoQuicAlarm]bool
 }
 
 type WriteCallback struct {
@@ -38,7 +38,12 @@ func (t *TaskRunner) RunAlarm(alarm *GoQuicAlarm) {
 }
 
 func (t *TaskRunner) RegisterAlarm(alarm *GoQuicAlarm) {
-	t.alarmList = append(t.alarmList, alarm)
+	// This is to prevent garbage collection. This is cleaned up on UnregisterAlarm()
+	t.alarmList[alarm] = true
+}
+
+func (t *TaskRunner) UnregisterAlarm(alarm *GoQuicAlarm) {
+	delete(t.alarmList, alarm)
 }
 
 func (t *TaskRunner) CallWriteCallback(server_packet_writer_c unsafe.Pointer, rv int) {

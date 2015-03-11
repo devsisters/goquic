@@ -43,6 +43,7 @@ func (alarm *GoQuicAlarm) SetImpl(now int64) {
 func (alarm *GoQuicAlarm) Destroy() {
 	alarm.isDestroyed = true
 	alarm.CancelImpl(0)
+	alarm.taskRunner.UnregisterAlarm(alarm)
 }
 
 func (alarm *GoQuicAlarm) CancelImpl(now int64) {
