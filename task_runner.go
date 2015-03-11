@@ -19,6 +19,13 @@ type WriteCallback struct {
 func (cb *WriteCallback) Callback() {
 	C.packet_writer_on_write_complete(cb.serverPacketWriter, C.int(cb.rv))
 }
+func CreateTaskRunner(alarmCh chan *GoQuicAlarm, writeCh chan *WriteCallback) *TaskRunner {
+	return &TaskRunner{
+		AlarmChan: alarmCh,
+		WriteChan: writeCh,
+		alarmList: make(map[*GoQuicAlarm]bool),
+	}
+}
 
 func (t *TaskRunner) RunAlarm(alarm *GoQuicAlarm) {
 	go func() {
