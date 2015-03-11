@@ -55,7 +55,7 @@ void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, IPEndPoint *se
 
 MapStrStr* initialize_map();
 void delete_map(MapStrStr* map);
-void insert_map(MapStrStr* map, char* key, char* value);
+void insert_map(MapStrStr* map, char* key, size_t key_len, char* value, size_t value_len);
 
 void quic_spdy_server_stream_write_headers(GoQuicSpdyServerStreamGoWrapper* wrapper, MapStrStr* header, int is_empty_body);
 void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrapper* wrapper, char* buf, size_t bufsize, int fin);

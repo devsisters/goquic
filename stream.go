@@ -42,7 +42,8 @@ func (writer *QuicSpdyServerStream) WriteHeader(header http.Header, is_body_empt
 	header_c := C.initialize_map()
 	for key, values := range header {
 		value := strings.Join(values, ", ")
-		C.insert_map(header_c, C.CString(key), C.CString(value))
+		C.insert_map(header_c, (*C.char)(unsafe.Pointer(&[]byte(key)[0])), C.size_t(len(key)),
+			(*C.char)(unsafe.Pointer(&[]byte(value)[0])), C.size_t(len(value)))
 	}
 
 	if is_body_empty {

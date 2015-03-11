@@ -159,9 +159,9 @@ void delete_map(MapStrStr* map) {
   delete map;
 }
 
-void insert_map(MapStrStr* map, char* key, char* value) {
+void insert_map(MapStrStr* map, char* key, size_t key_len, char* value, size_t value_len) {
   map->insert(
-      std::pair<std::string, std::string>(std::string(key), std::string(value)));
+      std::pair<std::string, std::string>(std::string(key, key_len), std::string(value, value_len)));
 }
 
 void quic_spdy_server_stream_write_headers(GoQuicSpdyServerStreamGoWrapper* wrapper, MapStrStr* header, int is_empty_body) {
