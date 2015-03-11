@@ -16,9 +16,10 @@ class GoQuicSpdyServerStreamGoWrapper : public net::QuicDataStream {
   uint32 ProcessData(const char* data, uint32 data_len) override;
   void OnFinRead() override;
 
-  // we need a proxy because ReliableQuicStream::WriteOrBufferData is protected.
+  // we need a proxy because ReliableQuicStream::WriteOrBufferData & CloseReadSide() is protected.
   // we could access this function from C (go) side.
   void WriteOrBufferData_(base::StringPiece buffer, bool fin, net::QuicAckNotifier::DelegateInterface* delegate);
+  void CloseReadSide_();
 
  private:
   void* go_quic_spdy_server_stream_;

@@ -28,6 +28,7 @@ type QuicStream interface {
 	UserStream() DataStreamProcessor
 	WriteHeader(header http.Header, is_body_empty bool)
 	WriteOrBufferData(body []byte, fin bool)
+	CloseReadSide()
 }
 
 type QuicSpdyServerStream struct {
@@ -67,6 +68,10 @@ func (writer *QuicSpdyServerStream) WriteOrBufferData(body []byte, fin bool) {
 	} else {
 		C.quic_spdy_server_stream_write_or_buffer_data(writer.wrapper, (*C.char)(unsafe.Pointer(&body[0])), C.size_t(len(body)), fin_int)
 	}
+}
+
+func (writer *QuicSpdyServerStream) CloseReadSide() {
+	C.quic_spdy_server_stream_close_read_side(writer.wrapper)
 }
 
 // TODO: delete(writer.session.quicServerStreams, writer)

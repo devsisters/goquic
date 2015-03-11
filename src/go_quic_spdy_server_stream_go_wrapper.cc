@@ -39,6 +39,10 @@ void GoQuicSpdyServerStreamGoWrapper::OnFinRead() {
   DataStreamProcessorOnFinRead_C(go_quic_spdy_server_stream_);
 }
 
+void GoQuicSpdyServerStreamGoWrapper::CloseReadSide_() {
+  ReliableQuicStream::CloseReadSide();
+}
+
 void GoQuicSpdyServerStreamGoWrapper::WriteOrBufferData_(
     base::StringPiece buffer, bool fin, net::QuicAckNotifier::DelegateInterface* delegate) {
   WriteOrBufferData(buffer, fin, delegate);

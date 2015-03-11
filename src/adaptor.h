@@ -62,6 +62,7 @@ void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrappe
 void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm);
 int64_t clock_now(QuicClock* clock);
 void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv);
+void quic_spdy_server_stream_close_read_side(GoQuicSpdyServerStreamGoWrapper* wrapper);
 void test_quic();
 #ifdef __cplusplus
 }

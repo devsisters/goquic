@@ -141,3 +141,7 @@ func (stream *QuicClientStream) WriteOrBufferData(body []byte, fin bool) {
 		C.quic_reliable_client_stream_write_or_buffer_data(stream.wrapper, (*C.char)(unsafe.Pointer(&body[0])), C.size_t(len(body)), fin_int)
 	}
 }
+
+func (stream *QuicClientStream) CloseReadSide() {
+	panic("CloseReadSide not supported in client stream")
+}
