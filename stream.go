@@ -126,3 +126,15 @@ func DataStreamProcessorOnClose(go_data_stream_processor_c unsafe.Pointer, isSer
 	}
 	stream.UserStream().OnClose(stream)
 }
+
+//export UnregisterQuicServerStreamFromSession
+func UnregisterQuicServerStreamFromSession(go_stream_c unsafe.Pointer) {
+	stream := (*QuicSpdyServerStream)(go_stream_c)
+	delete(stream.session.quicServerStreams, stream)
+}
+
+//export UnregisterQuicClientStreamFromSession
+func UnregisterQuicClientStreamFromSession(go_stream_c unsafe.Pointer) {
+	stream := (*QuicClientStream)(go_stream_c)
+	delete(stream.session.quicClientStreams, stream)
+}

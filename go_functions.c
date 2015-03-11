@@ -46,6 +46,14 @@ void DataStreamProcessorOnClose_C(void* go_data_stream_processor) {
     DataStreamProcessorOnClose(go_data_stream_processor, 0);
 }
 
+void UnregisterQuicServerStreamFromSession_C(void* go_stream) {
+    UnregisterQuicServerStreamFromSession(go_stream);
+}
+
+void UnregisterQuicClientStreamFromSession_C(void* go_stream) {
+    UnregisterQuicClientStreamFromSession(go_stream);
+}
+
 void* CreateGoQuicAlarm_C(void* go_quic_alarm_go_wrapper, void* clock, void* task_runner) {
     return CreateGoQuicAlarm(go_quic_alarm_go_wrapper, clock, task_runner);
 }

@@ -18,6 +18,7 @@ GoQuicReliableClientStream::GoQuicReliableClientStream(QuicStreamId id,
 }
 
 GoQuicReliableClientStream::~GoQuicReliableClientStream() {
+  UnregisterQuicClientStreamFromSession_C(go_quic_client_stream_);
 }
 
 void GoQuicReliableClientStream::SetGoQuicClientStream(void* go_quic_client_stream) {

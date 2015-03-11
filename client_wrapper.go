@@ -34,7 +34,7 @@ type QuicClient struct {
 
 type QuicClientSession struct {
 	quicClientSession unsafe.Pointer
-	quicClientStreams []*QuicClientStream
+	quicClientStreams map[*QuicClientStream]bool
 	streamCreator     DataStreamCreator
 }
 
@@ -60,7 +60,8 @@ func CreateQuicClient(addr *net.UDPAddr, conn QuicConn, createQuicClientSession 
 func (qc *QuicClient) StartConnect() {
 	addr_c := CreateIPEndPoint(qc.addr)
 	qc.session = &QuicClientSession{
-		quicClientSession: C.create_go_quic_client_session_and_initialize(unsafe.Pointer(qc.conn.Socket()), unsafe.Pointer(qc.taskRunner), addr_c.ipEndPoint), // Deleted on QuicClient.Close()
+		quicClientSession: C.create_go_quic_client_session_and_initialize(unsafe.Pointer(qc.conn.Socket()), unsafe.Pointer(qc.taskRunner), addr_c.ipEndPoint), // Deleted on QuicClient.Close(),
+		quicClientStreams: make(map[*QuicClientStream]bool),
 		streamCreator:     qc.createQuicClientSession(),
 	}
 }
@@ -82,7 +83,7 @@ func (qc *QuicClient) CreateReliableQuicStream() *QuicClientStream {
 	}
 	stream.wrapper = C.quic_client_session_create_reliable_quic_stream(qc.session.quicClientSession, unsafe.Pointer(stream))
 
-	qc.session.quicClientStreams = append(qc.session.quicClientStreams, stream)
+	qc.session.quicClientStreams[stream] = true
 	return stream
 }
 

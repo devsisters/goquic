@@ -14,6 +14,8 @@ void* CreateIncomingDataStream_C(void* go_quic_server_session, uint32_t id, void
 uint32_t DataStreamProcessorProcessData_C(void* go_data_stream_processor, const char *data, uint32_t data_len);
 void DataStreamProcessorOnFinRead_C(void* go_data_stream_processor);
 void DataStreamProcessorOnClose_C(void* go_data_stream_processor);
+void UnregisterQuicServerStreamFromSession_C(void* go_stream);
+void UnregisterQuicClientStreamFromSession_C(void* go_stream);
 
 void* CreateGoQuicAlarm_C(void* go_quic_alarm_go_wrapper, void* clock, void* go_task_runner);
 void GoQuicAlarmSetImpl_C(void* go_quic_alarm, int64_t deadline, int64_t now);

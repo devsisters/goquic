@@ -11,6 +11,7 @@ GoQuicSpdyServerStreamGoWrapper::GoQuicSpdyServerStreamGoWrapper(net::QuicStream
 }
 
 GoQuicSpdyServerStreamGoWrapper::~GoQuicSpdyServerStreamGoWrapper() {
+  UnregisterQuicServerStreamFromSession_C(go_quic_spdy_server_stream_);
 }
 
 void GoQuicSpdyServerStreamGoWrapper::SetGoQuicSpdyServerStream(void* go_quic_spdy_server_stream) {
