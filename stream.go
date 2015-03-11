@@ -12,7 +12,9 @@ import (
 //   (For QuicSpdyServerStream)
 type DataStreamProcessor interface {
 	ProcessData(writer QuicStream, buffer []byte) int
+	// Called when there's nothing to read. Called on server XXX(serialx): Not called on client
 	OnFinRead(writer QuicStream)
+	// Called when the connection is closed. Called on client XXX(serialx): Not called on server
 	OnClose(writer QuicStream)
 }
 
@@ -23,11 +25,7 @@ type DataStreamCreator interface {
 }
 
 type QuicStream interface {
-	ProcessData(buf []byte) uint32
-	// Called when there's nothing to read. Called on server XXX(serialx): Not called on client
-	OnFinRead()
-	// Called when the connection is closed. Called on client XXX(serialx): Not called on server
-	OnClose()
+	UserStream() DataStreamProcessor
 	WriteHeader(header http.Header, is_body_empty bool)
 	WriteOrBufferData(body []byte, fin bool)
 }
@@ -36,6 +34,10 @@ type QuicSpdyServerStream struct {
 	userStream DataStreamProcessor
 	wrapper    unsafe.Pointer
 	session    *QuicServerSession
+}
+
+func (writer *QuicSpdyServerStream) UserStream() DataStreamProcessor {
+	return writer.userStream
 }
 
 func (writer *QuicSpdyServerStream) WriteHeader(header http.Header, is_body_empty bool) {
@@ -67,19 +69,7 @@ func (writer *QuicSpdyServerStream) WriteOrBufferData(body []byte, fin bool) {
 	}
 }
 
-func (writer *QuicSpdyServerStream) ProcessData(buf []byte) uint32 {
-	return uint32(writer.userStream.ProcessData(writer, buf))
-}
-
-func (writer *QuicSpdyServerStream) OnFinRead() {
-	writer.userStream.OnFinRead(writer)
-}
-
-func (writer *QuicSpdyServerStream) OnClose() {
-	writer.userStream.OnClose(writer)
-	delete(writer.session.quicServerStreams, writer)
-
-}
+// TODO: delete(writer.session.quicServerStreams, writer)
 
 //export CreateIncomingDataStream
 func CreateIncomingDataStream(session_c unsafe.Pointer, stream_id uint32, wrapper_c unsafe.Pointer) unsafe.Pointer {
@@ -107,7 +97,7 @@ func DataStreamProcessorProcessData(go_data_stream_processor_c unsafe.Pointer, d
 		stream = (*QuicClientStream)(go_data_stream_processor_c)
 	}
 	buf := C.GoBytes(data, C.int(data_len))
-	return stream.ProcessData(buf)
+	return uint32(stream.UserStream().ProcessData(stream, buf))
 }
 
 //export DataStreamProcessorOnFinRead
@@ -118,7 +108,7 @@ func DataStreamProcessorOnFinRead(go_data_stream_processor_c unsafe.Pointer, isS
 	} else {
 		stream = (*QuicClientStream)(go_data_stream_processor_c)
 	}
-	stream.OnFinRead()
+	stream.UserStream().OnFinRead(stream)
 }
 
 //export DataStreamProcessorOnClose
@@ -129,5 +119,5 @@ func DataStreamProcessorOnClose(go_data_stream_processor_c unsafe.Pointer, isSer
 	} else {
 		stream = (*QuicClientStream)(go_data_stream_processor_c)
 	}
-	stream.OnClose()
+	stream.UserStream().OnClose(stream)
 }

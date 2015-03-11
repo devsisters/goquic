@@ -43,7 +43,7 @@ func (s *QuicClientSession) NumActiveRequests() int {
 }
 
 type QuicClientStream struct {
-	UserStream DataStreamProcessor
+	userStream DataStreamProcessor
 	wrapper    unsafe.Pointer
 	session    *QuicClientSession
 }
@@ -77,7 +77,7 @@ func (qc *QuicClient) IsConnected() bool {
 
 func (qc *QuicClient) CreateReliableQuicStream() *QuicClientStream {
 	stream := &QuicClientStream{
-		UserStream: qc.session.streamCreator.CreateOutgoingDataStream(), // Deleted on qc.Close()
+		userStream: qc.session.streamCreator.CreateOutgoingDataStream(), // Deleted on qc.Close()
 		session:    qc.session,
 	}
 	stream.wrapper = C.quic_client_session_create_reliable_quic_stream(qc.session.quicClientSession, unsafe.Pointer(stream))
@@ -109,6 +109,10 @@ func (qc *QuicClient) Close() (err error) {
 	return nil
 }
 
+func (stream *QuicClientStream) UserStream() DataStreamProcessor {
+	return stream.userStream
+}
+
 func (stream *QuicClientStream) WriteHeader(header http.Header, is_body_empty bool) {
 	header_c := C.initialize_map()
 	for key, values := range header {
@@ -136,16 +140,4 @@ func (stream *QuicClientStream) WriteOrBufferData(body []byte, fin bool) {
 	} else {
 		C.quic_reliable_client_stream_write_or_buffer_data(stream.wrapper, (*C.char)(unsafe.Pointer(&body[0])), C.size_t(len(body)), fin_int)
 	}
-}
-
-func (writer *QuicClientStream) ProcessData(buf []byte) uint32 {
-	return uint32(writer.UserStream.ProcessData(writer, buf))
-}
-
-func (writer *QuicClientStream) OnFinRead() {
-	writer.UserStream.OnFinRead(writer)
-}
-
-func (writer *QuicClientStream) OnClose() {
-	writer.UserStream.OnClose(writer)
 }

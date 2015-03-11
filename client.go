@@ -137,7 +137,7 @@ func (c *Conn) CreateStream() *Stream {
 		quicClientStream: quicClientStream,
 		pendingReads:     lane.NewQueue(),
 	}
-	quicClientStream.UserStream.(*ClientStreamImpl).stream = stream
+	quicClientStream.userStream.(*ClientStreamImpl).stream = stream
 	return stream
 }
 
@@ -302,7 +302,7 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 		return &ClientSessionImpl{conn: quic_conn}
 	}
 
-	taskRunner := &TaskRunner{AlarmChan: make(chan *GoQuicAlarm)}
+	taskRunner := CreateTaskRunner(make(chan *GoQuicAlarm), nil)
 	quicClient, err := CreateQuicClient(addr, quic_conn, createQuicClientSessionImpl, taskRunner)
 	if err != nil {
 		return nil, err
