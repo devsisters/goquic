@@ -79,7 +79,7 @@ func CreateGoQuicAlarm(go_quic_alarm_go_wrapper_c unsafe.Pointer, clock_c unsafe
 		timer:      nil,
 		isCanceled: false,
 	}
-	alarm.taskRunner.RegisterAlarm(alarm) // TODO(hodduc): Should unregister somewhen
+	alarm.taskRunner.RegisterAlarm(alarm)
 
 	return unsafe.Pointer(alarm)
 }
