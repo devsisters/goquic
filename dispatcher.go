@@ -18,6 +18,7 @@ type QuicDispatcher struct {
 	taskRunner              *TaskRunner
 	createQuicServerSession func() DataStreamCreator
 	proofSource             ProofSource
+	isSecure                bool
 }
 
 type QuicServerSession struct {
@@ -31,12 +32,13 @@ type QuicEncryptedPacket struct {
 	encryptedPacket unsafe.Pointer
 }
 
-func CreateQuicDispatcher(conn *net.UDPConn, createQuicServerSession func() DataStreamCreator, taskRunner *TaskRunner, proofSource ProofSource) *QuicDispatcher {
+func CreateQuicDispatcher(conn *net.UDPConn, createQuicServerSession func() DataStreamCreator, taskRunner *TaskRunner, proofSource ProofSource, isSecure bool) *QuicDispatcher {
 	dispatcher := &QuicDispatcher{
 		quicServerSessions:      make(map[*QuicServerSession]bool),
 		taskRunner:              taskRunner,
 		createQuicServerSession: createQuicServerSession,
 		proofSource:             proofSource,
+		isSecure:                isSecure,
 	}
 
 	dispatcher.quicDispatcher = C.create_quic_dispatcher(unsafe.Pointer(conn), unsafe.Pointer(dispatcher), unsafe.Pointer(taskRunner))
@@ -80,6 +82,11 @@ func DeleteGoSession(dispatcher_c unsafe.Pointer, go_session_c unsafe.Pointer) {
 //export GetProof
 func GetProof(dispatcher_c unsafe.Pointer, server_ip_c unsafe.Pointer, hostname_c unsafe.Pointer, hostname_sz_c C.size_t, server_config_c unsafe.Pointer, server_config_sz_c C.size_t, ecdsa_ok_c C.int, out_certs_c ***C.char, out_certs_sz_c *C.int, out_certs_item_sz_c **C.size_t, out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
 	dispatcher := (*QuicDispatcher)(dispatcher_c)
+
+	if !dispatcher.isSecure {
+		return C.int(0)
+	}
+
 	endpoint := IPEndPoint{
 		ipEndPoint: server_ip_c,
 	}

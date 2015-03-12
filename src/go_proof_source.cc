@@ -23,7 +23,10 @@ bool GoProofSource::GetProof(const net::IPEndPoint& server_ip,
     size_t *c_certs_item_sz;
     size_t c_out_signature_sz;
 
-    GetProof_C(go_quic_dispatcher_, (void*)(&server_ip), (char*)hostname.c_str(), (size_t)hostname.length(), (char*)server_config.c_str(), (size_t)server_config.length(), ecdsa_ok, &c_certs, &c_certs_sz, &c_certs_item_sz, &c_out_signature, &c_out_signature_sz);
+    int ret = GetProof_C(go_quic_dispatcher_, (void*)(&server_ip), (char*)hostname.c_str(), (size_t)hostname.length(), (char*)server_config.c_str(), (size_t)server_config.length(), ecdsa_ok, &c_certs, &c_certs_sz, &c_certs_item_sz, &c_out_signature, &c_out_signature_sz);
+    if (!ret) {
+        return false;
+    }
 
     std::vector<std::string> *certs = new std::vector<std::string>;
     for (int i = 0; i < c_certs_sz; i++) {
