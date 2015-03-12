@@ -93,7 +93,7 @@ GoQuicTimeWaitListManager::GoQuicTimeWaitListManager(
       kTimeWaitPeriod_(
           QuicTime::Delta::FromSeconds(FLAGS_quic_time_wait_list_seconds)),
       connection_id_clean_up_alarm_(
-          helper_->CreateAlarm(new ConnectionIdCleanUpAlarm(this))),
+          helper_->CreateAlarm(new ConnectionIdCleanUpAlarm(this))),  // alarm's delegate is deleted by scoped ptr of QuicAlarm
       writer_(writer),
       visitor_(visitor) {
   SetConnectionIdCleanUpAlarm();
@@ -172,6 +172,7 @@ void GoQuicTimeWaitListManager::ProcessPacket(
     return;
   }
   if (it->second.close_packet) {
+    // Deleted by "delete packet" in SendOrQueuePacket() or managed by pending_packets_queue_.
     QueuedPacket* queued_packet =
         new QueuedPacket(server_address,
                          client_address,
@@ -206,6 +207,7 @@ void GoQuicTimeWaitListManager::SendPublicReset(
   // TODO(satyamshekhar): generate a valid nonce for this connection_id.
   packet.nonce_proof = 1010101;
   packet.client_address = client_address;
+  // Deleted by "delete packet" in SendOrQueuePacket() or managed by pending_packets_queue_.
   QueuedPacket* queued_packet = new QueuedPacket(
       server_address,
       client_address,

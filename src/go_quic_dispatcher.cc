@@ -136,7 +136,7 @@ class GoQuicDispatcher::QuicFramerVisitor : public QuicFramerVisitorInterface {
 QuicPacketWriter* GoQuicDispatcher::DefaultPacketWriterFactory::Create(
     GoQuicServerPacketWriter* writer,
     QuicConnection* connection) {
-  return new GoQuicPerConnectionPacketWriter(writer, connection);
+  return new GoQuicPerConnectionPacketWriter(writer, connection); // Deleted by ~QuicConnection() (with owns_writer=True)
 }
 
 GoQuicDispatcher::PacketWriterFactoryAdapter::PacketWriterFactoryAdapter(
@@ -162,13 +162,13 @@ GoQuicDispatcher::GoQuicDispatcher(const QuicConfig& config,
       crypto_config_(crypto_config),
       helper_(helper),
       delete_sessions_alarm_(
-          helper_->CreateAlarm(new DeleteSessionsAlarm(this))),
+          helper_->CreateAlarm(new DeleteSessionsAlarm(this))), // alarm's delegate is deleted by scoped_ptr of QuicAlarm
       packet_writer_factory_(packet_writer_factory),
       connection_writer_factory_(this),
       supported_versions_(supported_versions),
       current_packet_(nullptr),
       framer_(supported_versions, /*unused*/ QuicTime::Zero(), true),
-      framer_visitor_(new QuicFramerVisitor(this)),
+      framer_visitor_(new QuicFramerVisitor(this)),  // Deleted by scoped ptr
       go_quic_dispatcher_(go_quic_dispatcher) {
   framer_.set_visitor(framer_visitor_.get());
 }
@@ -360,6 +360,7 @@ QuicSession* GoQuicDispatcher::CreateQuicSession(
     QuicConnectionId connection_id,
     const IPEndPoint& server_address,
     const IPEndPoint& client_address) {
+  // Deleted by DeleteSession()
   GoQuicServerSession* session = new GoQuicServerSession(
       config_,
       CreateQuicConnection(connection_id, server_address, client_address),
@@ -374,6 +375,7 @@ QuicConnection* GoQuicDispatcher::CreateQuicConnection(
     QuicConnectionId connection_id,
     const IPEndPoint& server_address,
     const IPEndPoint& client_address) {
+  // Deleted by owner's scoped ptr, in this case, GoQuicServerSession
   return new QuicConnection(connection_id,
                             client_address,
                             helper_,
@@ -385,6 +387,7 @@ QuicConnection* GoQuicDispatcher::CreateQuicConnection(
 }
 
 GoQuicTimeWaitListManager* GoQuicDispatcher::CreateQuicTimeWaitListManager() {
+  // Deleted by caller's scoped_ptr
   return new GoQuicTimeWaitListManager(
       writer_.get(), this, helper_, supported_versions());
 }

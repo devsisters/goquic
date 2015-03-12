@@ -35,7 +35,7 @@ void GoQuicServerSession::InitializeSession(
 
 QuicCryptoServerStream* GoQuicServerSession::CreateQuicCryptoServerStream(
     const QuicCryptoServerConfig& crypto_config) {
-  return new QuicCryptoServerStream(crypto_config, this);
+  return new QuicCryptoServerStream(crypto_config, this);  // Deleted by scoped ptr (crypto_stream_)
 }
 
 void GoQuicServerSession::OnConfigNegotiated() {
@@ -185,7 +185,7 @@ QuicDataStream* GoQuicServerSession::CreateIncomingDataStream(
     return nullptr;
   }
 
-  GoQuicSpdyServerStreamGoWrapper* stream = new GoQuicSpdyServerStreamGoWrapper(id, this);
+  GoQuicSpdyServerStreamGoWrapper* stream = new GoQuicSpdyServerStreamGoWrapper(id, this); // Managed by stream_map_ of QuicSession. Deleted by STLDeleteElements function call in QuicSession
   stream->SetGoQuicSpdyServerStream(CreateIncomingDataStream_C(go_session_, id, stream));
 
   return stream;

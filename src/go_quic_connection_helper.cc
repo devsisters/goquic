@@ -16,7 +16,7 @@ const QuicClock* TestConnectionHelper::GetClock() const {
 QuicRandom* TestConnectionHelper::GetRandomGenerator() { return random_generator_; }
 
 QuicAlarm* TestConnectionHelper::CreateAlarm(QuicAlarm::Delegate* delegate) {
-  return new GoQuicAlarmGoWrapper(clock_.get(), task_runner_, delegate);
+  return new GoQuicAlarmGoWrapper(clock_.get(), task_runner_, delegate);  // Should be deleted by caller
 }
 
 TestConnectionHelper::TestConnectionHelper(void* task_runner, QuicClock* clock, QuicRandom* random_generator)
