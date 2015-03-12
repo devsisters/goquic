@@ -31,6 +31,11 @@ bool GoProofSource::GetProof(const net::IPEndPoint& server_ip,
         free(c_certs[i]);  // Created from go side
     }
     // XXX(serialx): certs_cache_ only keeps growing. And we don't actually use it for cache. :(
+    auto it = certs_cache_.find(hostname);
+    if (it != certs_cache_.end()) {
+        certs_cache_.erase(it);  // Erase former allocated vector
+        delete it->second;
+    }
     certs_cache_[hostname] = certs;
 
     std::string signature(c_out_signature, c_out_signature_sz);
