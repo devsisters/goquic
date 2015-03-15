@@ -54,3 +54,9 @@ For example, building gospdyquic example server in Mac:
 ```bash
 CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/darwin_amd64" go build github.com/devsisters/gospdyquic/example
 ```
+
+## How to use
+
+This is a very low-level QUIC library intended for socket-like use. To use QUIC
+as a SPDY transport layer, see
+[gospdyquic](https://github.com/devsisters/gospdyquic) for more details.
