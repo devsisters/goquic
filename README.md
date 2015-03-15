@@ -19,6 +19,26 @@ Key features of QUIC over existing TCP+TLS+SPDY include
   * Forward error correction
   * Connection migration
 
+## Project Status
+
+*This library is highly experimental.* Although `libquic` sources are from
+Chromium (which are tested), the Go bindings are still highly pre-alpha state.
+
+Known issues:
+
+  * Stability/Crash issues when under high concurrency:
+    * Double free or memory corruption on packet decryption (BoringSSL code)
+    * `FATAL:quic_sent_packet_manager.cc(647)] Check failed: packet_retransmitted. No crypto packets found to retransmit.`
+    * `ERROR:quic_sent_packet_manager.cc(667)] No retransmittable packets, so RetransmitOldestPacket failed.`
+  * No support for read/write streaming. All request/response must fit in
+    memory.
+  * Secure QUIC not fully tested. May not support all kinds of certificates.
+
+Things to do:
+
+  * Fix crash issues noted above
+  * Read/write streaming support
+
 
 Getting Started
 ===============
