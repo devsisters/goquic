@@ -4,6 +4,7 @@ package goquic
 // #include "adaptor.h"
 import "C"
 import (
+	"fmt"
 	"time"
 	"unsafe"
 )
@@ -16,48 +17,33 @@ type GoQuicAlarm struct {
 	wrapper      unsafe.Pointer
 	clock        unsafe.Pointer
 	taskRunner   *TaskRunner
-	timer        *time.Timer
 }
 
-func (alarm *GoQuicAlarm) SetImpl(now int64) {
+func (alarm *GoQuicAlarm) SetImpl() {
 	if alarm.isDestroyed {
 		return
 	}
 	alarm.isCanceled = false
-
-	duration_i64 := alarm.deadline - now
-	if duration_i64 < 0 {
-		duration_i64 = 0
-	}
-
-	if alarm.timer != nil {
-		alarm.timer.Reset(time.Duration(duration_i64) * time.Microsecond)
-		// If Reset fails (means OnAlarm already fired), SetImpl will called again automatically by OnAlarm() because alarm.deadline changed by caller. So no special handling is needed here.
-	} else {
-		alarm.timer = time.NewTimer(time.Duration(duration_i64) * time.Microsecond)
-		alarm.taskRunner.RunAlarm(alarm)
-	}
+	alarm.taskRunner.RunAlarm(alarm)
 }
 
 // Called by C++ side when the C++ wrapper object is destoryed
 func (alarm *GoQuicAlarm) Destroy() {
 	alarm.isDestroyed = true
-	alarm.CancelImpl(0)
+	alarm.CancelImpl()
 	alarm.taskRunner.UnregisterAlarm(alarm)
 }
 
-func (alarm *GoQuicAlarm) CancelImpl(now int64) {
+func (alarm *GoQuicAlarm) CancelImpl() {
 	alarm.isCanceled = true
-
-	if alarm.timer != nil {
-		alarm.timer.Reset(0)
-		alarm.timer = nil
-	}
+	alarm.taskRunner.CancelAlarm(alarm)
 }
 
 func (alarm *GoQuicAlarm) OnAlarm() {
 	if now := int64(C.clock_now(alarm.clock)); now < alarm.deadline {
-		alarm.SetImpl(now)
+		// This should be very rarely occrued. Otherwise this could be performance bottleneck.
+		fmt.Println(now, time.Now().UnixNano()/1000000, alarm.wrapper, alarm.deadline, "Warning: Timer not adjustted")
+		alarm.SetImpl()
 		return
 	}
 
@@ -66,8 +52,11 @@ func (alarm *GoQuicAlarm) OnAlarm() {
 		return
 	}
 
-	alarm.timer = nil
 	C.go_quic_alarm_fire(alarm.wrapper)
+}
+
+func (alarm *GoQuicAlarm) Now() int64 {
+	return int64(C.clock_now(alarm.clock))
 }
 
 //export CreateGoQuicAlarm
@@ -76,7 +65,6 @@ func CreateGoQuicAlarm(go_quic_alarm_go_wrapper_c unsafe.Pointer, clock_c unsafe
 		wrapper:    go_quic_alarm_go_wrapper_c,
 		taskRunner: (*TaskRunner)(task_runner_c),
 		clock:      clock_c,
-		timer:      nil,
 		isCanceled: false,
 	}
 	alarm.taskRunner.RegisterAlarm(alarm)
@@ -85,16 +73,16 @@ func CreateGoQuicAlarm(go_quic_alarm_go_wrapper_c unsafe.Pointer, clock_c unsafe
 }
 
 //export GoQuicAlarmSetImpl
-func GoQuicAlarmSetImpl(alarm_c unsafe.Pointer, deadline int64, now int64) {
+func GoQuicAlarmSetImpl(alarm_c unsafe.Pointer, deadline int64) {
 	alarm := (*GoQuicAlarm)(alarm_c)
 	alarm.deadline = deadline
-	alarm.SetImpl(now)
+	alarm.SetImpl()
 }
 
 //export GoQuicAlarmCancelImpl
-func GoQuicAlarmCancelImpl(alarm_c unsafe.Pointer, now int64) {
+func GoQuicAlarmCancelImpl(alarm_c unsafe.Pointer) {
 	alarm := (*GoQuicAlarm)(alarm_c)
-	alarm.CancelImpl(now)
+	alarm.CancelImpl()
 }
 
 //export GoQuicAlarmDestroy

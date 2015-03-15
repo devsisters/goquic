@@ -5,6 +5,7 @@
 #include "net/quic/quic_alarm.h"
 #include "base/basictypes.h"
 #include "base/logging.h"
+#include <iostream>
 
 namespace net {
 
@@ -33,10 +34,10 @@ class GoQuicAlarmGoWrapper : public QuicAlarm {
 
   protected:
     void SetImpl() override {
-      GoQuicAlarmSetImpl_C(go_quic_alarm_, quic_clock_to_int64(deadline()), quic_clock_to_int64(clock_->Now()));
+      GoQuicAlarmSetImpl_C(go_quic_alarm_, quic_clock_to_int64(deadline()));
     }
     void CancelImpl() override {
-      GoQuicAlarmCancelImpl_C(go_quic_alarm_, quic_clock_to_int64(clock_->Now()));
+      GoQuicAlarmCancelImpl_C(go_quic_alarm_);
     }
 
   private:

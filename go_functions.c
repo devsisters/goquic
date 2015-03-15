@@ -58,12 +58,12 @@ void* CreateGoQuicAlarm_C(void* go_quic_alarm_go_wrapper, void* clock, void* tas
     return CreateGoQuicAlarm(go_quic_alarm_go_wrapper, clock, task_runner);
 }
 
-void GoQuicAlarmSetImpl_C(void *go_quic_alarm, int64_t deadline, int64_t now) {
-    GoQuicAlarmSetImpl(go_quic_alarm, deadline, now);
+void GoQuicAlarmSetImpl_C(void *go_quic_alarm, int64_t deadline) {
+    GoQuicAlarmSetImpl(go_quic_alarm, deadline);
 }
 
-void GoQuicAlarmCancelImpl_C(void *go_quic_alarm, int64_t now) {
-    GoQuicAlarmCancelImpl(go_quic_alarm, now);
+void GoQuicAlarmCancelImpl_C(void *go_quic_alarm) {
+    GoQuicAlarmCancelImpl(go_quic_alarm);
 }
 
 void GoQuicAlarmDestroy_C(void *go_quic_alarm) {

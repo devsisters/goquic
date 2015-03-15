@@ -15,7 +15,7 @@ type ProofSource interface {
 type QuicDispatcher struct {
 	quicDispatcher          unsafe.Pointer
 	quicServerSessions      map[*QuicServerSession]bool
-	taskRunner              *TaskRunner
+	TaskRunner              *TaskRunner
 	createQuicServerSession func() DataStreamCreator
 	proofSource             ProofSource
 	isSecure                bool
@@ -35,7 +35,7 @@ type QuicEncryptedPacket struct {
 func CreateQuicDispatcher(conn *net.UDPConn, createQuicServerSession func() DataStreamCreator, taskRunner *TaskRunner, proofSource ProofSource, isSecure bool) *QuicDispatcher {
 	dispatcher := &QuicDispatcher{
 		quicServerSessions:      make(map[*QuicServerSession]bool),
-		taskRunner:              taskRunner,
+		TaskRunner:              taskRunner,
 		createQuicServerSession: createQuicServerSession,
 		proofSource:             proofSource,
 		isSecure:                isSecure,

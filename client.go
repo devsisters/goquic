@@ -104,14 +104,16 @@ func (c *Conn) processEventsWithDeadline(deadline time.Time) {
 			break
 		}
 		c.quicClient.ProcessPacket(localAddr, result.addr, result.buf[:result.n])
-	case alarm, ok := <-c.quicClient.taskRunner.AlarmChan:
-		if !ok || c.closed {
+	case <-c.quicClient.taskRunner.WaitTimer():
+		if c.closed {
+			panic("debug")
 			break
 		}
-		alarm.OnAlarm()
+		c.quicClient.taskRunner.DoTasks()
 	case <-timeoutCh:
 		// Break when past deadline
 	}
+	c.quicClient.taskRunner.DoTasks()
 }
 
 func (c *Conn) waitForEvents() bool {
@@ -302,7 +304,7 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 		return &ClientSessionImpl{conn: quic_conn}
 	}
 
-	taskRunner := CreateTaskRunner(make(chan *GoQuicAlarm), nil)
+	taskRunner := CreateTaskRunner(nil)
 	quicClient, err := CreateQuicClient(addr, quic_conn, createQuicClientSessionImpl, taskRunner)
 	if err != nil {
 		return nil, err
