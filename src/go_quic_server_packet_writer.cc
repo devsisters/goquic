@@ -75,7 +75,7 @@ WriteResult GoQuicServerPacketWriter::WritePacket(
 //  scoped_refptr<StringIOBuffer> buf(
 //      new StringIOBuffer(std::string(buffer, buf_len)));
   DCHECK(!IsWriteBlocked());
-//  DCHECK(!callback_.is_null());
+  DCHECK(!callback_.is_null());
 /*  TODO(hodduc) See quic_time_wait_list_manager.cc:WriteToWire. It should call WritePacketWithCallback to hold callback, but it isn't now. We turn off this check temporarily. */
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
