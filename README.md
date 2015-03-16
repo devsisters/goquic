@@ -39,6 +39,40 @@ Things to do:
   * Fix crash issues noted above
   * Read/write streaming support
 
+## Preliminary Benchmarks
+
+A very primitive benchmark testing have been done. Testing environments below:
+
+| Optimization | libquic built with `-O3` parameters                       |
+| CPU          | Intel(R) Core(TM) i7-4930K CPU @ 3.40GHz                  |
+| Server Code  | https://github.com/devsisters/gospdyquic/blob/master/example/server.go |
+| Server Parms | `GOMAXPROCS=12 ./server -port 9090 -n 12`                 |
+| Client Code  | https://github.com/devsisters/quicbench/blob/master/gobench.go |
+| Client Parms | `./gobench -u="https://example.com:9090/" -c 200 -r 1000` |
+
+The server code is modified to create 30B, 1kB, 5kB, 10kB HTTP body payload.
+Concurrency is 200 and each thread requests 1,000 requests. It is designed to
+measure ideal throughput of the server. Naturally the throughput goes down when
+concurrency increases.
+
+Benchmark results:
+
+| Payload Size | Requests per Second |
+| ------------ | ------------------- |
+| 30B Payload  | 23832.18 RPS        |
+| 1kB Payload  | 21704.84 RPS        |
+| 5kB Payload  | 9343.58 RPS         |
+| 10kB Payload | 5312.75 RPS         |
+
+On 10kB case, calculating the total network throughput is `435Mbps`.
+
+How many connections per second can this server process?
+
+`./gobench -u="https://localhost.devscake.com:9090/" -c 200 -r 100 -qk=false`
+
+Turning off keepalive using `qk` option results in a pure new QUIC connection
+per request. The benchmark results are `2905.58 CPS`.
+
 
 Getting Started
 ===============
