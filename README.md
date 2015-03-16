@@ -70,7 +70,7 @@ On 10kB case, calculating the total network throughput is `435Mbps`.
 
 How many connections per second can this server process?
 
-`./gobench -u="https://localhost.devscake.com:9090/" -c 200 -r 100 -qk=false`
+`./gobench -u="https://example.com:9090/" -c 200 -r 100 -qk=false`
 
 Turning off keepalive using `qk` option results in a pure new QUIC connection
 per request. The benchmark results are `2905.58 CPS`.
