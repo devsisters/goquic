@@ -11,7 +11,8 @@ import (
 	"unsafe"
 )
 
-func Initialize() {
+func init() {
+	// This initializes Chromium's base library codes
 	C.initialize()
 }
 
