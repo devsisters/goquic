@@ -49,8 +49,8 @@ A very primitive benchmark testing have been done. Testing environments below:
 | CPU          | Intel(R) Core(TM) i7-4930K CPU @ 3.40GHz                  |
 | Server Code  | https://github.com/devsisters/gospdyquic/blob/master/example/server.go |
 | Server Parms | `GOMAXPROCS=12 ./server -port 9090 -n 12`                 |
-| Client Code  | https://github.com/devsisters/quicbench/blob/master/gobench.go |
-| Client Parms | `./gobench -u="https://example.com:9090/" -c 200 -r 1000` |
+| Client Code  | https://github.com/devsisters/quicbench/blob/master/quicbench.go |
+| Client Parms | `./quicbench -u="https://example.com:9090/" -c 200 -r 1000` |
 
 The server code is modified to create 30B, 1kB, 5kB, 10kB HTTP body payload.
 Concurrency is 200 and each thread requests 1,000 requests. It is designed to
