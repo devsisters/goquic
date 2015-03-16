@@ -43,6 +43,8 @@ Things to do:
 
 A very primitive benchmark testing have been done. Testing environments below:
 
+| Items        | Description                                               |
+| ------------ | --------------------------------------------------------- |
 | Optimization | libquic built with `-O3` parameters                       |
 | CPU          | Intel(R) Core(TM) i7-4930K CPU @ 3.40GHz                  |
 | Server Code  | https://github.com/devsisters/gospdyquic/blob/master/example/server.go |
