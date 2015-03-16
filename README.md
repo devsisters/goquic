@@ -101,15 +101,11 @@ Currently Linux and Mac OS X is supprted.
 Due to Go 1.4's cgo restrictions, use an environment variable like below to
 build your projects. This restriction will be removed from Go 1.5.
 
-```bash
-CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/$GOOS_$GOARCH"
-```
+`CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/$GOOS_$GOARCH"`
 
 For example, building gospdyquic example server in Mac:
 
-```bash
-CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/darwin_amd64" go build github.com/devsisters/gospdyquic/example
-```
+`CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/darwin_amd64" go build $GOPATH/github.com/devsisters/gospdyquic/example/server.go`
 
 ## How to use
 
