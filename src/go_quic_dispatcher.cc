@@ -167,7 +167,7 @@ GoQuicDispatcher::GoQuicDispatcher(const QuicConfig& config,
       connection_writer_factory_(this),
       supported_versions_(supported_versions),
       current_packet_(nullptr),
-      framer_(supported_versions, /*unused*/ QuicTime::Zero(), true),
+      framer_(supported_versions, /*unused*/ QuicTime::Zero(), Perspective::IS_SERVER),
       framer_visitor_(new QuicFramerVisitor(this)),  // Deleted by scoped ptr
       go_quic_dispatcher_(go_quic_dispatcher) {
   framer_.set_visitor(framer_visitor_.get());
@@ -381,7 +381,7 @@ QuicConnection* GoQuicDispatcher::CreateQuicConnection(
                             helper_,
                             connection_writer_factory_,
                             /* owns_writer= */ true,
-                            /* is_server= */ true,
+                            /* is_server= */ Perspective::IS_SERVER,
                             crypto_config_.HasProofSource(),
                             supported_versions_);
 }

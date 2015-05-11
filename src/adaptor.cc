@@ -128,6 +128,15 @@ void delete_ip_address_number(IPAddressNumber *ip) {
   delete ip;
 }
 
+size_t ip_address_number_ip_address(IPAddressNumber *ip, void *address_buf) {
+  const size_t size = ip->size();
+  for (size_t i = 0; i < size; i++) {
+    // XXX(serialx): Performance and safety issues here. Ensure address_buf is large enough for ipv6
+    ((char *)address_buf)[i] = ip->at(i);
+  }
+  return size;
+}
+
 IPEndPoint *create_ip_end_point(IPAddressNumber *ip, uint16_t port) {
   return new IPEndPoint(*ip, port); // Deleted by delete_ip_end_point()
 }

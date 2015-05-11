@@ -45,6 +45,12 @@ func CreateIPEndPoint(udpAddr *net.UDPAddr) IPEndPoint {
 	}
 }
 
+func (ip *IPAddressNumber) IP() net.IP {
+	ip_buf := make([]byte, 16)
+	ip_sz := C.ip_address_number_ip_address(ip.ipAddressNumber, unsafe.Pointer(&ip_buf[0]))
+	return net.IP(ip_buf[:int(ip_sz)])
+}
+
 func (endpoint *IPEndPoint) UDPAddr() *net.UDPAddr {
 	ip_buf := make([]byte, 16)
 	ip_sz := C.ip_endpoint_ip_address(endpoint.ipEndPoint, unsafe.Pointer(&ip_buf[0]))

@@ -11,7 +11,7 @@ GoProofSource::GoProofSource(void* go_quic_dispatcher) : go_quic_dispatcher_(go_
 GoProofSource::~GoProofSource() {}
 
 // ProofSource interface
-bool GoProofSource::GetProof(const net::IPEndPoint& server_ip,
+bool GoProofSource::GetProof(const net::IPAddressNumber& server_ip,
         const std::string& hostname,
         const std::string& server_config,
         bool ecdsa_ok,

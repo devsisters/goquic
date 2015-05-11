@@ -7,7 +7,6 @@
 #include "go_functions.h"
 
 #include "base/logging.h"
-#include "net/quic/crypto/cached_network_parameters.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_flags.h"
 #include "net/quic/reliable_quic_stream.h"
@@ -35,7 +34,7 @@ void GoQuicServerSession::InitializeSession(
 
 QuicCryptoServerStream* GoQuicServerSession::CreateQuicCryptoServerStream(
     const QuicCryptoServerConfig& crypto_config) {
-  return new QuicCryptoServerStream(crypto_config, this);  // Deleted by scoped ptr (crypto_stream_)
+  return new QuicCryptoServerStream(&crypto_config, this);  // Deleted by scoped ptr (crypto_stream_)
 }
 
 void GoQuicServerSession::OnConfigNegotiated() {
@@ -43,18 +42,6 @@ void GoQuicServerSession::OnConfigNegotiated() {
 
   if (!config()->HasReceivedConnectionOptions()) {
     return;
-  }
-
-  // If the client has provided a bandwidth estimate from the same serving
-  // region, then pass it to the sent packet manager in preparation for possible
-  // bandwidth resumption.
-  const CachedNetworkParameters* cached_network_params =
-      crypto_stream_->previous_cached_network_params();
-  if (FLAGS_quic_enable_bandwidth_resumption_experiment &&
-      cached_network_params != nullptr &&
-      ContainsQuicTag(config()->ReceivedConnectionOptions(), kBWRE) &&
-      cached_network_params->serving_region() == serving_region_) {
-    connection()->ResumeConnectionState(*cached_network_params);
   }
 
   if (FLAGS_enable_quic_fec &&

@@ -1,6 +1,7 @@
 #ifndef __GO_PROOF_SOURCE__H__
 #define __GO_PROOF_SOURCE__H__
 #include "net/quic/crypto/proof_source.h"
+#include "net/base/host_port_pair.h"
 
 #include <map>
 
@@ -10,7 +11,7 @@ class GoProofSource : public net::ProofSource {
   ~GoProofSource() override;
 
   // ProofSource interface
-  bool GetProof(const net::IPEndPoint& server_ip,
+  bool GetProof(const net::IPAddressNumber& server_ip,
                 const std::string& hostname,
                 const std::string& server_config,
                 bool ecdsa_ok,

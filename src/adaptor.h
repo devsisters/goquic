@@ -44,6 +44,7 @@ void delete_quic_encrypted_packet(QuicEncryptedPacket *packet);
 IPAddressNumber *create_ip_address_number(unsigned char *ip_buf, size_t length);
 void delete_ip_address_number(IPAddressNumber *ip);
 
+size_t ip_address_number_ip_address(IPAddressNumber *ip, void *address_buf);
 IPEndPoint *create_ip_end_point(IPAddressNumber *ip, uint16_t port);
 void delete_ip_end_point(IPEndPoint *ip_end_point);
 size_t ip_endpoint_ip_address(IPEndPoint *ip_end_point, void *address_buf);

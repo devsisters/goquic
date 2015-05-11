@@ -9,7 +9,7 @@ import (
 )
 
 type ProofSource interface {
-	GetProof(addr *net.UDPAddr, hostname []byte, serverConfig []byte, ecdsaOk bool) (outCerts [][]byte, outSignature []byte)
+	GetProof(addr net.IP, hostname []byte, serverConfig []byte, ecdsaOk bool) (outCerts [][]byte, outSignature []byte)
 }
 
 type QuicDispatcher struct {
@@ -87,10 +87,10 @@ func GetProof(dispatcher_c unsafe.Pointer, server_ip_c unsafe.Pointer, hostname_
 		return C.int(0)
 	}
 
-	endpoint := IPEndPoint{
-		ipEndPoint: server_ip_c,
+	ipAddressNumber := IPAddressNumber{
+		ipAddressNumber: server_ip_c,
 	}
-	serverIp := endpoint.UDPAddr()
+	serverIp := ipAddressNumber.IP()
 	hostname := C.GoBytes(hostname_c, C.int(hostname_sz_c))
 	serverConfig := C.GoBytes(server_config_c, C.int(server_config_sz_c))
 	ecdsaOk := int(ecdsa_ok_c) > 0

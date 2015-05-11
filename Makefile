@@ -1,7 +1,7 @@
 CC=g++
 AR=ar
 C=gcc
-CFLAGS=-Wall -Ilibquic/src  -DUSE_OPENSSL=1 -Iboringssl/include -g -gdwarf-4
+CFLAGS=-Wall -Ilibquic/src -Ilibquic/src/third_party/protobuf/src  -DUSE_OPENSSL=1 -Iboringssl/include -g -gdwarf-4
 CPPFLAGS=--std=gnu++11
 CPP_FILES:=$(wildcard src/*.cc)
 CPP_BASE_FILES:=$(CPP_FILES:src/%=%)

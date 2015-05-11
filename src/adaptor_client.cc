@@ -55,7 +55,7 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_udp_c
       helper,
       GoQuicPacketWriterFactory(writer),
       /* owns_writer= */ true,
-      /* is_server= */ false,
+      /* is_server= */ Perspective::IS_CLIENT,
       /* is_https= */ false,
       supported_versions);
 
