@@ -7,7 +7,7 @@ package goquic
 
 extern int goquic_init_locks();
 extern void goquic_thread_locking_callback(int, int, const char*, int);
-extern unsigned long goquic_thread_id(void);
+extern void goquic_thread_id(CRYPTO_THREADID *id);
 
 static int goquic_init_thread_callbacks() {
 	// Source code referenced from: http://curl.haxx.se/libcurl/c/threaded-ssl.html
@@ -16,7 +16,7 @@ static int goquic_init_thread_callbacks() {
 		return ret;
 	}
 	CRYPTO_set_locking_callback(goquic_thread_locking_callback);
-	CRYPTO_set_id_callback(goquic_thread_id);
+	CRYPTO_THREADID_set_callback(goquic_thread_id);
 	return 0;
 }
 

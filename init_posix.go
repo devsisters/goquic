@@ -46,12 +46,12 @@ void goquic_thread_locking_callback(int mode, int n, const char *file, int line)
 	}
 }
 
-unsigned long goquic_thread_id(void)
+void goquic_thread_id(CRYPTO_THREADID *id)
 {
 	unsigned long ret;
 
 	ret = (unsigned long)pthread_self();
-	return ret;
+	CRYPTO_THREADID_set_numeric(id, ret);
 }
 */
 import "C"
