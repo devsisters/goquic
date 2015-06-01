@@ -17,9 +17,15 @@ type HeapItem struct {
 
 	// Negative value means this alarm is not in heap, otherwise this alarm is idx-th element in heap.
 	heapIdx int
+
+	// Inserted order, to be used at tie-breaking
+	insertOrd int
 }
 
-type AlarmHeap []*HeapItem
+type AlarmHeap struct {
+	items     []*HeapItem
+	insertNum int
+}
 
 // This TaskRunner is NOT THREAD SAFE (and NEED NOT TO BE) so be careful
 // All heap operations and callback operations should be called in a mainloop, not seperated goroutine
@@ -27,37 +33,46 @@ type TaskRunner struct {
 	WriteChan chan *WriteCallback
 	alarmList map[*GoQuicAlarm]*HeapItem
 
-	alarmHeap   AlarmHeap
+	alarmHeap   *AlarmHeap
 	deadlineTop int64
 	timer       *time.Timer
 }
 
-func (ht AlarmHeap) Len() int { return len(ht) }
+func (ht *AlarmHeap) Len() int { return len(ht.items) }
 
-func (ht AlarmHeap) Less(i, j int) bool {
-	return ht[i].deadline < ht[j].deadline
+func (ht *AlarmHeap) Less(i, j int) bool {
+	if ht.items[i].deadline == ht.items[j].deadline {
+		return ht.items[i].insertOrd < ht.items[j].insertOrd
+	}
+	return ht.items[i].deadline < ht.items[j].deadline
 }
 
-func (ht AlarmHeap) Swap(i, j int) {
-	ht[i], ht[j] = ht[j], ht[i]
-	ht[i].heapIdx = i
-	ht[j].heapIdx = j
+func (ht *AlarmHeap) Swap(i, j int) {
+	ht.items[i], ht.items[j] = ht.items[j], ht.items[i]
+	ht.items[i].heapIdx = i
+	ht.items[j].heapIdx = j
 }
 
 func (ht *AlarmHeap) Push(x interface{}) {
-	n := len(*ht)
+	n := len(ht.items)
 	item := x.(*HeapItem)
 	item.heapIdx = n
-	*ht = append(*ht, item)
+	ht.insertNum += 1
+	item.insertOrd = ht.insertNum
+	ht.items = append(ht.items, item)
 }
 
 func (ht *AlarmHeap) Pop() interface{} {
-	old := *ht
+	old := ht.items
 	n := len(old)
 	item := old[n-1]
 	item.heapIdx = -1 // for safety
-	*ht = old[0 : n-1]
+	ht.items = old[0 : n-1]
 	return item
+}
+
+func newAlarmHeap() *AlarmHeap {
+	return &AlarmHeap{make([]*HeapItem, 0), 0}
 }
 
 type WriteCallback struct {
@@ -73,7 +88,7 @@ func CreateTaskRunner(writeCh chan *WriteCallback) *TaskRunner {
 	taskRunner := &TaskRunner{
 		WriteChan: writeCh,
 		alarmList: make(map[*GoQuicAlarm]*HeapItem),
-		alarmHeap: make(AlarmHeap, 0),
+		alarmHeap: newAlarmHeap(),
 		timer:     time.NewTimer(time.Duration(200*365*24) * time.Hour), // ~ 200 year
 	}
 
@@ -84,9 +99,9 @@ func (t *TaskRunner) RunAlarm(alarm *GoQuicAlarm) {
 	item := t.alarmList[alarm]
 	item.deadline = item.alarm.deadline
 	if item.heapIdx < 0 {
-		heap.Push(&t.alarmHeap, item)
+		heap.Push(t.alarmHeap, item)
 	} else {
-		heap.Fix(&t.alarmHeap, item.heapIdx)
+		heap.Fix(t.alarmHeap, item.heapIdx)
 	}
 	t.resetTimer()
 }
@@ -94,7 +109,7 @@ func (t *TaskRunner) RunAlarm(alarm *GoQuicAlarm) {
 func (t *TaskRunner) CancelAlarm(alarm *GoQuicAlarm) {
 	item := t.alarmList[alarm]
 	if item.heapIdx >= 0 {
-		heap.Remove(&t.alarmHeap, item.heapIdx)
+		heap.Remove(t.alarmHeap, item.heapIdx)
 	}
 	t.resetTimer()
 }
@@ -104,14 +119,14 @@ func (t *TaskRunner) resetTimer() {
 		return
 	}
 
-	if t.deadlineTop == t.alarmHeap[0].deadline {
+	if t.deadlineTop == t.alarmHeap.items[0].deadline {
 		return
 	} else {
-		t.deadlineTop = t.alarmHeap[0].deadline
+		t.deadlineTop = t.alarmHeap.items[0].deadline
 	}
 
-	now := t.alarmHeap[0].alarm.Now()
-	duration_i64 := t.alarmHeap[0].deadline - now
+	now := t.alarmHeap.items[0].alarm.Now()
+	duration_i64 := t.alarmHeap.items[0].deadline - now
 	if duration_i64 < 0 {
 		duration_i64 = 0
 	}
@@ -130,11 +145,11 @@ func (t *TaskRunner) DoTasks() {
 	if t.alarmHeap.Len() == 0 {
 		return
 	}
-	now := t.alarmHeap[0].alarm.Now()
+	now := t.alarmHeap.items[0].alarm.Now()
 	for t.alarmHeap.Len() > 0 {
-		duration_i64 := t.alarmHeap[0].deadline - now
+		duration_i64 := t.alarmHeap.items[0].deadline - now
 		if duration_i64 < 0 {
-			item := heap.Pop(&t.alarmHeap).(*HeapItem)
+			item := heap.Pop(t.alarmHeap).(*HeapItem)
 			item.alarm.OnAlarm()
 		} else {
 			//			fmt.Println(unsafe.Pointer(t), "next alarm will be called after", duration_i64)
