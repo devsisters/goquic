@@ -225,6 +225,9 @@ func (s *Stream) Read(buf []byte) (int, error) {
 	// Wait for body
 	for s.pendingReads.Empty() {
 		s.conn.waitForEvents()
+		if s.closed && s.pendingReads.Empty() {
+			return 0, io.EOF
+		}
 	}
 
 	buffer := s.pendingReads.Dequeue().([]byte)
