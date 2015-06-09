@@ -5,6 +5,7 @@ package goquic
 
 /*
 #include <errno.h>
+#include <openssl/thread.h>
 #include <openssl/crypto.h>
 #include <pthread.h>
 

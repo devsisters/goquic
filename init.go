@@ -3,6 +3,7 @@
 package goquic
 
 /*
+#include <openssl/thread.h>
 #include <openssl/crypto.h>
 
 extern int goquic_init_locks();
