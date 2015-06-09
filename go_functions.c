@@ -46,6 +46,10 @@ void DataStreamProcessorOnClose_C(void* go_data_stream_processor) {
     DataStreamProcessorOnClose(go_data_stream_processor, 0);
 }
 
+void DataStreamProcessorOnCloseServer_C(void* go_data_stream_processor) {
+    DataStreamProcessorOnClose(go_data_stream_processor, 1);
+}
+
 void UnregisterQuicServerStreamFromSession_C(void* go_stream) {
     UnregisterQuicServerStreamFromSession(go_stream);
 }
