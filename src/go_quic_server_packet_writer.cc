@@ -86,7 +86,7 @@ WriteResult GoQuicServerPacketWriter::WritePacket(
                          peer_address,
                          base::Bind(&GoQuicServerPacketWriter::OnWriteComplete,
                                     weak_factory_.GetWeakPtr()));                                  TODO(hodduc) */
-    rv = ERR_IO_PENDING;                      // TODO(hodduc)
+    rv = buf_len;//ERR_IO_PENDING;                      // TODO(hodduc)
   } else {
     rv = ERR_MSG_TOO_BIG;
   }

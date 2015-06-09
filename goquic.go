@@ -32,15 +32,16 @@ func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c un
 	buf := make([]byte, len(bufOrig))
 	copy(buf, bufOrig) // XXX(hodduc) buffer copy?
 
-	taskRunner := (*TaskRunner)(task_runner_c)
+	//taskRunner := (*TaskRunner)(task_runner_c)
 
 	if isSynchronous {
 		//		conn.WriteToUDP(buf, peer_addr)
 		conn.Write(buf)
 	} else {
-		go func() {
-			conn.WriteToUDP(buf, peer_addr)
-			taskRunner.CallWriteCallback(server_packet_writer_c, len(buf))
-		}()
+		conn.WriteToUDP(buf, peer_addr)
+		//go func() {
+		//	conn.WriteToUDP(buf, peer_addr)
+		//	taskRunner.CallWriteCallback(server_packet_writer_c, len(buf))
+		//}()
 	}
 }
