@@ -72,11 +72,8 @@ WriteResult GoQuicServerPacketWriter::WritePacket(
     size_t buf_len,
     const IPAddressNumber& self_address,
     const IPEndPoint& peer_address) {
-//  scoped_refptr<StringIOBuffer> buf(
-//      new StringIOBuffer(std::string(buffer, buf_len)));
   DCHECK(!IsWriteBlocked());
   DCHECK(!callback_.is_null());
-/*  TODO(hodduc) See quic_time_wait_list_manager.cc:WriteToWire. It should call WritePacketWithCallback to hold callback, but it isn't now. Google has been notified of this bug.  */
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
     WriteToUDP_C(go_udp_conn_, (void *)(&peer_address), (void *)buffer, buf_len, (void *)this, go_task_runner_);

@@ -14,6 +14,7 @@
 #include "base/basictypes.h"
 #include "base/containers/hash_tables.h"
 #include "base/strings/string_piece.h"
+#include "base/memory/weak_ptr.h"
 #include "net/base/linked_hash_map.h"
 #include "net/quic/quic_blocked_writer_interface.h"
 #include "net/quic/quic_framer.h"
@@ -122,6 +123,8 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
   // packet.
   bool WriteToWire(QueuedPacket* packet);
 
+  void OnWriteComplete(WriteResult result);
+
   // Register the alarm to wake up at appropriate time.
   void SetConnectionIdCleanUpAlarm();
 
@@ -168,6 +171,8 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
 
   // Interface that manages blocked writers.
   GoQuicServerSessionVisitor* visitor_;
+
+  base::WeakPtrFactory<GoQuicTimeWaitListManager> weak_factory_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicTimeWaitListManager);
 };
