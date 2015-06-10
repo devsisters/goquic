@@ -44,7 +44,7 @@ WriteResult GoQuicClientPacketWriter::WritePacket(
   DCHECK(!IsWriteBlocked());
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
-    WriteToUDPSync_C(go_udp_conn_, (void *)(&peer_address), (void *)buffer, buf_len, (void *)this, go_task_runner_);
+    WriteToUDPClient_C(go_udp_conn_, (void *)(&peer_address), (void *)buffer, buf_len, (void *)this, go_task_runner_);
 
     rv = buf_len;
   } else {

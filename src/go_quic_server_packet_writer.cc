@@ -76,17 +76,11 @@ WriteResult GoQuicServerPacketWriter::WritePacket(
 //      new StringIOBuffer(std::string(buffer, buf_len)));
   DCHECK(!IsWriteBlocked());
   DCHECK(!callback_.is_null());
-/*  TODO(hodduc) See quic_time_wait_list_manager.cc:WriteToWire. It should call WritePacketWithCallback to hold callback, but it isn't now. We turn off this check temporarily. */
+/*  TODO(hodduc) See quic_time_wait_list_manager.cc:WriteToWire. It should call WritePacketWithCallback to hold callback, but it isn't now. Google has been notified of this bug.  */
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
     WriteToUDP_C(go_udp_conn_, (void *)(&peer_address), (void *)buffer, buf_len, (void *)this, go_task_runner_);
-
-/*    rv = socket_->SendTo(buf.get(),
-                         static_cast<int>(buf_len),
-                         peer_address,
-                         base::Bind(&GoQuicServerPacketWriter::OnWriteComplete,
-                                    weak_factory_.GetWeakPtr()));                                  TODO(hodduc) */
-    rv = buf_len;//ERR_IO_PENDING;                      // TODO(hodduc)
+    rv = buf_len;
   } else {
     rv = ERR_MSG_TOO_BIG;
   }
