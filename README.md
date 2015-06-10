@@ -26,18 +26,12 @@ Chromium (which are tested), the Go bindings are still highly pre-alpha state.
 
 Known issues:
 
-  * Stability/Crash issues when under high concurrency:
-    * Double free or memory corruption on packet decryption (BoringSSL code)
-    * `FATAL:quic_sent_packet_manager.cc(647)] Check failed: packet_retransmitted. No crypto packets found to retransmit.`
-    * `ERROR:quic_sent_packet_manager.cc(667)] No retransmittable packets, so RetransmitOldestPacket failed.`
-  * No support for read/write streaming. All request/response must fit in
-    memory.
-  * Secure QUIC not fully tested. May not support all kinds of certificates.
+  * No support for read streaming. All request must fit in memory.
+  * Secure QUIC not fully tested. May not support ECDSA certificates.
 
 Things to do:
 
-  * Fix crash issues noted above
-  * Read/write streaming support
+  * Read streaming support
 
 ## Preliminary Benchmarks
 
@@ -101,11 +95,11 @@ Currently Linux and Mac OS X is supprted.
 Due to Go 1.4's cgo restrictions, use an environment variable like below to
 build your projects. This restriction will be removed from Go 1.5.
 
-`CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/$GOOS_$GOARCH"`
+`CGO_CFLAGS="-I$GOPATH/src/github.com/devsisters/goquic/libquic/boringssl/include" CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/$GOOS_$GOARCH"`
 
 For example, building gospdyquic example server in Mac:
 
-`CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/darwin_amd64" go build $GOPATH/github.com/devsisters/gospdyquic/example/server.go`
+`CGO_CFLAGS="-I$GOPATH/src/github.com/devsisters/goquic/libquic/boringssl/include" CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/darwin_amd64" go build $GOPATH/github.com/devsisters/gospdyquic/example/server.go`
 
 ## How to use
 
