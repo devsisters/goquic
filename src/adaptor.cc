@@ -91,7 +91,7 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispat
       helper,
       go_quic_dispatcher);
 
-  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_udp_conn, dispatcher, go_task_runner); // Deleted by scoped ptr of GoQuicDispatcher
+  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_udp_conn, dispatcher); // Deleted by scoped ptr of GoQuicDispatcher
 
   dispatcher->Initialize(writer);
 

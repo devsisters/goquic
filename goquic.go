@@ -20,8 +20,7 @@ func SetLogLevel(level int) {
 	C.set_log_level(C.int(level))
 }
 
-//export WriteToUDP
-func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c unsafe.Pointer, length_c C.size_t, server_packet_writer_c unsafe.Pointer, task_runner_c unsafe.Pointer, isServer bool) {
+func writeToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c unsafe.Pointer, length_c C.size_t, isServer bool) {
 	conn := (*net.UDPConn)(conn_c)
 	endpoint := IPEndPoint{
 		ipEndPoint: ip_endpoint_c,
@@ -35,4 +34,14 @@ func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c un
 	} else {
 		conn.Write(buf)
 	}
+}
+
+//export WriteToUDP
+func WriteToUDP(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c unsafe.Pointer, length_c C.size_t) {
+	writeToUDP(conn_c, ip_endpoint_c, buffer_c, length_c, true)
+}
+
+//export WriteToUDPClient
+func WriteToUDPClient(conn_c unsafe.Pointer, ip_endpoint_c unsafe.Pointer, buffer_c unsafe.Pointer, length_c C.size_t) {
+	writeToUDP(conn_c, ip_endpoint_c, buffer_c, length_c, false)
 }

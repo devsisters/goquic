@@ -41,7 +41,7 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_udp_c
 
   TestConnectionHelper* helper = new TestConnectionHelper(task_runner, clock, random_generator); // Deleted by delete_go_quic_client_session()
 
-  QuicPacketWriter* writer = new GoQuicClientPacketWriter(go_udp_conn, task_runner); // Deleted by ~QuicConnection() because owns_writer is true
+  QuicPacketWriter* writer = new GoQuicClientPacketWriter(go_udp_conn); // Deleted by ~QuicConnection() because owns_writer is true
 
   QuicVersionVector supported_versions;
   for (size_t i = 0; i < arraysize(kSupportedQuicVersions); ++i) {

@@ -14,8 +14,7 @@ struct WriteResult;
 
 class GoQuicClientPacketWriter : public QuicPacketWriter {
  public:
-  GoQuicClientPacketWriter(void *go_udp_conn,
-      void* go_task_runner);
+  GoQuicClientPacketWriter(void *go_udp_conn);
   ~GoQuicClientPacketWriter() override;
 
   // QuicPacketWriter implementation:
@@ -31,8 +30,6 @@ class GoQuicClientPacketWriter : public QuicPacketWriter {
 
  private:
   void* go_udp_conn_;
-
-  void* go_task_runner_;
 
   // Whether a write is currently in flight.
   bool write_blocked_;

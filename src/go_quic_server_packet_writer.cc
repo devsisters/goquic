@@ -17,10 +17,8 @@ namespace net {
 
 GoQuicServerPacketWriter::GoQuicServerPacketWriter(
     void* go_udp_conn,
-    QuicBlockedWriterInterface* blocked_writer,
-    void* go_task_runner)
+    QuicBlockedWriterInterface* blocked_writer)
     : go_udp_conn_(go_udp_conn),
-      go_task_runner_(go_task_runner),
       blocked_writer_(blocked_writer),
       write_blocked_(false),
       weak_factory_(this) {
@@ -79,7 +77,7 @@ WriteResult GoQuicServerPacketWriter::WritePacket(
 /*  TODO(hodduc) See quic_time_wait_list_manager.cc:WriteToWire. It should call WritePacketWithCallback to hold callback, but it isn't now. Google has been notified of this bug.  */
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
-    WriteToUDP_C(go_udp_conn_, (void *)(&peer_address), (void *)buffer, buf_len, (void *)this, go_task_runner_);
+    WriteToUDP_C(go_udp_conn_, (void *)(&peer_address), (void *)buffer, buf_len);
     rv = buf_len;
   } else {
     rv = ERR_MSG_TOO_BIG;
