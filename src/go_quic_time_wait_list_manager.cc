@@ -11,7 +11,6 @@
 #include "base/containers/hash_tables.h"
 #include "base/memory/scoped_ptr.h"
 #include "base/stl_util.h"
-#include "base/bind.h"
 #include "net/base/ip_endpoint.h"
 #include "net/quic/crypto/crypto_protocol.h"
 #include "net/quic/crypto/quic_decrypter.h"
@@ -242,9 +241,7 @@ bool GoQuicTimeWaitListManager::WriteToWire(QueuedPacket* queued_packet) {
       queued_packet->packet()->data(),
       queued_packet->packet()->length(),
       queued_packet->server_address().address(),
-      queued_packet->client_address(),
-      base::Bind(&GoQuicTimeWaitListManager::OnWriteComplete,
-                 weak_factory_.GetWeakPtr()));
+      queued_packet->client_address());
   if (result.status == WRITE_STATUS_BLOCKED) {
     // If blocked and unbuffered, return false to retry sending.
     DCHECK(writer_->IsWriteBlocked());
@@ -256,13 +253,6 @@ bool GoQuicTimeWaitListManager::WriteToWire(QueuedPacket* queued_packet) {
                  << strerror(result.error_code);
   }
   return true;
-}
-
-void GoQuicTimeWaitListManager::OnWriteComplete(WriteResult result) {
-  if (result.status == WRITE_STATUS_ERROR) {
-    LOG(WARNING) << "Received unknown error while sending reset packet: "
-                 << strerror(result.error_code);
-  }
 }
 
 void GoQuicTimeWaitListManager::SetConnectionIdCleanUpAlarm() {
