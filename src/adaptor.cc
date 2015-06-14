@@ -6,6 +6,7 @@
 #include "go_quic_spdy_server_stream_go_wrapper.h"
 #include "go_quic_alarm_go_wrapper.h"
 #include "go_proof_source.h"
+#include "go_ephemeral_key_source.h"
 
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_clock.h"
@@ -53,6 +54,8 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispat
   QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance());
   QuicClock* clock = new QuicClock(); // Deleted by scoped ptr of TestConnectionHelper
   QuicRandom* random_generator = QuicRandom::GetInstance();
+  net::EphemeralKeySource *keySource = new GoEphemeralKeySource();
+  crypto_config->SetEphemeralKeySource(keySource);
 
   TestConnectionHelper *helper = new TestConnectionHelper(go_task_runner, clock, random_generator); // Deleted by delete_go_quic_dispatcher()
   QuicVersionVector versions(net::QuicSupportedVersions());
