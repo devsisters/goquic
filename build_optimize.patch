@@ -1,0 +1,26 @@
+diff --git a/Makefile b/Makefile
+index 1099b2b..df8dc38 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ CC=g++
+ AR=ar
+ C=gcc
+-CFLAGS=-Wall -Ilibquic/src -Ilibquic/src/third_party/protobuf/src  -DUSE_OPENSSL=1 -Iboringssl/include -g -gdwarf-4
++CFLAGS=-Wall -Ilibquic/src -Ilibquic/src/third_party/protobuf/src  -DUSE_OPENSSL=1 -Iboringssl/include -g -gdwarf-4 -O3
+ CPPFLAGS=--std=gnu++11
+ CPP_FILES:=$(wildcard src/*.cc)
+ CPP_BASE_FILES:=$(CPP_FILES:src/%=%)
+diff --git a/build_libs.sh b/build_libs.sh
+index 78d0c06..0dc885a 100755
+--- a/build_libs.sh
++++ b/build_libs.sh
+@@ -36,7 +36,7 @@ cd libquic
+ rm -fr build
+ mkdir -p build
+ cd build
+-cmake -GNinja ..
++cmake -GNinja -DCMAKE_BUILD_TYPE=Release ..
+ ninja
+ 
+ cd ../..
