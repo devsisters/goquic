@@ -111,6 +111,21 @@ void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, IPEndPoint *se
   dispatcher->ProcessPacket(*self_address, *peer_address, *packet);
 }
 
+void quic_dispatcher_process_packet_raw(GoQuicDispatcher *dispatcher, struct GoIPEndPoint *go_self_address, struct GoIPEndPoint *go_peer_address, char *buffer, size_t length) {
+  IPAddressNumber *self_ip_addr, *peer_ip_addr;
+  self_ip_addr = create_ip_address_number(go_self_address->ip_buf, go_self_address->ip_length);
+  IPEndPoint self_address(*self_ip_addr, go_self_address->port);
+  delete self_ip_addr;
+
+  peer_ip_addr = create_ip_address_number(go_peer_address->ip_buf, go_peer_address->ip_length);
+  IPEndPoint peer_address(*peer_ip_addr, go_peer_address->port);
+  delete peer_ip_addr;
+
+  QuicEncryptedPacket packet(buffer, length, false /* Do not own the buffer, so will not free buffer in the destructor */);
+
+  dispatcher->ProcessPacket(self_address, peer_address, packet);
+}
+
 QuicEncryptedPacket *create_quic_encrypted_packet(char *buffer, size_t length) {
   return new QuicEncryptedPacket(buffer, length, false /* Do not own the buffer, so will not free buffer in the destructor */);  // Deleted by delete_quic_encrypted_packet()
 }

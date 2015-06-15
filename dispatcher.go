@@ -46,13 +46,21 @@ func CreateQuicDispatcher(conn *net.UDPConn, createQuicServerSession func() Data
 }
 
 func (d *QuicDispatcher) ProcessPacket(self_address *net.UDPAddr, peer_address *net.UDPAddr, buffer []byte) {
-	packet := CreateQuicEncryptedPacket(buffer)
-	defer DeleteQuicEncryptedPacket(packet)
-	self_address_c := CreateIPEndPoint(self_address)
-	defer DeleteIPEndPoint(self_address_c)
-	peer_address_c := CreateIPEndPoint(peer_address)
-	defer DeleteIPEndPoint(peer_address_c)
-	C.quic_dispatcher_process_packet(d.quicDispatcher, self_address_c.ipEndPoint, peer_address_c.ipEndPoint, packet.encryptedPacket)
+	/*
+		packet := CreateQuicEncryptedPacket(buffer)
+		defer DeleteQuicEncryptedPacket(packet)
+		self_address_c := CreateIPEndPoint(self_address)
+		defer DeleteIPEndPoint(self_address_c)
+		peer_address_c := CreateIPEndPoint(peer_address)
+		defer DeleteIPEndPoint(peer_address_c)
+		C.quic_dispatcher_process_packet(d.quicDispatcher, self_address_c.ipEndPoint, peer_address_c.ipEndPoint, packet.encryptedPacket)
+	*/
+	C.quic_dispatcher_process_packet_raw(
+		d.quicDispatcher,
+		CreateIPEndPointPacked(self_address),
+		CreateIPEndPointPacked(peer_address),
+		(*C.char)(unsafe.Pointer(&buffer[0])), C.size_t(len(buffer)),
+	)
 }
 
 //export CreateGoSession
