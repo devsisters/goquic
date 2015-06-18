@@ -6,7 +6,6 @@ import "C"
 import (
 	"container/heap"
 	"time"
-	"unsafe"
 )
 
 type HeapItem struct {
@@ -28,9 +27,8 @@ type AlarmHeap struct {
 }
 
 // This TaskRunner is NOT THREAD SAFE (and NEED NOT TO BE) so be careful
-// All heap operations and callback operations should be called in a mainloop, not seperated goroutine
+// All heap operations should be called in a mainloop, not seperated goroutine
 type TaskRunner struct {
-	WriteChan chan *WriteCallback
 	alarmList map[*GoQuicAlarm]*HeapItem
 
 	alarmHeap   *AlarmHeap
@@ -75,18 +73,8 @@ func newAlarmHeap() *AlarmHeap {
 	return &AlarmHeap{make([]*HeapItem, 0), 0}
 }
 
-type WriteCallback struct {
-	rv                 int
-	serverPacketWriter unsafe.Pointer
-}
-
-func (cb *WriteCallback) Callback() {
-	C.packet_writer_on_write_complete(cb.serverPacketWriter, C.int(cb.rv))
-}
-
-func CreateTaskRunner(writeCh chan *WriteCallback) *TaskRunner {
+func CreateTaskRunner() *TaskRunner {
 	taskRunner := &TaskRunner{
-		WriteChan: writeCh,
 		alarmList: make(map[*GoQuicAlarm]*HeapItem),
 		alarmHeap: newAlarmHeap(),
 		timer:     time.NewTimer(time.Duration(200*365*24) * time.Hour), // ~ 200 year
@@ -177,11 +165,4 @@ func (t *TaskRunner) UnregisterAlarm(alarm *GoQuicAlarm) {
 		t.CancelAlarm(alarm)
 	}
 	delete(t.alarmList, alarm)
-}
-
-func (t *TaskRunner) CallWriteCallback(server_packet_writer_c unsafe.Pointer, rv int) {
-	t.WriteChan <- (&WriteCallback{
-		rv:                 rv,
-		serverPacketWriter: server_packet_writer_c,
-	})
 }

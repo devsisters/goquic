@@ -307,7 +307,7 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 		return &ClientSessionImpl{conn: quic_conn}
 	}
 
-	taskRunner := CreateTaskRunner(nil)
+	taskRunner := CreateTaskRunner()
 	quicClient, err := CreateQuicClient(addr, quic_conn, createQuicClientSessionImpl, taskRunner)
 	if err != nil {
 		return nil, err
