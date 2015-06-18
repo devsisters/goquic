@@ -59,8 +59,7 @@ uint16_t ip_endpoint_port(IPEndPoint *ip_end_point);
 
 GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispatcher, void* go_task_runner);
 void delete_go_quic_dispatcher(GoQuicDispatcher *dispatcher);
-void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet);
-void quic_dispatcher_process_packet_raw(GoQuicDispatcher *dispatcher, struct GoIPEndPoint *go_self_address, struct GoIPEndPoint *go_peer_address, char *buffer, size_t length);
+void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, struct GoIPEndPoint *go_self_address, struct GoIPEndPoint *go_peer_address, char *buffer, size_t length);
 
 MapStrStr* initialize_map();
 void delete_map(MapStrStr* map);

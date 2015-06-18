@@ -107,11 +107,7 @@ void delete_go_quic_dispatcher(GoQuicDispatcher *dispatcher) {
   delete helper;
 }
 
-void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet) {
-  dispatcher->ProcessPacket(*self_address, *peer_address, *packet);
-}
-
-void quic_dispatcher_process_packet_raw(GoQuicDispatcher *dispatcher, struct GoIPEndPoint *go_self_address, struct GoIPEndPoint *go_peer_address, char *buffer, size_t length) {
+void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, struct GoIPEndPoint *go_self_address, struct GoIPEndPoint *go_peer_address, char *buffer, size_t length) {
   IPAddressNumber *self_ip_addr, *peer_ip_addr;
   self_ip_addr = create_ip_address_number(go_self_address->ip_buf, go_self_address->ip_length);
   IPEndPoint self_address(*self_ip_addr, go_self_address->port);
