@@ -58,9 +58,9 @@ func CreateQuicClient(addr *net.UDPAddr, conn QuicConn, createQuicClientSession 
 }
 
 func (qc *QuicClient) StartConnect() {
-	addr_c := CreateIPEndPoint(qc.addr)
+	addr := CreateIPEndPointPacked(qc.addr)
 	qc.session = &QuicClientSession{
-		quicClientSession: C.create_go_quic_client_session_and_initialize(unsafe.Pointer(qc.conn.Socket()), unsafe.Pointer(qc.taskRunner), addr_c.ipEndPoint), // Deleted on QuicClient.Close(),
+		quicClientSession: C.create_go_quic_client_session_and_initialize(unsafe.Pointer(qc.conn.Socket()), unsafe.Pointer(qc.taskRunner), addr), // Deleted on QuicClient.Close(),
 		quicClientStreams: make(map[*QuicClientStream]bool),
 		streamCreator:     qc.createQuicClientSession(),
 	}

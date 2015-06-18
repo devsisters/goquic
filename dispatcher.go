@@ -79,17 +79,14 @@ func DeleteGoSession(dispatcher_c unsafe.Pointer, go_session_c unsafe.Pointer) {
 }
 
 //export GetProof
-func GetProof(dispatcher_c unsafe.Pointer, server_ip_c unsafe.Pointer, hostname_c unsafe.Pointer, hostname_sz_c C.size_t, server_config_c unsafe.Pointer, server_config_sz_c C.size_t, ecdsa_ok_c C.int, out_certs_c ***C.char, out_certs_sz_c *C.int, out_certs_item_sz_c **C.size_t, out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
+func GetProof(dispatcher_c unsafe.Pointer, server_ip_c unsafe.Pointer, server_ip_sz C.size_t, hostname_c unsafe.Pointer, hostname_sz_c C.size_t, server_config_c unsafe.Pointer, server_config_sz_c C.size_t, ecdsa_ok_c C.int, out_certs_c ***C.char, out_certs_sz_c *C.int, out_certs_item_sz_c **C.size_t, out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
 	dispatcher := (*QuicDispatcher)(dispatcher_c)
 
 	if !dispatcher.isSecure {
 		return C.int(0)
 	}
 
-	ipAddressNumber := IPAddressNumber{
-		ipAddressNumber: server_ip_c,
-	}
-	serverIp := ipAddressNumber.IP()
+	serverIp := net.IP(C.GoBytes(server_ip_c, C.int(server_ip_sz)))
 	hostname := C.GoBytes(hostname_c, C.int(hostname_sz_c))
 	serverConfig := C.GoBytes(server_config_c, C.int(server_config_sz_c))
 	ecdsaOk := int(ecdsa_ok_c) > 0

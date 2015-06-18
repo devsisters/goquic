@@ -34,7 +34,10 @@ class GoQuicPacketWriterFactory : public QuicConnection::PacketWriterFactory {
 };
 
 
-GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_udp_conn, void* task_runner, IPEndPoint* server_address) {
+GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_udp_conn, void* task_runner, struct GoIPEndPoint* go_server_address) {
+  IPAddressNumber server_ip_addr(go_server_address->ip_buf, go_server_address->ip_buf + go_server_address->ip_length);
+  IPEndPoint server_address(server_ip_addr, go_server_address->port);
+
   QuicConfig config = QuicConfig();
   QuicClock* clock = new QuicClock(); // Deleted by scoped ptr of TestConnectionHelper
   QuicRandom* random_generator = QuicRandom::GetInstance();
@@ -51,7 +54,7 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_udp_c
   // Deleted automatically by scoped ptr of GoQuicClientSession
   QuicConnection* conn = new QuicConnection(
       QuicRandom::GetInstance()->RandUint64(),   // Connection ID
-      *server_address,
+      server_address,
       helper,
       GoQuicPacketWriterFactory(writer),
       /* owns_writer= */ true,
@@ -67,7 +70,7 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_udp_c
 
   session->InitializeSession(QuicServerId(
         /* host */ std::string(),//server_address->ToStringWithoutPort(),
-        /* port */ server_address->port(),
+        /* port */ server_address.port(),
         /* is_https */ false), crypto_config);
 
   session->CryptoConnect();

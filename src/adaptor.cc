@@ -126,49 +126,6 @@ void delete_quic_encrypted_packet(QuicEncryptedPacket *packet) {
   delete packet;
 }
 
-IPAddressNumber *create_ip_address_number(unsigned char *ip_buf, size_t length) {
-  IPAddressNumber *ip = new IPAddressNumber; // Deleted by delete_ip_address_number()
-  for (size_t i = 0; i < length; i++) {
-    ip->push_back(ip_buf[i]);
-  }
-  return ip;
-}
-
-void delete_ip_address_number(IPAddressNumber *ip) {
-  delete ip;
-}
-
-size_t ip_address_number_ip_address(IPAddressNumber *ip, void *address_buf) {
-  const size_t size = ip->size();
-  for (size_t i = 0; i < size; i++) {
-    // XXX(serialx): Performance and safety issues here. Ensure address_buf is large enough for ipv6
-    ((char *)address_buf)[i] = ip->at(i);
-  }
-  return size;
-}
-
-IPEndPoint *create_ip_end_point(IPAddressNumber *ip, uint16_t port) {
-  return new IPEndPoint(*ip, port); // Deleted by delete_ip_end_point()
-}
-
-size_t ip_endpoint_ip_address(IPEndPoint *ip_end_point, void *address_buf) {
-  const IPAddressNumber &ip = ip_end_point->address();
-  const size_t size = ip.size();
-  for (size_t i = 0; i < size; i++) {
-    // XXX(serialx): Performance and safety issues here. Ensure address_buf is large enough for ipv6
-    ((char *)address_buf)[i] = ip[i];
-  }
-  return size;
-}
-
-uint16_t ip_endpoint_port(IPEndPoint *ip_end_point) {
-  return ip_end_point->port();
-}
-
-void delete_ip_end_point(IPEndPoint *ip_end_point) {
-  delete ip_end_point;
-}
-
 // Utility wrappers for C++ std::map
 MapStrStr* initialize_map() {
   return new MapStrStr; // Delete by delete_map

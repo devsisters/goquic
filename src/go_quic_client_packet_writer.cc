@@ -43,7 +43,8 @@ WriteResult GoQuicClientPacketWriter::WritePacket(
   DCHECK(!IsWriteBlocked());
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
-    WriteToUDPClient_C(go_udp_conn_, (void *)(&peer_address), (void *)buffer, buf_len);
+    std::string peer_ip = net::IPAddressToPackedString(peer_address.address());
+    WriteToUDPClient_C(go_udp_conn_, (char *)peer_ip.c_str(), peer_ip.size(), peer_address.port(), (void *)buffer, buf_len);
 
     rv = buf_len;
   } else {

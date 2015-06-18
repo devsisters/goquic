@@ -6,12 +6,12 @@
 
 #include "_cgo_export.h"
 
-void WriteToUDP_C(void* go_udp_conn, void* peer_address, void* buffer, size_t buf_len) {
-    WriteToUDP(go_udp_conn, peer_address, buffer, buf_len);
+void WriteToUDP_C(void* go_udp_conn, void* peer_ip, size_t peer_ip_sz, uint16_t peer_port, void* buffer, size_t buf_len) {
+    WriteToUDP(go_udp_conn, peer_ip, peer_ip_sz, peer_port, buffer, buf_len);
 }
 
-void WriteToUDPClient_C(void* go_udp_conn, void* peer_address, void* buffer, size_t buf_len) {
-    WriteToUDPClient(go_udp_conn, peer_address, buffer, buf_len);
+void WriteToUDPClient_C(void* go_udp_conn, void* peer_ip, size_t peer_ip_sz, uint16_t peer_port, void* buffer, size_t buf_len) {
+    WriteToUDPClient(go_udp_conn, peer_ip, peer_ip_sz, peer_port, buffer, buf_len);
 }
 
 void* CreateGoSession_C(void* go_quic_dispatcher, void* quic_server_session) {
@@ -22,8 +22,8 @@ void* DeleteGoSession_C(void* go_quic_dispatcher, void* go_quic_server_session) 
     DeleteGoSession(go_quic_dispatcher, go_quic_server_session);
 }
 
-int GetProof_C(void* go_quic_dispatcher, void* server_ip, char* hostname, size_t hostname_sz, char* server_config, size_t server_config_sz, int ecdsa_ok, char ***out_certs, int *out_certs_sz, size_t **out_certs_item_sz, char **out_signature, size_t *out_signature_sz) {
-    return GetProof(go_quic_dispatcher, server_ip, hostname, hostname_sz, server_config, server_config_sz, ecdsa_ok, out_certs, out_certs_sz, out_certs_item_sz, out_signature, out_signature_sz);
+int GetProof_C(void* go_quic_dispatcher, void* server_ip, size_t server_ip_sz, char* hostname, size_t hostname_sz, char* server_config, size_t server_config_sz, int ecdsa_ok, char ***out_certs, int *out_certs_sz, size_t **out_certs_item_sz, char **out_signature, size_t *out_signature_sz) {
+    return GetProof(go_quic_dispatcher, server_ip, server_ip_sz, hostname, hostname_sz, server_config, server_config_sz, ecdsa_ok, out_certs, out_certs_sz, out_certs_item_sz, out_signature, out_signature_sz);
 }
 
 void* CreateIncomingDataStream_C(void* go_quic_server_session, uint32_t id, void* go_quic_spdy_server_stream_go_wrapper) {
