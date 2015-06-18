@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "go_structs.h"
+
 #ifdef __cplusplus
 #include "go_quic_client_session.h"
 #include "go_quic_reliable_client_stream.h"
@@ -19,6 +21,7 @@ typedef void GoQuicReliableClientStream;
 typedef void MapStrStr;
 typedef void QuicEncryptedPacket;
 #endif
+
 GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_udp_conn, void* task_runner, IPEndPoint* server_address);
 void delete_go_quic_client_session(GoQuicClientSession* go_quic_client_session);
 int go_quic_client_encryption_being_established(GoQuicClientSession* session);
@@ -27,7 +30,7 @@ GoQuicReliableClientStream* quic_client_session_create_reliable_quic_stream(GoQu
 int quic_client_session_num_active_requests(GoQuicClientSession* session);
 void quic_reliable_client_stream_write_headers(GoQuicReliableClientStream* stream, MapStrStr* header, int is_empty_body);
 void quic_reliable_client_stream_write_or_buffer_data(GoQuicReliableClientStream* stream, char* buf, size_t bufsize, int fin);
-void go_quic_client_session_process_packet(GoQuicClientSession *session, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet);
+void go_quic_client_session_process_packet(GoQuicClientSession *session, struct GoIPEndPoint *go_self_address, struct GoIPEndPoint *go_peer_address, char *buffer, size_t length);
 void go_quic_client_session_connection_send_connection_close_packet(GoQuicClientSession* session);
 #ifdef __cplusplus
 }

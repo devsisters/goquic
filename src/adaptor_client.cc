@@ -107,8 +107,15 @@ void quic_reliable_client_stream_write_or_buffer_data(GoQuicReliableClientStream
   stream->WriteOrBufferData_(StringPiece(buf, bufsize), (fin != 0), nullptr);
 }
 
-void go_quic_client_session_process_packet(GoQuicClientSession *session, IPEndPoint *self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet) {
-  session->connection()->ProcessUdpPacket(*self_address, *peer_address, *packet);
+void go_quic_client_session_process_packet(GoQuicClientSession *session, struct GoIPEndPoint *go_self_address, struct GoIPEndPoint *go_peer_address, char *buffer, size_t length) {
+  IPAddressNumber self_ip_addr(go_self_address->ip_buf, go_self_address->ip_buf + go_self_address->ip_length);
+  IPEndPoint self_address(self_ip_addr, go_self_address->port);
+  IPAddressNumber peer_ip_addr(go_peer_address->ip_buf, go_peer_address->ip_buf + go_peer_address->ip_length);
+  IPEndPoint peer_address(peer_ip_addr, go_peer_address->port);
+
+  QuicEncryptedPacket packet(buffer, length, false /* Do not own the buffer, so will not free buffer in the destructor */);
+
+  session->connection()->ProcessUdpPacket(self_address, peer_address, packet);
 }
 
 void go_quic_client_session_connection_send_connection_close_packet(GoQuicClientSession* session) {

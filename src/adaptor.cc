@@ -108,14 +108,10 @@ void delete_go_quic_dispatcher(GoQuicDispatcher *dispatcher) {
 }
 
 void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, struct GoIPEndPoint *go_self_address, struct GoIPEndPoint *go_peer_address, char *buffer, size_t length) {
-  IPAddressNumber *self_ip_addr, *peer_ip_addr;
-  self_ip_addr = create_ip_address_number(go_self_address->ip_buf, go_self_address->ip_length);
-  IPEndPoint self_address(*self_ip_addr, go_self_address->port);
-  delete self_ip_addr;
-
-  peer_ip_addr = create_ip_address_number(go_peer_address->ip_buf, go_peer_address->ip_length);
-  IPEndPoint peer_address(*peer_ip_addr, go_peer_address->port);
-  delete peer_ip_addr;
+  IPAddressNumber self_ip_addr(go_self_address->ip_buf, go_self_address->ip_buf + go_self_address->ip_length);
+  IPEndPoint self_address(self_ip_addr, go_self_address->port);
+  IPAddressNumber peer_ip_addr(go_peer_address->ip_buf, go_peer_address->ip_buf + go_peer_address->ip_length);
+  IPEndPoint peer_address(peer_ip_addr, go_peer_address->port);
 
   QuicEncryptedPacket packet(buffer, length, false /* Do not own the buffer, so will not free buffer in the destructor */);
 

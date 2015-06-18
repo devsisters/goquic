@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "go_structs.h"
+
 #ifdef __cplusplus
 #include "go_quic_dispatcher.h"
 #include "go_quic_spdy_server_stream_go_wrapper.h"
@@ -29,12 +31,6 @@ typedef void GoQuicAlarmGoWrapper;
 typedef void QuicClock;
 typedef void GoQuicServerPacketWriter;
 #endif
-
-struct GoIPEndPoint {
-  unsigned char *ip_buf;
-  size_t ip_length;
-  uint16_t port;
-};
 
 void initialize();
 void set_log_level(int level);

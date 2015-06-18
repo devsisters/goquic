@@ -88,14 +88,12 @@ func (qc *QuicClient) CreateReliableQuicStream() *QuicClientStream {
 }
 
 func (qc *QuicClient) ProcessPacket(self_address *net.UDPAddr, peer_address *net.UDPAddr, buffer []byte) {
-	packet := CreateQuicEncryptedPacket(buffer)
-	defer DeleteQuicEncryptedPacket(packet)
-	self_address_c := CreateIPEndPoint(self_address)
-	defer DeleteIPEndPoint(self_address_c)
-	peer_address_c := CreateIPEndPoint(peer_address)
-	defer DeleteIPEndPoint(peer_address_c)
-
-	C.go_quic_client_session_process_packet(qc.session.quicClientSession, self_address_c.ipEndPoint, peer_address_c.ipEndPoint, packet.encryptedPacket)
+	C.go_quic_client_session_process_packet(
+		qc.session.quicClientSession,
+		CreateIPEndPointPacked(self_address),
+		CreateIPEndPointPacked(peer_address),
+		(*C.char)(unsafe.Pointer(&buffer[0])), C.size_t(len(buffer)),
+	)
 }
 
 func (qc *QuicClient) SendConnectionClosePacket() {
