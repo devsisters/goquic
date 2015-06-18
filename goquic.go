@@ -4,7 +4,7 @@ package goquic
 // #cgo LDFLAGS: -pthread -lgoquic -lquic -lssl -lcrypto -lstdc++ -lm -lprotobuf
 // #cgo darwin LDFLAGS: -framework CoreFoundation -framework Cocoa
 // #include <stddef.h>
-// #include "adaptor.h"
+// #include "src/adaptor.h"
 import "C"
 import (
 	"net"

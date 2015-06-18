@@ -1,7 +1,7 @@
 package goquic
 
 // #include <stddef.h>
-// #include "adaptor.h"
+// #include "src/adaptor.h"
 import "C"
 import (
 	"net"
