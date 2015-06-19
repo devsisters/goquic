@@ -15,8 +15,8 @@
 
 namespace net {
 
-GoQuicClientPacketWriter::GoQuicClientPacketWriter(void* go_udp_conn)
-    : go_udp_conn_(go_udp_conn),
+GoQuicClientPacketWriter::GoQuicClientPacketWriter(void* go_writer)
+    : go_writer_(go_writer),
       write_blocked_(false) {
 }
 
@@ -44,7 +44,7 @@ WriteResult GoQuicClientPacketWriter::WritePacket(
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
     std::string peer_ip = net::IPAddressToPackedString(peer_address.address());
-    WriteToUDPClient_C(go_udp_conn_, (char *)peer_ip.c_str(), peer_ip.size(), peer_address.port(), (void *)buffer, buf_len);
+    WriteToUDPClient_C(go_writer_, (char *)peer_ip.c_str(), peer_ip.size(), peer_address.port(), (void *)buffer, buf_len);
 
     rv = buf_len;
   } else {

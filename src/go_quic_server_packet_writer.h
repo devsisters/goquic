@@ -22,7 +22,7 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
  public:
   typedef base::Callback<void(WriteResult)> WriteCallback;
 
-  GoQuicServerPacketWriter(void *go_udp_conn,
+  GoQuicServerPacketWriter(void *go_writer,
       QuicBlockedWriterInterface* blocked_writer);
   ~GoQuicServerPacketWriter() override;
 
@@ -51,7 +51,7 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
                           const IPEndPoint& peer_address) override;
 
  private:
-  void* go_udp_conn_;
+  void* go_writer_;
 
   // To be notified after every successful asynchronous write.
   QuicBlockedWriterInterface* blocked_writer_;

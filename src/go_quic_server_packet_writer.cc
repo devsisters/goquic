@@ -16,9 +16,9 @@
 namespace net {
 
 GoQuicServerPacketWriter::GoQuicServerPacketWriter(
-    void* go_udp_conn,
+    void* go_writer,
     QuicBlockedWriterInterface* blocked_writer)
-    : go_udp_conn_(go_udp_conn),
+    : go_writer_(go_writer),
       blocked_writer_(blocked_writer),
       write_blocked_(false),
       weak_factory_(this) {
@@ -78,7 +78,7 @@ WriteResult GoQuicServerPacketWriter::WritePacket(
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
     std::string peer_ip = net::IPAddressToPackedString(peer_address.address());
-    WriteToUDP_C(go_udp_conn_, (char *)peer_ip.c_str(), peer_ip.size(), peer_address.port(), (void *)buffer, buf_len);
+    WriteToUDP_C(go_writer_, (char *)peer_ip.c_str(), peer_ip.size(), peer_address.port(), (void *)buffer, buf_len);
     rv = buf_len;
   } else {
     rv = ERR_MSG_TOO_BIG;

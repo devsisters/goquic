@@ -32,7 +32,7 @@ type QuicEncryptedPacket struct {
 	encryptedPacket unsafe.Pointer
 }
 
-func CreateQuicDispatcher(conn *net.UDPConn, createQuicServerSession func() DataStreamCreator, taskRunner *TaskRunner, proofSource ProofSource, isSecure bool) *QuicDispatcher {
+func CreateQuicDispatcher(writer *ServerWriter, createQuicServerSession func() DataStreamCreator, taskRunner *TaskRunner, proofSource ProofSource, isSecure bool) *QuicDispatcher {
 	dispatcher := &QuicDispatcher{
 		quicServerSessions:      make(map[*QuicServerSession]bool),
 		TaskRunner:              taskRunner,
@@ -41,7 +41,7 @@ func CreateQuicDispatcher(conn *net.UDPConn, createQuicServerSession func() Data
 		isSecure:                isSecure,
 	}
 
-	dispatcher.quicDispatcher = C.create_quic_dispatcher(unsafe.Pointer(conn), unsafe.Pointer(dispatcher), unsafe.Pointer(taskRunner))
+	dispatcher.quicDispatcher = C.create_quic_dispatcher(unsafe.Pointer(writer), unsafe.Pointer(dispatcher), unsafe.Pointer(taskRunner))
 	return dispatcher
 }
 

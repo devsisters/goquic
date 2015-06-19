@@ -34,7 +34,7 @@ class GoQuicPacketWriterFactory : public QuicConnection::PacketWriterFactory {
 };
 
 
-GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_udp_conn, void* task_runner, struct GoIPEndPoint* go_server_address) {
+GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_writer, void* task_runner, struct GoIPEndPoint* go_server_address) {
   IPAddressNumber server_ip_addr(go_server_address->ip_buf, go_server_address->ip_buf + go_server_address->ip_length);
   IPEndPoint server_address(server_ip_addr, go_server_address->port);
 
@@ -44,7 +44,7 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_udp_c
 
   TestConnectionHelper* helper = new TestConnectionHelper(task_runner, clock, random_generator); // Deleted by delete_go_quic_client_session()
 
-  QuicPacketWriter* writer = new GoQuicClientPacketWriter(go_udp_conn); // Deleted by ~QuicConnection() because owns_writer is true
+  QuicPacketWriter* writer = new GoQuicClientPacketWriter(go_writer); // Deleted by ~QuicConnection() because owns_writer is true
 
   QuicVersionVector supported_versions;
   for (size_t i = 0; i < arraysize(kSupportedQuicVersions); ++i) {

@@ -16,7 +16,8 @@ type Conn struct {
 	addr       *net.UDPAddr
 	sock       *net.UDPConn
 	quicClient *QuicClient
-	readChan   chan udpData
+	readChan   chan UdpData
+	writer     *ClientWriter
 	buffer     bytes.Buffer
 	header     http.Header
 	readQuitCh chan bool
@@ -38,12 +39,6 @@ type Stream struct {
 
 type errorString struct {
 	s string
-}
-
-type udpData struct {
-	n    int
-	addr *net.UDPAddr
-	buf  []byte
 }
 
 func (e *errorString) Error() string {
@@ -74,10 +69,6 @@ func (c *Conn) SetWriteDeadline(t time.Time) (err error) {
 	return &errorString{"Not Supported"}
 }
 
-func (c *Conn) Socket() *net.UDPConn {
-	return c.sock
-}
-
 func (c *Conn) processEvents() {
 	c.processEventsWithDeadline(time.Time{})
 }
@@ -97,13 +88,13 @@ func (c *Conn) processEventsWithDeadline(deadline time.Time) {
 
 	select {
 	case result, ok := <-c.readChan:
-		if result.n == 0 {
+		if len(result.Buf) == 0 {
 			break
 		}
 		if !ok || c.closed {
 			break
 		}
-		c.quicClient.ProcessPacket(localAddr, result.addr, result.buf[:result.n])
+		c.quicClient.ProcessPacket(localAddr, result.Addr, result.Buf)
 	case <-c.quicClient.taskRunner.WaitTimer():
 		if c.closed {
 			panic("debug")
@@ -141,6 +132,10 @@ func (c *Conn) CreateStream() *Stream {
 	}
 	quicClientStream.userStream.(*ClientStreamImpl).stream = stream
 	return stream
+}
+
+func (c *Conn) Writer() *ClientWriter {
+	return c.writer
 }
 
 func (s *Stream) WriteHeader(header http.Header, isBodyEmpty bool) {
@@ -314,7 +309,14 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 	}
 	quic_conn.quicClient = quicClient
 
-	quic_conn.readChan = make(chan udpData)
+	quic_conn.readChan = make(chan UdpData)
+	quic_conn.writer = NewClientWriter(make(chan UdpData, 1000)) // TODO(serialx, hodduc): Optimize buffer size
+
+	go func() {
+		for dat := range quic_conn.writer.Ch {
+			quic_conn.sock.Write(dat.Buf)
+		}
+	}()
 
 	go func() {
 		buf := make([]byte, 65535)
@@ -330,7 +332,7 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 				select {
 				case <-quic_conn.readQuitCh:
 					break
-				case quic_conn.readChan <- udpData{n: n, addr: peer_addr, buf: buf_new}:
+				case quic_conn.readChan <- UdpData{Addr: peer_addr, Buf: buf_new}:
 				}
 			} else if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
 				select {
@@ -342,6 +344,8 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 				panic(err)
 			}
 		}
+		close(quic_conn.writer.Ch)
+
 		quic_conn.sock.Close()
 		return
 	}()

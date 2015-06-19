@@ -6,12 +6,12 @@
 
 #include "_cgo_export.h"
 
-void WriteToUDP_C(void* go_udp_conn, void* peer_ip, size_t peer_ip_sz, uint16_t peer_port, void* buffer, size_t buf_len) {
-    WriteToUDP(go_udp_conn, peer_ip, peer_ip_sz, peer_port, buffer, buf_len);
+void WriteToUDP_C(void* go_writer, void* peer_ip, size_t peer_ip_sz, uint16_t peer_port, void* buffer, size_t buf_len) {
+    WriteToUDP(go_writer, peer_ip, peer_ip_sz, peer_port, buffer, buf_len);
 }
 
-void WriteToUDPClient_C(void* go_udp_conn, void* peer_ip, size_t peer_ip_sz, uint16_t peer_port, void* buffer, size_t buf_len) {
-    WriteToUDPClient(go_udp_conn, peer_ip, peer_ip_sz, peer_port, buffer, buf_len);
+void WriteToUDPClient_C(void* go_writer, void* peer_ip, size_t peer_ip_sz, uint16_t peer_port, void* buffer, size_t buf_len) {
+    WriteToUDPClient(go_writer, peer_ip, peer_ip_sz, peer_port, buffer, buf_len);
 }
 
 void* CreateGoSession_C(void* go_quic_dispatcher, void* quic_server_session) {

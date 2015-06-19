@@ -45,7 +45,7 @@ void set_log_level(int level) {
   logging::SetMinLogLevel(level);
 }
 
-GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispatcher, void* go_task_runner) {
+GoQuicDispatcher *create_quic_dispatcher(void* go_writer, void* go_quic_dispatcher, void* go_task_runner) {
   QuicConfig config;
 
   // TODO(serialx, hodduc): What is "secret"?
@@ -94,7 +94,7 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_udp_conn, void* go_quic_dispat
       helper,
       go_quic_dispatcher);
 
-  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_udp_conn, dispatcher); // Deleted by scoped ptr of GoQuicDispatcher
+  GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_writer, dispatcher); // Deleted by scoped ptr of GoQuicDispatcher
 
   dispatcher->Initialize(writer);
 
