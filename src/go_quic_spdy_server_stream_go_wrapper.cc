@@ -6,7 +6,7 @@
 
 #include "go_functions.h"
 
-GoQuicSpdyServerStreamGoWrapper::GoQuicSpdyServerStreamGoWrapper(net::QuicStreamId id, net::QuicSession* session)
+GoQuicSpdyServerStreamGoWrapper::GoQuicSpdyServerStreamGoWrapper(net::QuicStreamId id, net::QuicSpdySession* session)
   : net::QuicDataStream(id, session) {
 }
 

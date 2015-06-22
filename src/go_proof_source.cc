@@ -3,6 +3,7 @@
 #include "base/logging.h"
 
 #include "go_functions.h"
+#include "net/base/ip_address_number.h"
 
 GoProofSource::GoProofSource(void* go_quic_dispatcher) : go_quic_dispatcher_(go_quic_dispatcher), certs_(2) {
     certs_[0] = "0";

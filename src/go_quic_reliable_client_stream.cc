@@ -13,7 +13,7 @@
 namespace net {
 
 GoQuicReliableClientStream::GoQuicReliableClientStream(QuicStreamId id,
-                                                       QuicSession* session)
+                                                       QuicSpdySession* session)
     : QuicDataStream(id, session) {
 }
 
