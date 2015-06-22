@@ -22,7 +22,8 @@ class NET_EXPORT_PRIVATE GoQuicClientSession : public QuicClientSessionBase {
                           QuicCryptoClientConfig* config);
 
    // QuicSession methods:
-   GoQuicReliableClientStream* CreateOutgoingDataStream() override;
+   GoQuicReliableClientStream* CreateOutgoingDynamicStream() override;
+
    QuicCryptoClientStream* GetCryptoStream() override;
 
    // QuicClientSessionBase methods:
@@ -36,7 +37,7 @@ class NET_EXPORT_PRIVATE GoQuicClientSession : public QuicClientSessionBase {
    QuicConnectionHelperInterface* helper() { return helper_; }
 
  protected:
-  QuicDataStream* CreateIncomingDataStream(QuicStreamId id) override;
+  QuicDataStream* CreateIncomingDynamicStream(QuicStreamId id) override;  
  private:
   scoped_ptr<QuicCryptoClientStream> crypto_stream_;
   QuicConnectionHelperInterface* helper_;

@@ -8,7 +8,7 @@
 class GoQuicSpdyServerStreamGoWrapper : public net::QuicDataStream {
  public:
 
-  GoQuicSpdyServerStreamGoWrapper(net::QuicStreamId id, net::QuicSession* session);
+  GoQuicSpdyServerStreamGoWrapper(net::QuicStreamId id, net::QuicSpdySession* session);
   ~GoQuicSpdyServerStreamGoWrapper() override;
 
   void SetGoQuicSpdyServerStream(void* go_quic_spdy_server_stream);

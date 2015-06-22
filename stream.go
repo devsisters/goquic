@@ -20,8 +20,8 @@ type DataStreamProcessor interface {
 
 //   (For QuicServerSession)
 type DataStreamCreator interface {
-	CreateIncomingDataStream(streamId uint32) DataStreamProcessor
-	CreateOutgoingDataStream() DataStreamProcessor
+	CreateIncomingDynamicStream(streamId uint32) DataStreamProcessor
+	CreateOutgoingDynamicStream() DataStreamProcessor
 }
 
 type QuicStream interface {
@@ -76,10 +76,10 @@ func (writer *QuicSpdyServerStream) CloseReadSide() {
 
 // TODO: delete(writer.session.quicServerStreams, writer)
 
-//export CreateIncomingDataStream
-func CreateIncomingDataStream(session_c unsafe.Pointer, stream_id uint32, wrapper_c unsafe.Pointer) unsafe.Pointer {
+//export CreateIncomingDynamicStream
+func CreateIncomingDynamicStream(session_c unsafe.Pointer, stream_id uint32, wrapper_c unsafe.Pointer) unsafe.Pointer {
 	session := (*QuicServerSession)(session_c)
-	userStream := session.streamCreator.CreateIncomingDataStream(stream_id)
+	userStream := session.streamCreator.CreateIncomingDynamicStream(stream_id)
 
 	stream := &QuicSpdyServerStream{
 		userStream: userStream,
