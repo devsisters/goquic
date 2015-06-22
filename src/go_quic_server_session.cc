@@ -16,7 +16,7 @@ namespace net {
 GoQuicServerSession::GoQuicServerSession(const QuicConfig& config,
                                      QuicConnection* connection,
                                      GoQuicServerSessionVisitor* visitor)
-    : QuicSession(connection, config),
+    : QuicSpdySession(connection, config),
       visitor_(visitor),
       bandwidth_estimate_sent_to_client_(QuicBandwidth::Zero()),
       last_scup_time_(QuicTime::Zero()),
@@ -28,8 +28,8 @@ GoQuicServerSession::~GoQuicServerSession() {
 
 void GoQuicServerSession::InitializeSession(
     const QuicCryptoServerConfig& crypto_config) {
-  QuicSession::InitializeSession();
   crypto_stream_.reset(CreateQuicCryptoServerStream(crypto_config));
+  QuicSpdySession::Initialize();
 }
 
 QuicCryptoServerStream* GoQuicServerSession::CreateQuicCryptoServerStream(
@@ -44,12 +44,12 @@ void GoQuicServerSession::OnConfigNegotiated() {
     return;
   }
 
-  if (FLAGS_enable_quic_fec &&
-      ContainsQuicTag(config()->ReceivedConnectionOptions(), kFHDR)) {
-    // kFHDR config maps to FEC protection always for headers stream.
-    // TODO(jri): Add crypto stream in addition to headers for kHDR.
-    headers_stream_->set_fec_policy(FEC_PROTECT_ALWAYS);
-  }
+//  if (FLAGS_enable_quic_fec &&
+//      ContainsQuicTag(config()->ReceivedConnectionOptions(), kFHDR)) {
+//    // kFHDR config maps to FEC protection always for headers stream.
+//    // TODO(jri): Add crypto stream in addition to headers for kHDR.
+//    headers_stream()->set_fec_policy(FEC_PROTECT_ALWAYS);
+//  }
 }
 
 void GoQuicServerSession::OnConnectionClosed(QuicErrorCode error,
@@ -150,7 +150,7 @@ void GoQuicServerSession::OnCongestionWindowChange(QuicTime now) {
       connection()->sequence_number_of_last_sent_packet();
 }
 
-bool GoQuicServerSession::ShouldCreateIncomingDataStream(QuicStreamId id) {
+bool GoQuicServerSession::ShouldCreateIncomingDynamicStream(QuicStreamId id) {
   if (id % 2 == 0) {
     DVLOG(1) << "Invalid incoming even stream_id:" << id;
     connection()->SendConnectionClose(QUIC_INVALID_STREAM_ID);
@@ -166,19 +166,19 @@ bool GoQuicServerSession::ShouldCreateIncomingDataStream(QuicStreamId id) {
   return true;
 }
 
-QuicDataStream* GoQuicServerSession::CreateIncomingDataStream(
+QuicDataStream* GoQuicServerSession::CreateIncomingDynamicStream(
     QuicStreamId id) {
-  if (!ShouldCreateIncomingDataStream(id)) {
+  if (!ShouldCreateIncomingDynamicStream(id)) {
     return nullptr;
   }
 
   GoQuicSpdyServerStreamGoWrapper* stream = new GoQuicSpdyServerStreamGoWrapper(id, this); // Managed by stream_map_ of QuicSession. Deleted by STLDeleteElements function call in QuicSession
-  stream->SetGoQuicSpdyServerStream(CreateIncomingDataStream_C(go_session_, id, stream));
+  stream->SetGoQuicSpdyServerStream(CreateIncomingDynamicStream_C(go_session_, id, stream));
 
   return stream;
 }
 
-QuicDataStream* GoQuicServerSession::CreateOutgoingDataStream() {
+QuicDataStream* GoQuicServerSession::CreateOutgoingDynamicStream() {
   DLOG(ERROR) << "Server push not yet supported";
   return nullptr;
 }

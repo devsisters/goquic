@@ -78,7 +78,7 @@ func (qc *QuicClient) IsConnected() bool {
 
 func (qc *QuicClient) CreateReliableQuicStream() *QuicClientStream {
 	stream := &QuicClientStream{
-		userStream: qc.session.streamCreator.CreateOutgoingDataStream(), // Deleted on qc.Close()
+		userStream: qc.session.streamCreator.CreateOutgoingDynamicStream(), // Deleted on qc.Close()
 		session:    qc.session,
 	}
 	stream.wrapper = C.quic_client_session_create_reliable_quic_stream(qc.session.quicClientSession, unsafe.Pointer(stream))

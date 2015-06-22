@@ -16,7 +16,8 @@
 #include "base/memory/scoped_ptr.h"
 #include "net/quic/quic_crypto_server_stream.h"
 #include "net/quic/quic_protocol.h"
-#include "net/quic/quic_session.h"
+#include "net/quic/quic_spdy_session.h"
+#include "net/quic/quic_data_stream.h"
 
 namespace net {
 
@@ -48,7 +49,7 @@ class GoQuicServerSessionVisitor {
       QuicConnectionId connection_id) {}
 };
 
-class GoQuicServerSession : public QuicSession {
+class GoQuicServerSession : public QuicSpdySession {
  public:
   GoQuicServerSession(const QuicConfig& config,
                     QuicConnection* connection,
@@ -88,14 +89,14 @@ class GoQuicServerSession : public QuicSession {
 
  protected:
   // QuicSession methods:
-  QuicDataStream* CreateIncomingDataStream(QuicStreamId id) override;
-  QuicDataStream* CreateOutgoingDataStream() override;
+  QuicDataStream* CreateIncomingDynamicStream(QuicStreamId id) override;
+  QuicDataStream* CreateOutgoingDynamicStream() override;
   QuicCryptoServerStream* GetCryptoStream() override;
 
   // If we should create an incoming stream, returns true. Otherwise
   // does error handling, including communicating the error to the client and
   // possibly closing the connection, and returns false.
-  virtual bool ShouldCreateIncomingDataStream(QuicStreamId id);
+  virtual bool ShouldCreateIncomingDynamicStream(QuicStreamId id);
 
   virtual QuicCryptoServerStream* CreateQuicCryptoServerStream(
       const QuicCryptoServerConfig& crypto_config);

@@ -18,7 +18,7 @@ class GoQuicClientSession;
 // are owned by the GoQuicClientSession which created them.
 class NET_EXPORT_PRIVATE GoQuicReliableClientStream : public QuicDataStream {
  public:
-  GoQuicReliableClientStream(QuicStreamId id, QuicSession* session);
+  GoQuicReliableClientStream(QuicStreamId id, QuicSpdySession* session);
   ~GoQuicReliableClientStream() override;
 
   void SetGoQuicClientStream(void* go_quic_client_stream);

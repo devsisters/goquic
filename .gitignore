@@ -3,3 +3,5 @@
 tags
 build/
 libquic
+libgoquic.a
+nbproject/

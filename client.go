@@ -252,12 +252,12 @@ type ClientStreamImpl struct {
 	stream *Stream
 }
 
-func (c *ClientSessionImpl) CreateIncomingDataStream(stream_id uint32) DataStreamProcessor {
+func (c *ClientSessionImpl) CreateIncomingDynamicStream(stream_id uint32) DataStreamProcessor {
 	// NOT SUPPORTED
 	return nil
 }
 
-func (c *ClientSessionImpl) CreateOutgoingDataStream() DataStreamProcessor {
+func (c *ClientSessionImpl) CreateOutgoingDynamicStream() DataStreamProcessor {
 	return &ClientStreamImpl{
 		conn: c.conn,
 	}

@@ -93,7 +93,7 @@ int go_quic_client_session_is_connected(GoQuicClientSession* session) {
 }
 
 GoQuicReliableClientStream* quic_client_session_create_reliable_quic_stream(GoQuicClientSession* session, void* go_client_stream_) {
-  GoQuicReliableClientStream* stream = session->CreateOutgoingDataStream();
+  GoQuicReliableClientStream* stream = session->CreateOutgoingDynamicStream();
   stream->SetGoQuicClientStream(go_client_stream_);
   return stream;
 }

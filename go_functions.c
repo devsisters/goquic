@@ -26,8 +26,8 @@ int GetProof_C(void* go_quic_dispatcher, void* server_ip, size_t server_ip_sz, c
     return GetProof(go_quic_dispatcher, server_ip, server_ip_sz, hostname, hostname_sz, server_config, server_config_sz, ecdsa_ok, out_certs, out_certs_sz, out_certs_item_sz, out_signature, out_signature_sz);
 }
 
-void* CreateIncomingDataStream_C(void* go_quic_server_session, uint32_t id, void* go_quic_spdy_server_stream_go_wrapper) {
-    return CreateIncomingDataStream(go_quic_server_session, id, go_quic_spdy_server_stream_go_wrapper);
+void* CreateIncomingDynamicStream_C(void* go_quic_server_session, uint32_t id, void* go_quic_spdy_server_stream_go_wrapper) {
+    return CreateIncomingDynamicStream(go_quic_server_session, id, go_quic_spdy_server_stream_go_wrapper);
 }
 
 uint32_t DataStreamProcessorProcessData_C(void* go_data_stream_processor, const char *data, uint32_t data_len) {

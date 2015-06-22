@@ -26,7 +26,7 @@ void GoQuicClientSession::InitializeSession(
   crypto_stream_.reset(
       new QuicCryptoClientStream(server_id, this, nullptr, crypto_config));
   crypto_config_ = crypto_config;
-  QuicClientSessionBase::InitializeSession();
+  QuicClientSessionBase::Initialize();
 }
 
 void GoQuicClientSession::OnProofValid(
@@ -35,7 +35,7 @@ void GoQuicClientSession::OnProofValid(
 void GoQuicClientSession::OnProofVerifyDetailsAvailable(
     const ProofVerifyDetails& /*verify_details*/) {}
 
-GoQuicReliableClientStream* GoQuicClientSession::CreateOutgoingDataStream() {
+GoQuicReliableClientStream* GoQuicClientSession::CreateOutgoingDynamicStream() {
   if (!crypto_stream_->encryption_established()) {
     DVLOG(1) << "Encryption not active so no outgoing stream created.";
     return nullptr;
@@ -65,7 +65,7 @@ void GoQuicClientSession::CryptoConnect() {
   crypto_stream_->CryptoConnect();
 }
 
-QuicDataStream* GoQuicClientSession::CreateIncomingDataStream(QuicStreamId id) {
+QuicDataStream* GoQuicClientSession::CreateIncomingDynamicStream(QuicStreamId id) {
   // TODO(hodduc) Support server push
   return nullptr;
 }
