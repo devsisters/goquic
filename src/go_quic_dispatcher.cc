@@ -387,9 +387,13 @@ QuicConnection* GoQuicDispatcher::CreateQuicConnection(
 }
 
 GoQuicTimeWaitListManager* GoQuicDispatcher::CreateQuicTimeWaitListManager() {
+  // TODO(rjshade): The QuicTimeWaitListManager should take ownership of the
+  // per-connection packet writer.
+  time_wait_list_writer_.reset(
+      packet_writer_factory_->Create(writer_.get(), nullptr));
   // Deleted by caller's scoped_ptr
-  return new GoQuicTimeWaitListManager(
-      writer_.get(), this, helper_, supported_versions());
+  return new GoQuicTimeWaitListManager(time_wait_list_writer_.get(), this,
+                                       helper_, supported_versions());
 }
 
 bool GoQuicDispatcher::HandlePacketForTimeWait(

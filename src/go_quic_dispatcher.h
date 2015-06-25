@@ -235,6 +235,9 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
   // The writer to write to the socket with.
   scoped_ptr<GoQuicServerPacketWriter> writer_;
 
+  // A per-connection writer that is passed to the time wait list manager.
+  scoped_ptr<QuicPacketWriter> time_wait_list_writer_;
+
   // Used to create per-connection packet writers, not |writer_| itself.
   scoped_ptr<PacketWriterFactory> packet_writer_factory_;
 
