@@ -52,6 +52,7 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_writer, void* go_quic_dispatch
   // TODO(hodduc) "crypto_config" should be shared as global constant, but there is no clean way to do it now T.T
   // Deleted by ~GoQuicDispatcher()
   QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance());
+  crypto_config->set_strike_register_no_startup_period();
   QuicClock* clock = new QuicClock(); // Deleted by scoped ptr of TestConnectionHelper
   QuicRandom* random_generator = QuicRandom::GetInstance();
   net::EphemeralKeySource *keySource = new GoEphemeralKeySource();
