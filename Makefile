@@ -1,6 +1,6 @@
-CC=g++-4.8
-AR=ar
-C=gcc-4.8
+#CC=g++-4.8
+#AR=ar
+#C=gcc-4.8
 CFLAGS=-Wall -Ilibquic/src -Ilibquic/src/third_party/protobuf/src  -DUSE_OPENSSL=1 -Iboringssl/include -g -gdwarf-4
 CPPFLAGS=--std=gnu++11
 CPP_FILES:=$(wildcard src/*.cc)
