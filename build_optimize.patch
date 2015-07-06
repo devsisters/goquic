@@ -1,11 +1,11 @@
 diff --git a/Makefile b/Makefile
-index 1099b2b..df8dc38 100644
+index c0130bc..8d1dd24 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1,7 +1,7 @@
- CC=g++
- AR=ar
- C=gcc
+ #CC=g++-4.8
+ #AR=ar
+ #C=gcc-4.8
 -CFLAGS=-Wall -Ilibquic/src -Ilibquic/src/third_party/protobuf/src  -DUSE_OPENSSL=1 -Iboringssl/include -g -gdwarf-4
 +CFLAGS=-Wall -Ilibquic/src -Ilibquic/src/third_party/protobuf/src  -DUSE_OPENSSL=1 -Iboringssl/include -g -gdwarf-4 -O3
  CPPFLAGS=--std=gnu++11
