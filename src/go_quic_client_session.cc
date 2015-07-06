@@ -16,7 +16,6 @@ GoQuicClientSession::GoQuicClientSession(const QuicConfig& config,
 }
 
 GoQuicClientSession::~GoQuicClientSession() {
-  delete crypto_config_;
 }
 
 void GoQuicClientSession::InitializeSession(

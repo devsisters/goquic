@@ -17,6 +17,7 @@ using namespace std;
 using base::StringPiece;
 
 
+static QuicCryptoClientConfig *crypto_config = nullptr;
 class GoQuicPacketWriterFactory : public QuicConnection::PacketWriterFactory {
  public:
   explicit GoQuicPacketWriterFactory(QuicPacketWriter* writer) {
@@ -64,9 +65,7 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_write
 
   GoQuicClientSession* session = new GoQuicClientSession(config, conn, helper);  // Deleted by delete_go_quic_client_session()
 
-  // TODO(hodduc) "crypto_config" should be shared as global constant, but there is no clean way to do it now T.T
-  // Deleted by ~GoQuicClientSession()
-  QuicCryptoClientConfig* crypto_config = new QuicCryptoClientConfig();
+  crypto_config = crypto_config != nullptr ? crypto_config : new QuicCryptoClientConfig();
 
   session->InitializeSession(QuicServerId(
         /* host */ std::string(),//server_address->ToStringWithoutPort(),
