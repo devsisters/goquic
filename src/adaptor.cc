@@ -45,18 +45,14 @@ void set_log_level(int level) {
   logging::SetMinLogLevel(level);
 }
 
-GoQuicDispatcher *create_quic_dispatcher(void* go_writer, void* go_quic_dispatcher, void* go_task_runner) {
+GoQuicDispatcher *create_quic_dispatcher(void* go_writer, void* go_quic_dispatcher, void* go_task_runner, QuicCryptoServerConfig* crypto_config) {
   QuicConfig config;
 
   // TODO(serialx, hodduc): What is "secret"?
   // TODO(hodduc) "crypto_config" should be shared as global constant, but there is no clean way to do it now T.T
   // Deleted by ~GoQuicDispatcher()
-  QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance());
-  crypto_config->set_strike_register_no_startup_period();
   QuicClock* clock = new QuicClock(); // Deleted by scoped ptr of TestConnectionHelper
   QuicRandom* random_generator = QuicRandom::GetInstance();
-  net::EphemeralKeySource *keySource = new GoEphemeralKeySource();
-  crypto_config->SetEphemeralKeySource(keySource);
 
   TestConnectionHelper *helper = new TestConnectionHelper(go_task_runner, clock, random_generator); // Deleted by delete_go_quic_dispatcher()
   QuicVersionVector versions(net::QuicSupportedVersions());
@@ -77,14 +73,6 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_writer, void* go_quic_dispatch
     config.SetInitialSessionFlowControlWindowToSend(
         kInitialSessionFlowControlWindow);
   }
-
-  GoProofSource *proofSource = new GoProofSource(go_quic_dispatcher);  // Deleted by scoped ptr of QuicCryptoServerConfig
-  crypto_config->SetProofSource(proofSource);
-
-  scoped_ptr<CryptoHandshakeMessage> scfg(
-      crypto_config->AddDefaultConfig(
-          helper->GetRandomGenerator(), helper->GetClock(),
-          QuicCryptoServerConfig::ConfigOptions()));
   /* Initialize Configs Ends ----------------------------------------*/
 
   // Deleted by delete_go_quic_dispatcher()
@@ -100,6 +88,27 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_writer, void* go_quic_dispatch
   dispatcher->Initialize(writer);
 
   return dispatcher;
+}
+
+QuicCryptoServerConfig *init_crypto_config(void *go_proof_source) {
+  QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance());
+  crypto_config->set_strike_register_no_startup_period();
+  net::EphemeralKeySource *keySource = new GoEphemeralKeySource();
+  crypto_config->SetEphemeralKeySource(keySource);
+
+  GoProofSource *proof_source = new GoProofSource(go_proof_source);  // Deleted by scoped ptr of QuicCryptoServerConfig
+  crypto_config->SetProofSource(proof_source);
+
+  QuicClock* clock = new QuicClock();  // XXX: Not deleted. This should be initialized EXACTLY ONCE
+  QuicRandom* random_generator = QuicRandom::GetInstance();  // XXX: Not deleted. This should be initialized EXACTLY ONCE
+
+	// TODO(jaeman, hodduc): scfg는 뭐하는 걸까...
+  scoped_ptr<CryptoHandshakeMessage> scfg(
+      crypto_config->AddDefaultConfig(
+          random_generator, clock,
+          QuicCryptoServerConfig::ConfigOptions()));
+
+	return crypto_config;
 }
 
 void delete_go_quic_dispatcher(GoQuicDispatcher *dispatcher) {

@@ -8,17 +8,11 @@ import (
 	"unsafe"
 )
 
-type ProofSource interface {
-	GetProof(addr net.IP, hostname []byte, serverConfig []byte, ecdsaOk bool) (outCerts [][]byte, outSignature []byte)
-}
-
 type QuicDispatcher struct {
 	quicDispatcher          unsafe.Pointer
 	quicServerSessions      map[*QuicServerSession]bool
 	TaskRunner              *TaskRunner
 	createQuicServerSession func() DataStreamCreator
-	proofSource             ProofSource
-	isSecure                bool
 }
 
 type QuicServerSession struct {
@@ -32,16 +26,14 @@ type QuicEncryptedPacket struct {
 	encryptedPacket unsafe.Pointer
 }
 
-func CreateQuicDispatcher(writer *ServerWriter, createQuicServerSession func() DataStreamCreator, taskRunner *TaskRunner, proofSource ProofSource, isSecure bool) *QuicDispatcher {
+func CreateQuicDispatcher(writer *ServerWriter, createQuicServerSession func() DataStreamCreator, taskRunner *TaskRunner, cryptoConfig *ServerCryptoConfig) *QuicDispatcher {
 	dispatcher := &QuicDispatcher{
 		quicServerSessions:      make(map[*QuicServerSession]bool),
 		TaskRunner:              taskRunner,
 		createQuicServerSession: createQuicServerSession,
-		proofSource:             proofSource,
-		isSecure:                isSecure,
 	}
 
-	dispatcher.quicDispatcher = C.create_quic_dispatcher(unsafe.Pointer(writer), unsafe.Pointer(dispatcher), unsafe.Pointer(taskRunner))
+	dispatcher.quicDispatcher = C.create_quic_dispatcher(unsafe.Pointer(writer), unsafe.Pointer(dispatcher), unsafe.Pointer(taskRunner), cryptoConfig.serverCryptoConfig)
 	return dispatcher
 }
 
@@ -79,10 +71,9 @@ func DeleteGoSession(dispatcher_c unsafe.Pointer, go_session_c unsafe.Pointer) {
 }
 
 //export GetProof
-func GetProof(dispatcher_c unsafe.Pointer, server_ip_c unsafe.Pointer, server_ip_sz C.size_t, hostname_c unsafe.Pointer, hostname_sz_c C.size_t, server_config_c unsafe.Pointer, server_config_sz_c C.size_t, ecdsa_ok_c C.int, out_certs_c ***C.char, out_certs_sz_c *C.int, out_certs_item_sz_c **C.size_t, out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
-	dispatcher := (*QuicDispatcher)(dispatcher_c)
-
-	if !dispatcher.isSecure {
+func GetProof(proof_source_c unsafe.Pointer, server_ip_c unsafe.Pointer, server_ip_sz C.size_t, hostname_c unsafe.Pointer, hostname_sz_c C.size_t, server_config_c unsafe.Pointer, server_config_sz_c C.size_t, ecdsa_ok_c C.int, out_certs_c ***C.char, out_certs_sz_c *C.int, out_certs_item_sz_c **C.size_t, out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
+	proofSource := (*ProofSource)(proof_source_c)
+	if !proofSource.impl.IsSecure() {
 		return C.int(0)
 	}
 
@@ -91,7 +82,7 @@ func GetProof(dispatcher_c unsafe.Pointer, server_ip_c unsafe.Pointer, server_ip
 	serverConfig := C.GoBytes(server_config_c, C.int(server_config_sz_c))
 	ecdsaOk := int(ecdsa_ok_c) > 0
 
-	certs, sig := dispatcher.proofSource.GetProof(serverIp, hostname, serverConfig, ecdsaOk)
+	certs, sig := proofSource.impl.GetProof(serverIp, hostname, serverConfig, ecdsaOk)
 	certsCStrList := make([](*C.char), 0, 10)
 	certsCStrSzList := make([](C.size_t), 0, 10)
 	for _, outCert := range certs {
