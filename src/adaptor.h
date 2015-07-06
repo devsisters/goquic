@@ -30,6 +30,7 @@ typedef void MapStrStr;
 typedef void GoQuicAlarmGoWrapper;
 typedef void QuicClock;
 typedef void GoQuicServerPacketWriter;
+typedef void QuicCryptoServerConfig;
 #endif
 
 void initialize();
@@ -44,7 +45,8 @@ void quic_connection_process_udp_packet(QuicConnection *conn, IPEndPoint *self_a
 QuicEncryptedPacket *create_quic_encrypted_packet(char *buffer, size_t length);
 void delete_quic_encrypted_packet(QuicEncryptedPacket *packet);
 
-GoQuicDispatcher *create_quic_dispatcher(void* go_writer_, void* go_quic_dispatcher, void* go_task_runner);
+GoQuicDispatcher *create_quic_dispatcher(void* go_writer_, void* go_quic_dispatcher, void* go_task_runner, QuicCryptoServerConfig* crypto_config);
+QuicCryptoServerConfig *init_crypto_config(void *go_proof_source);
 void delete_go_quic_dispatcher(GoQuicDispatcher *dispatcher);
 void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, struct GoIPEndPoint *go_self_address, struct GoIPEndPoint *go_peer_address, char *buffer, size_t length);
 

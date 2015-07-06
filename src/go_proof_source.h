@@ -7,7 +7,7 @@
 
 class GoProofSource : public net::ProofSource {
  public:
-  GoProofSource(void* go_quic_dispatcher);
+  GoProofSource(void* go_proof_source);
   ~GoProofSource() override;
 
   // ProofSource interface
@@ -19,7 +19,7 @@ class GoProofSource : public net::ProofSource {
                 std::string* out_signature) override;
 
  private:
-  void* go_quic_dispatcher_;
+  void* go_proof_source_;
   std::map<std::string, std::vector<std::string>* > certs_cache_;
   std::vector<std::string> certs_;
   DISALLOW_COPY_AND_ASSIGN(GoProofSource);
