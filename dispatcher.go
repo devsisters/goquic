@@ -12,13 +12,13 @@ type QuicDispatcher struct {
 	quicDispatcher          unsafe.Pointer
 	quicServerSessions      map[*QuicServerSession]bool
 	TaskRunner              *TaskRunner
-	createQuicServerSession func() DataStreamCreator
+	createQuicServerSession func() IncomingDataStreamCreator
 }
 
 type QuicServerSession struct {
 	quicServerSession unsafe.Pointer
-	quicServerStreams map[*QuicSpdyServerStream]bool
-	streamCreator     DataStreamCreator
+	quicServerStreams map[*QuicServerStream]bool
+	streamCreator     IncomingDataStreamCreator // == session
 	remoteAddr        *net.UDPAddr
 }
 
@@ -26,7 +26,7 @@ type QuicEncryptedPacket struct {
 	encryptedPacket unsafe.Pointer
 }
 
-func CreateQuicDispatcher(writer *ServerWriter, createQuicServerSession func() DataStreamCreator, taskRunner *TaskRunner, cryptoConfig *ServerCryptoConfig) *QuicDispatcher {
+func CreateQuicDispatcher(writer *ServerWriter, createQuicServerSession func() IncomingDataStreamCreator, taskRunner *TaskRunner, cryptoConfig *ServerCryptoConfig) *QuicDispatcher {
 	dispatcher := &QuicDispatcher{
 		quicServerSessions:      make(map[*QuicServerSession]bool),
 		TaskRunner:              taskRunner,
@@ -52,7 +52,7 @@ func CreateGoSession(dispatcher_c unsafe.Pointer, session_c unsafe.Pointer) unsa
 	userSession := dispatcher.createQuicServerSession()
 	session := &QuicServerSession{
 		quicServerSession: session_c,
-		quicServerStreams: make(map[*QuicSpdyServerStream]bool),
+		quicServerStreams: make(map[*QuicServerStream]bool),
 		streamCreator:     userSession,
 		// TODO(serialx): Set remoteAddr here
 	}

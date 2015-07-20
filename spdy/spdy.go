@@ -1,4 +1,4 @@
-package goquic
+package spdy
 
 import (
 	"bytes"
@@ -10,10 +10,10 @@ import (
 
 /* SPDY Frame Parsing (from github.com/SlyMarbo/spdy ) */
 
-// readExactly is used to ensure that the given number of bytes
+// ReadExactly is used to ensure that the given number of bytes
 // are read if possible, even if multiple calls to Read
 // are required.
-func readExactly(r io.Reader, i int) ([]byte, error) {
+func ReadExactly(r io.Reader, i int) ([]byte, error) {
 	out := make([]byte, i)
 	in := out[:]
 	for i > 0 {
@@ -30,7 +30,7 @@ func readExactly(r io.Reader, i int) ([]byte, error) {
 	return out, nil
 }
 
-func bytesToUint32(b []byte) uint32 {
+func BytesToUint32(b []byte) uint32 {
 	return (uint32(b[0]) << 24) + (uint32(b[1]) << 16) + (uint32(b[2]) << 8) + uint32(b[3])
 }
 
@@ -41,11 +41,11 @@ func ParseHeaders(reader io.Reader) (http.Header, error) {
 	// SPDY/3 uses 32-bit fields.
 	size := 4
 	bytesToInt := func(b []byte) int {
-		return int(bytesToUint32(b))
+		return int(BytesToUint32(b))
 	}
 
 	// Read in the number of name/value pairs.
-	pairs, err := readExactly(reader, size)
+	pairs, err := ReadExactly(reader, size)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func ParseHeaders(reader io.Reader) (http.Header, error) {
 		var nameLength, valueLength int
 
 		// Get the name's length.
-		length, err := readExactly(reader, size)
+		length, err := ReadExactly(reader, size)
 		if err != nil {
 			return nil, err
 		}
@@ -71,13 +71,13 @@ func ParseHeaders(reader io.Reader) (http.Header, error) {
 		bounds -= nameLength
 
 		// Get the name.
-		name, err := readExactly(reader, nameLength)
+		name, err := ReadExactly(reader, nameLength)
 		if err != nil {
 			return nil, err
 		}
 
 		// Get the value's length.
-		length, err = readExactly(reader, size)
+		length, err = ReadExactly(reader, size)
 		if err != nil {
 			return nil, err
 		}
@@ -91,7 +91,7 @@ func ParseHeaders(reader io.Reader) (http.Header, error) {
 		bounds -= valueLength
 
 		// Get the values.
-		values, err := readExactly(reader, valueLength)
+		values, err := ReadExactly(reader, valueLength)
 		if err != nil {
 			return nil, err
 		}

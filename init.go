@@ -5,6 +5,8 @@ package goquic
 /*
 #include <openssl/thread.h>
 #include <openssl/crypto.h>
+#include <stddef.h>
+#include "src/adaptor.h"
 
 extern int goquic_init_locks();
 extern void goquic_thread_locking_callback(int, int, const char*, int);
@@ -31,4 +33,7 @@ func init() {
 	if ret != 0 {
 		panic(fmt.Errorf("goquic_init_thread_callbacks failed with error node %d", ret))
 	}
+
+	// This initializes Chromium's base library codes
+	C.initialize()
 }
