@@ -101,6 +101,40 @@ For example, building goquic example server in Mac:
 
 `CGO_CFLAGS="-I$GOPATH/src/github.com/devsisters/goquic/libquic/boringssl/include" CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/darwin_amd64" go build $GOPATH/github.com/devsisters/goquic/example/server.go`
 
-## How to use
+## How to use server
+
+When running a HTTP server, do:
+
+```go
+goquic.ListenAndServe(":8080", 1, nil)
+```
+
+instead of
+
+```go
+http.ListenAndServe(":8080", nil)
+```
+
+## How to use client
+
+You need to create http.Client with Transport changed, do:
+
+```go
+client := &http.Client{
+	Transport: goquic.NewRoundTripper(false),
+}
+resp, err := client.Get("http://example.com/")
+```
+
+instead of
+
+```go
+resp, err := http.Get("http://example.com/")
+```
+
+## SPDY/QUIC support
+
+We have a experimental SPDY/QUIC implementation as a library.
+You can use this library to add SPDY/QUIC support for your existing Go HTTP server.
 
 See our SPDY-QUIC server/client implementation [here](example/).
