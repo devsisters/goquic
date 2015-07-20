@@ -41,7 +41,7 @@ A very primitive benchmark testing have been done. Testing environments below:
 | ------------ | --------------------------------------------------------- |
 | Optimization | libquic built with `-O3` parameters                       |
 | CPU          | Intel(R) Core(TM) i7-4930K CPU @ 3.40GHz                  |
-| Server Code  | https://github.com/devsisters/gospdyquic/blob/master/example/server.go |
+| Server Code  | https://github.com/devsisters/goquic/blob/master/example/server.go |
 | Server Parms | `GOMAXPROCS=12 ./server -port 9090 -n 12`                 |
 | Client Code  | https://github.com/devsisters/quicbench/blob/master/quicbench.go |
 | Client Parms | `./quicbench -u="https://example.com:9090/" -c 200 -r 1000` |
@@ -97,12 +97,10 @@ build your projects. This restriction will be removed from Go 1.5.
 
 `CGO_CFLAGS="-I$GOPATH/src/github.com/devsisters/goquic/libquic/boringssl/include" CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/$GOOS_$GOARCH"`
 
-For example, building gospdyquic example server in Mac:
+For example, building goquic example server in Mac:
 
-`CGO_CFLAGS="-I$GOPATH/src/github.com/devsisters/goquic/libquic/boringssl/include" CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/darwin_amd64" go build $GOPATH/github.com/devsisters/gospdyquic/example/server.go`
+`CGO_CFLAGS="-I$GOPATH/src/github.com/devsisters/goquic/libquic/boringssl/include" CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/darwin_amd64" go build $GOPATH/github.com/devsisters/goquic/example/server.go`
 
 ## How to use
 
-This is a very low-level QUIC library intended for socket-like use. To use QUIC
-as a SPDY transport layer, see
-[gospdyquic](https://github.com/devsisters/gospdyquic) for more details.
+See our SPDY-QUIC server/client implementation [here](example/).
