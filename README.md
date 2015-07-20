@@ -95,11 +95,26 @@ Currently Linux and Mac OS X is supprted.
 Due to Go 1.4's cgo restrictions, use an environment variable like below to
 build your projects. This restriction will be removed from Go 1.5.
 
-`CGO_CFLAGS="-I$GOPATH/src/github.com/devsisters/goquic/libquic/boringssl/include" CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/$GOOS_$GOARCH"`
+```bash
+CGO_CFLAGS="-I$GOPATH/src/github.com/devsisters/goquic/libquic/boringssl/include" \
+CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/$GOOS_$GOARCH"
+```
 
 For example, building goquic example server in Mac:
 
-`CGO_CFLAGS="-I$GOPATH/src/github.com/devsisters/goquic/libquic/boringssl/include" CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/darwin_amd64" go build $GOPATH/github.com/devsisters/goquic/example/server.go`
+```bash
+CGO_CFLAGS="-I$GOPATH/src/github.com/devsisters/goquic/libquic/boringssl/include" \
+CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/darwin_amd64" \
+go build $GOPATH/src/github.com/devsisters/goquic/example/server.go
+```
+
+SPDY/QUIC support
+=================
+
+We have a experimental SPDY/QUIC implementation as a library.
+You can use this library to add SPDY/QUIC support for your existing Go HTTP server.
+
+See our SPDY-QUIC server/client implementation [here](example/).
 
 ## How to use server
 
@@ -131,10 +146,3 @@ instead of
 ```go
 resp, err := http.Get("http://example.com/")
 ```
-
-## SPDY/QUIC support
-
-We have a experimental SPDY/QUIC implementation as a library.
-You can use this library to add SPDY/QUIC support for your existing Go HTTP server.
-
-See our SPDY-QUIC server/client implementation [here](example/).
