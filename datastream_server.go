@@ -175,6 +175,7 @@ func (w *spdyResponseWriter) WriteHeader(statusCode int) {
 	copiedHeader := cloneHeader(w.header)
 	w.sessionFnChan <- func() {
 		copiedHeader.Set(":status", strconv.Itoa(statusCode))
+		copiedHeader.Set(":version", "HTTP/1.1")
 		if w.spdyStream.closed {
 			return
 		}
