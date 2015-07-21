@@ -24,6 +24,7 @@ type QuicSpdyServer struct {
 	Certificate    tls.Certificate
 	isSecure       bool
 	sessionFnChan  chan func()
+	proofSource    *ProofSource // to prevent garbage collecting
 }
 
 func (srv *QuicSpdyServer) ListenAndServe() error {
@@ -35,8 +36,10 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 	readChanArray := make([](chan UdpData), srv.numOfServers)
 	writerArray := make([](*ServerWriter), srv.numOfServers)
 	connArray := make([](*net.UDPConn), srv.numOfServers)
-	proofSource := &ServerProofSource{server: srv}
-	cryptoConfig := InitCryptoConfig(NewProofSource(proofSource))
+	serverProofSource := &ServerProofSource{server: srv}
+	proofSource := NewProofSource(serverProofSource)
+	cryptoConfig := InitCryptoConfig(proofSource)
+	srv.proofSource = proofSource
 
 	// N consumers
 	for i := 0; i < srv.numOfServers; i++ {
