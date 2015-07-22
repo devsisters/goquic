@@ -42,6 +42,7 @@ ninja
 cd ../..
 
 TARGET_DIR=lib/${GOOS}_${GOARCH}/
+mkdir -p $TARGET_DIR
 cp libquic/build/boringssl/crypto/libcrypto.a libquic/build/boringssl/ssl/libssl.a libquic/build/libquic.a libquic/build/protobuf/libprotobuf.a $TARGET_DIR
 
 rm -fr build libgoquic.a
