@@ -147,7 +147,7 @@ func (srv *QuicSpdyServer) Serve(listen_addr *net.UDPAddr, writer *ServerWriter,
 }
 
 // Provide "Alternate-Protocol" header for QUIC
-func altProtoMiddleware(next http.Handler, port int) http.Handler {
+func AltProtoMiddleware(next http.Handler, port int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Alternate-Protocol", fmt.Sprintf("%d:quic", port))
 		next.ServeHTTP(w, r)
@@ -168,50 +168,68 @@ func parsePort(addr string) (port int, err error) {
 }
 
 func ListenAndServe(addr string, numOfServers int, handler http.Handler) error {
-	port, err := parsePort(addr)
-	if err != nil {
-		return err
-	}
-
 	if handler == nil {
 		handler = http.DefaultServeMux
 	}
-
-	httpServer := &http.Server{Addr: addr, Handler: altProtoMiddleware(handler, port)}
-	http2.ConfigureServer(httpServer, nil)
-	go httpServer.ListenAndServe()
-	server := &QuicSpdyServer{Addr: addr, Handler: handler, numOfServers: numOfServers, isSecure: false}
-	return server.ListenAndServe()
+	return ListenAndServeRaw(addr, "", "", numOfServers, handler, handler)
 }
 
 func ListenAndServeSecure(addr string, certFile string, keyFile string, numOfServers int, handler http.Handler) error {
+	if handler == nil {
+		handler = http.DefaultServeMux
+	}
+	if certFile == "" || keyFile == "" {
+		return errors.New("cert / key should be provided")
+	}
+	return ListenAndServeRaw(addr, certFile, keyFile, numOfServers, handler, handler)
+}
+
+func ListenAndServeQuicSpdyOnly(addr string, certFile string, keyFile string, numOfServers int, handler http.Handler) error {
+	if handler == nil {
+		handler = http.DefaultServeMux
+	}
+	return ListenAndServeRaw(addr, certFile, keyFile, numOfServers, handler, nil)
+}
+
+func ListenAndServeRaw(addr string, certFile string, keyFile string, numOfServers int, quicHandler http.Handler, nonQuicHandler http.Handler) error {
 	port, err := parsePort(addr)
 	if err != nil {
 		return err
 	}
 
-	if handler == nil {
-		handler = http.DefaultServeMux
+	if quicHandler == nil {
+		return errors.New("quic handler should be provided")
 	}
 
-	go func() {
-		httpServer := &http.Server{Addr: addr, Handler: altProtoMiddleware(handler, port)}
-		http2.ConfigureServer(httpServer, nil)
-		err := httpServer.ListenAndServeTLS(certFile, keyFile)
+	if nonQuicHandler != nil {
+		go func() {
+			httpServer := &http.Server{Addr: addr, Handler: AltProtoMiddleware(nonQuicHandler, port)}
+			http2.ConfigureServer(httpServer, nil)
+
+			if certFile != "" && keyFile != "" {
+				if err := httpServer.ListenAndServeTLS(certFile, keyFile); err != nil {
+					panic(err)
+				}
+			} else {
+				if err := httpServer.ListenAndServe(); err != nil {
+					panic(err)
+				}
+			}
+		}()
+	}
+
+	server := &QuicSpdyServer{Addr: addr, Handler: quicHandler, numOfServers: numOfServers}
+	if certFile != "" && keyFile != "" {
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err != nil {
 			panic(err)
 		}
-	}()
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	if err != nil {
-		return err
+
+		server.isSecure = true
+		server.Certificate = cert
+	} else {
+		server.isSecure = false
 	}
 
-	server := &QuicSpdyServer{Addr: addr, Handler: handler, numOfServers: numOfServers, Certificate: cert, isSecure: true}
-	return server.ListenAndServe()
-}
-
-func ListenAndServeQuicSpdyOnly(addr string, certFile string, keyFile string, numOfServers int, handler http.Handler) error {
-	server := &QuicSpdyServer{Addr: addr, Handler: handler, numOfServers: numOfServers}
 	return server.ListenAndServe()
 }
