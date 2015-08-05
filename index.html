@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Goquic by devsisters</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Goquic</h1>
+      <h2 class="project-tagline">QUIC support for Go</h2>
+      <a href="https://github.com/devsisters/goquic" class="btn">View on GitHub</a>
+      <a href="https://github.com/devsisters/goquic/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/devsisters/goquic/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="goquic-quic-support-for-go" class="anchor" href="#goquic-quic-support-for-go" aria-hidden="true"><span class="octicon octicon-link"></span></a>goquic, QUIC support for Go</h1>
+
+<p>This is a work-in-progress QUIC implementation for Go. This is based on
+<a href="https://github.com/devsisters/libquic">libquic</a> library, which is in turn based
+on original QUIC implementation on <a href="http://www.chromium.org/quic">Chromium</a>.</p>
+
+<p>QUIC is an experimental protocol aimed at reducing web latency over that of TCP.
+On the surface, QUIC is very similar to TCP+TLS+SPDY implemented on UDP. Because
+TCP is implement in operating system kernels, and middlebox firmware, making
+significant changes to TCP is next to impossible. However, since QUIC is built
+on top of UDP, it suffers from no such limitations.</p>
+
+<p>Key features of QUIC over existing TCP+TLS+SPDY include</p>
+
+<ul>
+<li>Dramatically reduced connection establishment time</li>
+<li>Improved congestion control</li>
+<li>Multiplexing without head of line blocking</li>
+<li>Forward error correction</li>
+<li>Connection migration</li>
+</ul>
+
+<h2>
+<a id="project-status" class="anchor" href="#project-status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project Status</h2>
+
+<p><em>This library is highly experimental.</em> Although <code>libquic</code> sources are from
+Chromium (which are tested), the Go bindings are still highly pre-alpha state.</p>
+
+<p>Known issues:</p>
+
+<ul>
+<li>No support for read streaming. All request must fit in memory.</li>
+<li>Secure QUIC not fully tested. May not support ECDSA certificates.</li>
+</ul>
+
+<p>Things to do:</p>
+
+<ul>
+<li>Read streaming support</li>
+</ul>
+
+<h2>
+<a id="preliminary-benchmarks" class="anchor" href="#preliminary-benchmarks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Preliminary Benchmarks</h2>
+
+<p>A very primitive benchmark testing have been done. Testing environments below:</p>
+
+<table>
+<thead>
+<tr>
+<th>Items</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Optimization</td>
+<td>libquic built with <code>-O3</code> parameters</td>
+</tr>
+<tr>
+<td>CPU</td>
+<td>Intel(R) Core(TM) i7-4930K CPU @ 3.40GHz</td>
+</tr>
+<tr>
+<td>Server Code</td>
+<td><a href="https://github.com/devsisters/goquic/blob/master/example/server.go">https://github.com/devsisters/goquic/blob/master/example/server.go</a></td>
+</tr>
+<tr>
+<td>Server Parms</td>
+<td><code>GOMAXPROCS=12 ./server -port 9090 -n 12</code></td>
+</tr>
+<tr>
+<td>Client Code</td>
+<td><a href="https://github.com/devsisters/quicbench/blob/master/quicbench.go">https://github.com/devsisters/quicbench/blob/master/quicbench.go</a></td>
+</tr>
+<tr>
+<td>Client Parms</td>
+<td><code>./quicbench -u="https://example.com:9090/" -c 200 -r 1000</code></td>
+</tr>
+</tbody>
+</table>
+
+<p>The server code is modified to create 30B, 1kB, 5kB, 10kB HTTP body payload.
+Concurrency is 200 and each thread requests 1,000 requests. It is designed to
+measure ideal throughput of the server. Naturally the throughput goes down when
+concurrency increases.</p>
+
+<p>Benchmark results:</p>
+
+<table>
+<thead>
+<tr>
+<th>Payload Size</th>
+<th>Requests per Second</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>30B Payload</td>
+<td>23832.18 RPS</td>
+</tr>
+<tr>
+<td>1kB Payload</td>
+<td>21704.84 RPS</td>
+</tr>
+<tr>
+<td>5kB Payload</td>
+<td>9343.58 RPS</td>
+</tr>
+<tr>
+<td>10kB Payload</td>
+<td>5312.75 RPS</td>
+</tr>
+</tbody>
+</table>
+
+<p>On 10kB case, calculating the total network throughput is <code>435Mbps</code>.</p>
+
+<p>How many connections per second can this server process?</p>
+
+<p><code>./gobench -u="https://example.com:9090/" -c 200 -r 100 -qk=false</code></p>
+
+<p>Turning off keepalive using <code>qk</code> option results in a pure new QUIC connection
+per request. The benchmark results are <code>2905.58 CPS</code>.</p>
+
+<h1>
+<a id="getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h1>
+
+<h2>
+<a id="build-static-library-files" class="anchor" href="#build-static-library-files" aria-hidden="true"><span class="octicon octicon-link"></span></a>Build static library files</h2>
+
+<p>Although prebuilt static library files already exists in the repository for
+convenience, it is always good practice to build library files from source. You
+should not trust any unverifiable third-party binaries.</p>
+
+<p>To build the library files for your architecture and OS:</p>
+
+<div class="highlight highlight-bash"><pre>./build_libs.sh</pre></div>
+
+<p>This will fetch <code>libquic</code> master and build all the binaries from source. The
+C/C++ files for Go bindings will be all built too.</p>
+
+<p>Currently Linux and Mac OS X is supprted.</p>
+
+<h2>
+<a id="how-to-build" class="anchor" href="#how-to-build" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to build</h2>
+
+<p>Due to Go 1.4's cgo restrictions, use an environment variable like below to
+build your projects. This restriction will be removed from Go 1.5.</p>
+
+<div class="highlight highlight-bash"><pre>CGO_CFLAGS=<span class="pl-s"><span class="pl-pds">"</span>-I<span class="pl-smi">$GOPATH</span>/src/github.com/devsisters/goquic/libquic/boringssl/include<span class="pl-pds">"</span></span> \
+CGO_LDFLAGS=<span class="pl-s"><span class="pl-pds">"</span>-L<span class="pl-smi">$GOPATH</span>/src/github.com/devsisters/goquic/lib/<span class="pl-smi">$GOOS_$GOARCH</span><span class="pl-pds">"</span></span></pre></div>
+
+<p>For example, building goquic example server in Mac:</p>
+
+<div class="highlight highlight-bash"><pre>CGO_CFLAGS=<span class="pl-s"><span class="pl-pds">"</span>-I<span class="pl-smi">$GOPATH</span>/src/github.com/devsisters/goquic/libquic/boringssl/include<span class="pl-pds">"</span></span> \
+CGO_LDFLAGS=<span class="pl-s"><span class="pl-pds">"</span>-L<span class="pl-smi">$GOPATH</span>/src/github.com/devsisters/goquic/lib/darwin_amd64<span class="pl-pds">"</span></span> \
+go build <span class="pl-smi">$GOPATH</span>/src/github.com/devsisters/goquic/example/server.go</pre></div>
+
+<h1>
+<a id="spdyquic-support" class="anchor" href="#spdyquic-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>SPDY/QUIC support</h1>
+
+<p>We have a experimental SPDY/QUIC implementation as a library.
+You can use this library to add SPDY/QUIC support for your existing Go HTTP server.</p>
+
+<p>See our SPDY-QUIC server/client implementation <a href="example/">here</a>.</p>
+
+<h2>
+<a id="how-to-use-server" class="anchor" href="#how-to-use-server" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to use server</h2>
+
+<p>When running a HTTP server, do:</p>
+
+<div class="highlight highlight-go"><pre>goquic.<span class="pl-c1">ListenAndServe</span>(<span class="pl-s"><span class="pl-pds">"</span>:8080<span class="pl-pds">"</span></span>, <span class="pl-c1">1</span>, <span class="pl-c1">nil</span>)</pre></div>
+
+<p>instead of</p>
+
+<div class="highlight highlight-go"><pre>http.<span class="pl-c1">ListenAndServe</span>(<span class="pl-s"><span class="pl-pds">"</span>:8080<span class="pl-pds">"</span></span>, <span class="pl-c1">nil</span>)</pre></div>
+
+<h2>
+<a id="how-to-use-client" class="anchor" href="#how-to-use-client" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to use client</h2>
+
+<p>You need to create http.Client with Transport changed, do:</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-smi">client</span> <span class="pl-k">:=</span> &amp;http.<span class="pl-smi">Client</span>{
+    <span class="pl-v">Transport</span>: goquic.<span class="pl-c1">NewRoundTripper</span>(<span class="pl-c1">false</span>),
+}
+<span class="pl-smi">resp</span>, <span class="pl-smi">err</span> <span class="pl-k">:=</span> client.<span class="pl-c1">Get</span>(<span class="pl-s"><span class="pl-pds">"</span>http://example.com/<span class="pl-pds">"</span></span>)</pre></div>
+
+<p>instead of</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-smi">resp</span>, <span class="pl-smi">err</span> <span class="pl-k">:=</span> http.<span class="pl-c1">Get</span>(<span class="pl-s"><span class="pl-pds">"</span>http://example.com/<span class="pl-pds">"</span></span>)</pre></div>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/devsisters/goquic">Goquic</a> is maintained by <a href="https://github.com/devsisters">devsisters</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
