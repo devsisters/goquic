@@ -2,7 +2,7 @@
 <html lang="en-us">
   <head>
     <meta charset="UTF-8">
-    <title>Goquic by devsisters</title>
+    <title>GoQuic by devsisters</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
@@ -11,7 +11,7 @@
   </head>
   <body>
     <section class="page-header">
-      <h1 class="project-name">Goquic</h1>
+      <h1 class="project-name">GoQuic</h1>
       <h2 class="project-tagline">QUIC support for Go</h2>
       <a href="https://github.com/devsisters/goquic" class="btn">View on GitHub</a>
       <a href="https://github.com/devsisters/goquic/zipball/master" class="btn">Download .zip</a>
@@ -20,49 +20,52 @@
 
     <section class="main-content">
       <h1>
-<a id="goquic-quic-support-for-go" class="anchor" href="#goquic-quic-support-for-go" aria-hidden="true"><span class="octicon octicon-link"></span></a>goquic, QUIC support for Go</h1>
+<a id="introducing-goquic---a-quick-way-to-use-quic" class="anchor" href="#introducing-goquic---a-quick-way-to-use-quic" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introducing GoQuic - A quick way to use QUIC</h1>
 
-<p>This is a work-in-progress QUIC implementation for Go. This is based on
-<a href="https://github.com/devsisters/libquic">libquic</a> library, which is in turn based
-on original QUIC implementation on <a href="http://www.chromium.org/quic">Chromium</a>.</p>
+<p>Mobile Internet connection is getting faster each day. We've transitioned from a very slow GSM network to 3G and then to a fastest LTE networks. Despite the connection speed getting faster each day, we constantly struggle to stably load web pages. Trying to browse while moving in a subway, Internet browsing is constantly interrupted by the signal blackouts to the point where it's so unbearable that we just stop doing it. It's not a throughput problem. It's about the stability of the connection. The problem is about dealing with highly variable network environment.</p>
 
-<p>QUIC is an experimental protocol aimed at reducing web latency over that of TCP.
-On the surface, QUIC is very similar to TCP+TLS+SPDY implemented on UDP. Because
-TCP is implement in operating system kernels, and middlebox firmware, making
-significant changes to TCP is next to impossible. However, since QUIC is built
-on top of UDP, it suffers from no such limitations.</p>
+<p>Fortunately, we can solve this problem right now: with "QUIC". Let's see how it compares.</p>
 
-<p>Key features of QUIC over existing TCP+TLS+SPDY include</p>
+<pre><code>TODO: HTTP/1+TLS vs HTTP/2+TLS vs QUIC 데모 gif
+</code></pre>
 
-<ul>
-<li>Dramatically reduced connection establishment time</li>
-<li>Improved congestion control</li>
-<li>Multiplexing without head of line blocking</li>
-<li>Forward error correction</li>
-<li>Connection migration</li>
-</ul>
+<h3>
+<a id="difficulty-of-mobile-internet" class="anchor" href="#difficulty-of-mobile-internet" aria-hidden="true"><span class="octicon octicon-link"></span></a>Difficulty of Mobile Internet</h3>
 
-<h2>
-<a id="project-status" class="anchor" href="#project-status" aria-hidden="true"><span class="octicon octicon-link"></span></a>Project Status</h2>
+<p>At Devsisters server team, we constantly research ways to improve our mobile game user's online experience. More and more, mobile games are becoming sophisticated. And many of the games released today require internet to play. But unlike the PC game counterparts, mobile environment poses some difficult challenges while creating online mobile games.</p>
 
-<p><em>This library is highly experimental.</em> Although <code>libquic</code> sources are from
-Chromium (which are tested), the Go bindings are still highly pre-alpha state.</p>
+<p>Mobile phones are literally - "mobile". So their online connectivity changes along with the mobile phone's physical location change. Constant transition from this wifi to that wifi, transitioning to and from cellular data, occasional cellular signal blackouts all make mobile internet connection very unstable and unreliable.</p>
 
-<p>Known issues:</p>
+<p>This kind of environment pose serious user experience problems. Everybody with a smartphone would agree on how frustrating it is when the wifi signal weakens enough to transition to a cellular data network. It literally makes web browsing unbearable for a few seconds.</p>
 
-<ul>
-<li>No support for read streaming. All request must fit in memory.</li>
-<li>Secure QUIC not fully tested. May not support ECDSA certificates.</li>
-</ul>
+<p>When wifi signal is lost during a web browsing session, wifi is disconnected and transits to other available wifi or cellular data network. And sometimes during that period, currently loading web page takes ages to finish. But instead of waiting, pressing the refresh button often makes the page load faster. Users with a keen observation would have experienced this phenomena.</p>
 
-<p>Things to do:</p>
+<p>This kind of problem happens because of the way TCP handles packet loss. TCP views packet loss as a network congestion signal. So under the condition of "network blackout" it slows down sending packets exponentially to the point until no more packets are sent. So when this kind of event triggers, even if the underlying network recovers, TCP connection requires more time to recover it's connectivity. So in this situation -- from the user's perspective, it is more wise to simply press refresh button instead of waiting for the loading to finish.</p>
 
-<ul>
-<li>Read streaming support</li>
-</ul>
+<p><img src="http://d2.naver.com/content/images/2015/06/helloworld-111111-13.png" alt="TCP Connection Recovery After Network Blackout"></p>
 
-<h2>
-<a id="preliminary-benchmarks" class="anchor" href="#preliminary-benchmarks" aria-hidden="true"><span class="octicon octicon-link"></span></a>Preliminary Benchmarks</h2>
+<p>There are only two ways to handle this problem on HTTP. Waiting indefinitely or timeout and retry. This kind of problem also exists on HTTP/2 which it also use TCP. It's also worse on HTTP/2 since it uses connection multiplexing network blackouts stop all logical HTTP requests, causing significant performance degradation. This kind of problem is called head-of-line blocking.</p>
+
+<p>Head-of-line blocking is not the only problem in HTTP. Since more and more services use HTTPS, it is becoming more expensive to initialize a connection. So it directly impacts 'timeout and retry' strategy. In the mobile environment, where cellular latency of a 3G connection is in 200~300ms range, the <a href="http://www.semicomplete.com/blog/geekery/ssl-latency.html">3 round-trip HTTPS connection</a> handshake is too expensive.</p>
+
+<h3>
+<a id="googles-experiment-quic" class="anchor" href="#googles-experiment-quic" aria-hidden="true"><span class="octicon octicon-link"></span></a>Google's Experiment: QUIC</h3>
+
+<p>Fortunately, Google is trying to solve this problem by developing and researching a new protocol named QUIC. Since the problem is happening because of HTTP/TLS and TCP, we can't fix it on the TCP layer. So QUIC is directly developed upon UDP transport layer.</p>
+
+<p>QUIC aims to solve the head-of-line blocking issue and the TLS connection round-trip problem. Detailed project description is available in the <a href="http://www.chromium.org/quic">QUIC project page</a>.</p>
+
+<p>Unfortunately, since QUIC is a experimental protocol, there's only one implementation of the protocol. And that implementation exists in project Chromium. Google provides toy server/client to play with. But the source code itself is no designed to be a library. It is heavily coupled to the existing Chromium sources.</p>
+
+<h3>
+<a id="birth-of-libquic-and-goquic" class="anchor" href="#birth-of-libquic-and-goquic" aria-hidden="true"><span class="octicon octicon-link"></span></a>Birth of libquic and goquic</h3>
+
+<p>Our initial plan was to incorporate Chromium's network runtime into our game client and server. But it turned out to be horribly hard. We then tried to extract minimal amounts of source code from Chromium to barely run QUIC code. That made the birth of project <a href="https://github.com/devsisters/libquic">libquic</a>: which is a bare essential standalone source code extracted from Chromium. It can build on Mac and Linux platforms and produce libquic library.</p>
+
+<p>Our next step was to create a Golang binding. Since our server stack is developed in Go, it was a natural choice. This led to birth of <a href="https://github.com/devsisters/goquic">goquic</a>. It tries to mimic the builtin HTTP library and also incorporates <a href="https://github.com/bradfitz/http2">bradfitz' http2 library</a> to enable HTTP/2 when QUIC is unavailable.</p>
+
+<h3>
+<a id="performance-of-goquic" class="anchor" href="#performance-of-goquic" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance of goquic</h3>
 
 <p>A very primitive benchmark testing have been done. Testing environments below:</p>
 
@@ -144,75 +147,18 @@ concurrency increases.</p>
 <p>Turning off keepalive using <code>qk</code> option results in a pure new QUIC connection
 per request. The benchmark results are <code>2905.58 CPS</code>.</p>
 
-<h1>
-<a id="getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting Started</h1>
+<h3>
+<a id="quic-proxy-server-docker-image" class="anchor" href="#quic-proxy-server-docker-image" aria-hidden="true"><span class="octicon octicon-link"></span></a>QUIC Proxy Server Docker Image</h3>
 
-<h2>
-<a id="build-static-library-files" class="anchor" href="#build-static-library-files" aria-hidden="true"><span class="octicon octicon-link"></span></a>Build static library files</h2>
+<p>I used to create a QUIC reverse proxy of an existing site just for fun. So to enable people to experiment with QUIC, we've released a docker image that acts as a reverse proxy for the site of your choice. It enables QUIC along with HTTP/2, so you will enjoy full bleeding edge of web browsing.</p>
 
-<p>Although prebuilt static library files already exists in the repository for
-convenience, it is always good practice to build library files from source. You
-should not trust any unverifiable third-party binaries.</p>
+<pre><code>TODO: Instructions on how to use docker image
+</code></pre>
 
-<p>To build the library files for your architecture and OS:</p>
-
-<div class="highlight highlight-bash"><pre>./build_libs.sh</pre></div>
-
-<p>This will fetch <code>libquic</code> master and build all the binaries from source. The
-C/C++ files for Go bindings will be all built too.</p>
-
-<p>Currently Linux and Mac OS X is supprted.</p>
-
-<h2>
-<a id="how-to-build" class="anchor" href="#how-to-build" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to build</h2>
-
-<p>Due to Go 1.4's cgo restrictions, use an environment variable like below to
-build your projects. This restriction will be removed from Go 1.5.</p>
-
-<div class="highlight highlight-bash"><pre>CGO_CFLAGS=<span class="pl-s"><span class="pl-pds">"</span>-I<span class="pl-smi">$GOPATH</span>/src/github.com/devsisters/goquic/libquic/boringssl/include<span class="pl-pds">"</span></span> \
-CGO_LDFLAGS=<span class="pl-s"><span class="pl-pds">"</span>-L<span class="pl-smi">$GOPATH</span>/src/github.com/devsisters/goquic/lib/<span class="pl-smi">$GOOS_$GOARCH</span><span class="pl-pds">"</span></span></pre></div>
-
-<p>For example, building goquic example server in Mac:</p>
-
-<div class="highlight highlight-bash"><pre>CGO_CFLAGS=<span class="pl-s"><span class="pl-pds">"</span>-I<span class="pl-smi">$GOPATH</span>/src/github.com/devsisters/goquic/libquic/boringssl/include<span class="pl-pds">"</span></span> \
-CGO_LDFLAGS=<span class="pl-s"><span class="pl-pds">"</span>-L<span class="pl-smi">$GOPATH</span>/src/github.com/devsisters/goquic/lib/darwin_amd64<span class="pl-pds">"</span></span> \
-go build <span class="pl-smi">$GOPATH</span>/src/github.com/devsisters/goquic/example/server.go</pre></div>
-
-<h1>
-<a id="spdyquic-support" class="anchor" href="#spdyquic-support" aria-hidden="true"><span class="octicon octicon-link"></span></a>SPDY/QUIC support</h1>
-
-<p>We have a experimental SPDY/QUIC implementation as a library.
-You can use this library to add SPDY/QUIC support for your existing Go HTTP server.</p>
-
-<p>See our SPDY-QUIC server/client implementation <a href="example/">here</a>.</p>
-
-<h2>
-<a id="how-to-use-server" class="anchor" href="#how-to-use-server" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to use server</h2>
-
-<p>When running a HTTP server, do:</p>
-
-<div class="highlight highlight-go"><pre>goquic.<span class="pl-c1">ListenAndServe</span>(<span class="pl-s"><span class="pl-pds">"</span>:8080<span class="pl-pds">"</span></span>, <span class="pl-c1">1</span>, <span class="pl-c1">nil</span>)</pre></div>
-
-<p>instead of</p>
-
-<div class="highlight highlight-go"><pre>http.<span class="pl-c1">ListenAndServe</span>(<span class="pl-s"><span class="pl-pds">"</span>:8080<span class="pl-pds">"</span></span>, <span class="pl-c1">nil</span>)</pre></div>
-
-<h2>
-<a id="how-to-use-client" class="anchor" href="#how-to-use-client" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to use client</h2>
-
-<p>You need to create http.Client with Transport changed, do:</p>
-
-<div class="highlight highlight-go"><pre><span class="pl-smi">client</span> <span class="pl-k">:=</span> &amp;http.<span class="pl-smi">Client</span>{
-    <span class="pl-v">Transport</span>: goquic.<span class="pl-c1">NewRoundTripper</span>(<span class="pl-c1">false</span>),
-}
-<span class="pl-smi">resp</span>, <span class="pl-smi">err</span> <span class="pl-k">:=</span> client.<span class="pl-c1">Get</span>(<span class="pl-s"><span class="pl-pds">"</span>http://example.com/<span class="pl-pds">"</span></span>)</pre></div>
-
-<p>instead of</p>
-
-<div class="highlight highlight-go"><pre><span class="pl-smi">resp</span>, <span class="pl-smi">err</span> <span class="pl-k">:=</span> http.<span class="pl-c1">Get</span>(<span class="pl-s"><span class="pl-pds">"</span>http://example.com/<span class="pl-pds">"</span></span>)</pre></div>
+<p>Have fun! :)</p>
 
       <footer class="site-footer">
-        <span class="site-footer-owner"><a href="https://github.com/devsisters/goquic">Goquic</a> is maintained by <a href="https://github.com/devsisters">devsisters</a>.</span>
+        <span class="site-footer-owner"><a href="https://github.com/devsisters/goquic">GoQuic</a> is maintained by <a href="https://github.com/devsisters">devsisters</a>.</span>
 
         <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
       </footer>
