@@ -21,7 +21,7 @@
       <h1>
 <a id="introducing-goquic---a-quick-way-to-use-quic" class="anchor" href="#introducing-goquic---a-quick-way-to-use-quic" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introducing GoQuic - A quick way to use QUIC</h1>
 
-<p>Mobile Internet connection is getting faster each day. We've transitioned from a very slow GSM network to 3G and then to a fastest LTE networks. Despite the connection speed getting faster each day, we constantly struggle to stably load web pages. Trying to browse while moving in a subway, Internet browsing is constantly interrupted by the signal blackouts to the point where it's so unbearable that we just stop doing it. It's not a throughput problem. It's about the stability of the connection. The problem is about dealing with highly variable network environment.</p>
+<p>Mobile Internet connections are getting faster every day. We've transitioned from very slow GSM networks to 3G and then to the fastest LTE networks. Despite this increased connection speed, we constantly struggle to stably load web pages. For instance, trying to browse the Internet while moving in a subway, the experience is constantly interrupted by signal blackouts to the point that it's so unbearable we simply stop doing it. It's not a throughput problem. It's about the stability of the connection. The problem is about dealing with highly variable network environments.</p>
 
 <p>Fortunately, we can solve this problem right now: with "QUIC". Let's see how it compares.</p>
 
@@ -29,42 +29,42 @@
 <h3>
 <a id="difficulty-of-mobile-internet" class="anchor" href="#difficulty-of-mobile-internet" aria-hidden="true"><span class="octicon octicon-link"></span></a>Difficulty of Mobile Internet</h3>
 
-<p>At Devsisters server team, we constantly research ways to improve our mobile game user's online experience. More and more, mobile games are becoming sophisticated. And many of the games released today require internet to play. But unlike the PC game counterparts, mobile environment poses some difficult challenges while creating online mobile games.</p>
+<p>At Devsisters, the server team constantly researches ways to improve our mobile game user's online experience. More and more, mobile games are becoming increasingly sophisticated. And many of the games released today require the Internet to enjoy. But unlike their PC game counterparts, mobile environments pose some unique challenges while hosting online mobile games.</p>
 
-<p>Mobile phones are literally - "mobile". So their online connectivity changes along with the mobile phone's physical location change. Constant transition from this wifi to that wifi, transitioning to and from cellular data, occasional cellular signal blackouts all make mobile internet connection very unstable and unreliable.</p>
+<p>Mobile phones are literally "mobile". So their online connectivity changes along with the mobile phone's changes in physical location. Constant transition from this wifi to that wifi, intermittent cellular data usage, occasional cellular signal blackouts--this all makes mobile Internet connections very unstable and unreliable.</p>
 
-<p>This kind of environment pose serious user experience problems. Everybody with a smartphone would agree on how frustrating it is when the wifi signal weakens enough to transition to a cellular data network. It literally makes web browsing unbearable for a few seconds.</p>
+<p>This kind of environment poses serious user experience problems. Everybody with a smartphone would agree on how frustrating it is when their wifi signal weakens enough to transition to a cellular data network. It makes web browsing quite unbearable for a few seconds.</p>
 
-<p>When wifi signal is lost during a web browsing session, wifi is disconnected and transits to other available wifi or cellular data network. And sometimes during that period, currently loading web page takes ages to finish. But instead of waiting, pressing the refresh button often makes the page load faster. Users with a keen observation would have experienced this phenomena.</p>
+<p>When a wifi signal is lost during a web browsing session, wifi is disconnected and transits to other available wifi or cellular data networks. And sometimes during that period, currently loading web pages may seemingly take ages to finish. In this situation, instead of just waiting, pressing the refresh button often makes the page load faster. Keen users may have observed this phenomena.</p>
 
-<p>This kind of problem happens because of the way TCP handles packet loss. TCP views packet loss as a network congestion signal. So under the condition of "network blackout" it slows down sending packets exponentially to the point until no more packets are sent. So when this kind of event triggers, even if the underlying network recovers, TCP connection requires more time to recover it's connectivity. So in this situation -- from the user's perspective, it is more wise to simply press refresh button instead of waiting for the loading to finish.</p>
+<p>This kind of problem happens because of the way TCP handles packet loss. TCP views packet loss as a signal of network congestion. Under the condition of a "network blackout", it exponentially slows down sending packets to the point where no more packets are sent. When this kind of event occurs, even if the underlying network recovers, TCP connection requires more time to recover it's connectivity. So--from the user's perspective--it is more wise to simply press the refresh button in this situation instead of waiting for the loading to complete.</p>
 
 <p><img src="images/tcp_network.png" alt="TCP Connection Recovery After Network Blackout"></p>
 
-<p>There are only two ways to handle this problem on HTTP. Waiting indefinitely or timeout and retry. This kind of problem also exists on HTTP/2 which it also use TCP. It's also worse on HTTP/2 since it uses connection multiplexing network blackouts stop all logical HTTP requests, causing significant performance degradation. This kind of problem is called head-of-line blocking.</p>
+<p>There are only two ways to handle this problem on HTTP: waiting indefinitely or 'timeout and retry'. This kind of problem also exists on HTTP/2 which also uses TCP. In fact, it's worse on HTTP/2 since it uses connection multiplexing network blackouts to stop all logical HTTP requests, causing significant performance degradation. This kind of problem is called head-of-line blocking.</p>
 
-<p>Head-of-line blocking is not the only problem in HTTP. Since more and more services use HTTPS, it is becoming more expensive to initialize a connection. So it directly impacts 'timeout and retry' strategy. In the mobile environment, where cellular latency of a 3G connection is in 200~300ms range, the <a href="http://www.semicomplete.com/blog/geekery/ssl-latency.html">3 round-trip HTTPS connection</a> handshake is too expensive.</p>
+<p>Head-of-line blocking is not the only problem in HTTP. Since more and more services use HTTPS, it is becoming more expensive to initialize a connection. So it directly impacts the 'timeout and retry' strategy. In the mobile environment, where cellular latency of a 3G connection is in the 200~300ms range, the <a href="http://www.semicomplete.com/blog/geekery/ssl-latency.html">3 round-trip HTTPS connection</a> handshake is just too expensive.</p>
 
 <h3>
 <a id="googles-experiment-quic" class="anchor" href="#googles-experiment-quic" aria-hidden="true"><span class="octicon octicon-link"></span></a>Google's Experiment: QUIC</h3>
 
-<p>Fortunately, Google is trying to solve this problem by developing and researching a new protocol named QUIC. Since the problem is happening because of HTTP/TLS and TCP, we can't fix it on the TCP layer. So QUIC is directly developed upon UDP transport layer.</p>
+<p>Fortunately, Google is trying to solve this problem by developing and researching a new protocol named QUIC. Since this problem is happening because of HTTP/TLS and TCP, we can't fix it on the TCP layer. So QUIC is directly developed upon the UDP transport layer.</p>
 
-<p>QUIC aims to solve the head-of-line blocking issue and the TLS connection round-trip problem. Detailed project description is available in the <a href="http://www.chromium.org/quic">QUIC project page</a>.</p>
+<p>QUIC aims to solve the head-of-line blocking issue and the TLS connection round-trip problem. A detailed project description is available in the <a href="http://www.chromium.org/quic">QUIC project page</a>.</p>
 
-<p>Unfortunately, since QUIC is a experimental protocol, there's only one implementation of the protocol. And that implementation exists in project Chromium. Google provides toy server/client to play with. But the source code itself is no designed to be a library. It is heavily coupled to the existing Chromium sources.</p>
+<p>Unfortunately, since QUIC is a experimental protocol, there's only one implementation of the protocol. And that implementation exists in project Chromium. Google provides toy server/client to play with. But the source code itself is not designed to be a library. It is heavily coupled to the existing Chromium sources.</p>
 
 <h3>
 <a id="birth-of-libquic-and-goquic" class="anchor" href="#birth-of-libquic-and-goquic" aria-hidden="true"><span class="octicon octicon-link"></span></a>Birth of libquic and goquic</h3>
 
-<p>Our initial plan was to incorporate Chromium's network runtime into our game client and server. But it turned out to be horribly hard. We then tried to extract minimal amounts of source code from Chromium to barely run QUIC code. That made the birth of project <a href="https://github.com/devsisters/libquic">libquic</a>: which is a bare essential standalone source code extracted from Chromium. It can build on Mac and Linux platforms and produce libquic library.</p>
+<p>Our initial plan was to incorporate Chromium's network runtime into our game client and server. But it turned out to be horribly hard. We then tried to extract minimal amounts of source code from Chromium to barely run QUIC code. That made the birth of project <a href="https://github.com/devsisters/libquic">libquic</a>: which is a bare necessities, stand-alone source code extracted from Chromium. It can build on Mac and Linux platforms and produce libquic library.</p>
 
-<p>Our next step was to create a Golang binding. Since our server stack is developed in Go, it was a natural choice. This led to birth of <a href="https://github.com/devsisters/goquic">goquic</a>. It tries to mimic the builtin HTTP library and also incorporates <a href="https://github.com/bradfitz/http2">bradfitz' http2 library</a> to enable HTTP/2 when QUIC is unavailable.</p>
+<p>Our next step was to create a Golang binding. Since our server stack is developed in Go, it was a natural choice. This led to birth of <a href="https://github.com/devsisters/goquic">goquic</a>. It tries to mimic the built-in HTTP library and also incorporates <a href="https://github.com/bradfitz/http2">bradfitz' http2 library</a> to enable HTTP/2 when QUIC is unavailable.</p>
 
 <h3>
 <a id="performance-of-goquic" class="anchor" href="#performance-of-goquic" aria-hidden="true"><span class="octicon octicon-link"></span></a>Performance of goquic</h3>
 
-<p>A very primitive benchmark testing have been done. Testing environments below:</p>
+<p>Very primitive benchmark testing has been done. Testing environments below:</p>
 
 <table>
 <thead>
@@ -135,19 +135,19 @@ concurrency increases.</p>
 </tbody>
 </table>
 
-<p>On 10kB case, calculating the total network throughput is <code>435Mbps</code>.</p>
+<p>On the 10kB case, calculating the total network throughput is <code>435Mbps</code>.</p>
 
 <p>How many connections per second can this server process?</p>
 
-<p><code>./gobench -u="https://example.com:9090/" -c 200 -r 100 -qk=false</code></p>
+<p><code>./quicbench -u="https://example.com:9090/" -c 200 -r 100 -qk=false</code></p>
 
-<p>Turning off keepalive using <code>qk</code> option results in a pure new QUIC connection
+<p>Turning off keepalive using <code>qk</code> option results in a pure, new QUIC connection
 per request. The benchmark results are <code>2905.58 CPS</code>.</p>
 
 <h3>
 <a id="quic-proxy-server-docker-image" class="anchor" href="#quic-proxy-server-docker-image" aria-hidden="true"><span class="octicon octicon-link"></span></a>QUIC Proxy Server Docker Image</h3>
 
-<p>I used to create a QUIC reverse proxy of an existing site just for fun. So to enable people to experiment with QUIC, we've released a docker image that acts as a reverse proxy for the site of your choice. It enables QUIC along with HTTP/2, so you will enjoy full bleeding edge of web browsing.</p>
+<p>I used to create a QUIC reverse proxy of an existing site just for fun. So to enable people to experiment with QUIC, we've released a docker image that acts as a reverse proxy for the site of your choice. It enables QUIC along with HTTP/2, so you will enjoy the full bleeding edge of web browsing.</p>
 
 <pre><code>$ docker run -p 8080:8080 -p 8080:8080/udp devsisters/quic-reverse-proxy --port=8080 http://{BACKEND_HOST:PORT}
 </code></pre>
@@ -155,9 +155,9 @@ per request. The benchmark results are <code>2905.58 CPS</code>.</p>
 <pre><code>$ docker run -p 8080:8080 -p 8080:8080/udp devsisters/quic-reverse-proxy --port=8080 http://devsisters.github.io/goquic/
 </code></pre>
 
-<p>After that, you may try to connect the container with your Chrome browser. We recommend that you install <a href="https://chrome.google.com/webstore/detail/http2-and-spdy-indicator/mpbpobfflnpcgagjijhmgnchggcjblin">Chrome HTTP/2 and SPDY indicator</a>. Then you can see red lightning mark <img src="images/icon-quic.png"> on the right side of address bar when QUIC is enabled.</p>
+<p>After that, you may try to connect the container with your Chrome browser. We recommend that you install <a href="https://chrome.google.com/webstore/detail/http2-and-spdy-indicator/mpbpobfflnpcgagjijhmgnchggcjblin">Chrome HTTP/2 and SPDY indicator</a>. Then you can see red lightning marks <img src="images/icon-quic.png"> on the right side of the address bar when QUIC is enabled.</p>
 
-<p>Since <a href="https://groups.google.com/a/chromium.org/forum/#!topic/proto-quic/hkAYHWz7mTk">Google QUIC team turned down insecure QUIC</a>, most recent Chrome Canary (>= 46.0) may not be able to connect to our quic proxy container. We have a plan to release https supporting reverse-proxy image soon.</p>
+<p>Since <a href="https://groups.google.com/a/chromium.org/forum/#!topic/proto-quic/hkAYHWz7mTk">Google QUIC team turned down insecure QUIC</a>, most recent Chrome Canary (>= 46.0) may not be able to connect to our quic proxy container. We have a plan to release a https supporting reverse-proxy image soon.</p>
 
 <p>Have fun! :)</p>
 
