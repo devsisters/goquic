@@ -14,8 +14,7 @@
       <h1 class="project-name">GoQuic</h1>
       <h2 class="project-tagline">QUIC support for Go</h2>
       <a href="https://github.com/devsisters/goquic" class="btn">View on GitHub</a>
-      <a href="https://github.com/devsisters/goquic/zipball/master" class="btn">Download .zip</a>
-      <a href="https://github.com/devsisters/goquic/tarball/master" class="btn">Download .tar.gz</a>
+      <a href="https://registry.hub.docker.com/u/devsisters/quic-reverse-proxy/" class="btn">View on DockerHub</a>
     </section>
 
     <section class="main-content">
@@ -26,9 +25,7 @@
 
 <p>Fortunately, we can solve this problem right now: with "QUIC". Let's see how it compares.</p>
 
-<pre><code>TODO: HTTP/1+TLS vs HTTP/2+TLS vs QUIC 데모 gif
-</code></pre>
-
+<p><img src="images/loss2p_d200ms.gif"></p>
 <h3>
 <a id="difficulty-of-mobile-internet" class="anchor" href="#difficulty-of-mobile-internet" aria-hidden="true"><span class="octicon octicon-link"></span></a>Difficulty of Mobile Internet</h3>
 
@@ -152,7 +149,10 @@ per request. The benchmark results are <code>2905.58 CPS</code>.</p>
 
 <p>I used to create a QUIC reverse proxy of an existing site just for fun. So to enable people to experiment with QUIC, we've released a docker image that acts as a reverse proxy for the site of your choice. It enables QUIC along with HTTP/2, so you will enjoy full bleeding edge of web browsing.</p>
 
-<pre><code>TODO: Instructions on how to use docker image
+<pre><code>$ docker run -p 8080:8080 -p 8080:8080/udp devsisters/quic-reverse-proxy --port=8080 http://{BACKEND_HOST:PORT}
+</code></pre>
+
+<pre><code>$ docker run -p 8080:8080 -p 8080:8080/udp devsisters/quic-reverse-proxy --port=8080 http://devsisters.github.io/goquic/
 </code></pre>
 
 <p>Have fun! :)</p>
