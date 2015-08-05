@@ -39,7 +39,7 @@
 
 <p>This kind of problem happens because of the way TCP handles packet loss. TCP views packet loss as a network congestion signal. So under the condition of "network blackout" it slows down sending packets exponentially to the point until no more packets are sent. So when this kind of event triggers, even if the underlying network recovers, TCP connection requires more time to recover it's connectivity. So in this situation -- from the user's perspective, it is more wise to simply press refresh button instead of waiting for the loading to finish.</p>
 
-<p><img src="http://d2.naver.com/content/images/2015/06/helloworld-111111-13.png" alt="TCP Connection Recovery After Network Blackout"></p>
+<p><img src="images/tcp_network.png" alt="TCP Connection Recovery After Network Blackout"></p>
 
 <p>There are only two ways to handle this problem on HTTP. Waiting indefinitely or timeout and retry. This kind of problem also exists on HTTP/2 which it also use TCP. It's also worse on HTTP/2 since it uses connection multiplexing network blackouts stop all logical HTTP requests, causing significant performance degradation. This kind of problem is called head-of-line blocking.</p>
 
