@@ -3,7 +3,7 @@
 package goquic
 
 /*
-#include <openssl/thread.h>
+#include <openssl/ssl.h>
 #include <openssl/crypto.h>
 #include <stddef.h>
 #include "src/adaptor.h"
