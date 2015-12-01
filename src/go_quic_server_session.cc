@@ -3,38 +3,43 @@
 // found in the LICENSE file.
 
 #include "go_quic_server_session.h"
-#include "go_quic_spdy_server_stream_go_wrapper.h"
+#include "go_quic_spdy_server_stream.h"
 #include "go_functions.h"
 
 #include "base/logging.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_flags.h"
+#include "net/quic/quic_spdy_session.h"
 #include "net/quic/reliable_quic_stream.h"
 
 namespace net {
+namespace tools {
 
-GoQuicServerSession::GoQuicServerSession(const QuicConfig& config,
-                                     QuicConnection* connection,
-                                     GoQuicServerSessionVisitor* visitor)
+GoQuicServerSession::GoQuicServerSession(
+    const QuicConfig& config,
+    QuicConnection* connection,
+    GoQuicServerSessionVisitor* visitor,
+    const QuicCryptoServerConfig* crypto_config)
     : QuicSpdySession(connection, config),
+      crypto_config_(crypto_config),
       visitor_(visitor),
+      bandwidth_resumption_enabled_(false),
       bandwidth_estimate_sent_to_client_(QuicBandwidth::Zero()),
       last_scup_time_(QuicTime::Zero()),
-      last_scup_sequence_number_(0) {}
+      last_scup_packet_number_(0) {}
 
 GoQuicServerSession::~GoQuicServerSession() {
   DeleteGoSession_C(go_quic_dispatcher_, go_session_);
 }
 
-void GoQuicServerSession::InitializeSession(
-    const QuicCryptoServerConfig& crypto_config) {
-  crypto_stream_.reset(CreateQuicCryptoServerStream(crypto_config));
+void GoQuicServerSession::Initialize() {
+  crypto_stream_.reset(CreateQuicCryptoServerStream(crypto_config_));
   QuicSpdySession::Initialize();
 }
 
-QuicCryptoServerStream* GoQuicServerSession::CreateQuicCryptoServerStream(
-    const QuicCryptoServerConfig& crypto_config) {
-  return new QuicCryptoServerStream(&crypto_config, this);  // Deleted by scoped ptr (crypto_stream_)
+QuicCryptoServerStreamBase* GoQuicServerSession::CreateQuicCryptoServerStream(
+    const QuicCryptoServerConfig* crypto_config) {
+  return new QuicCryptoServerStream(crypto_config, this);  // Deleted by scoped ptr (crypto_stream_)
 }
 
 void GoQuicServerSession::OnConfigNegotiated() {
@@ -44,12 +49,36 @@ void GoQuicServerSession::OnConfigNegotiated() {
     return;
   }
 
-//  if (FLAGS_enable_quic_fec &&
-//      ContainsQuicTag(config()->ReceivedConnectionOptions(), kFHDR)) {
-//    // kFHDR config maps to FEC protection always for headers stream.
-//    // TODO(jri): Add crypto stream in addition to headers for kHDR.
-//    headers_stream()->set_fec_policy(FEC_PROTECT_ALWAYS);
-//  }
+  // If the client has provided a bandwidth estimate from the same serving
+  // region, then pass it to the sent packet manager in preparation for possible
+  // bandwidth resumption.
+  const CachedNetworkParameters* cached_network_params =
+      crypto_stream_->PreviousCachedNetworkParams();
+  const bool last_bandwidth_resumption =
+      ContainsQuicTag(config()->ReceivedConnectionOptions(), kBWRE);
+  const bool max_bandwidth_resumption =
+      ContainsQuicTag(config()->ReceivedConnectionOptions(), kBWMX);
+  bandwidth_resumption_enabled_ =
+      last_bandwidth_resumption || max_bandwidth_resumption;
+  if (cached_network_params != nullptr && bandwidth_resumption_enabled_ &&
+      cached_network_params->serving_region() == serving_region_) {
+    int64 seconds_since_estimate =
+        connection()->clock()->WallNow().ToUNIXSeconds() -
+        cached_network_params->timestamp();
+    bool estimate_within_last_hour =
+        seconds_since_estimate <= kNumSecondsPerHour;
+    if (estimate_within_last_hour) {
+      connection()->ResumeConnectionState(*cached_network_params,
+                                          max_bandwidth_resumption);
+    }
+  }
+
+  if (FLAGS_enable_quic_fec &&
+      ContainsQuicTag(config()->ReceivedConnectionOptions(), kFHDR)) {
+    // kFHDR config maps to FEC protection always for headers stream.
+    // TODO(jri): Add crypto stream in addition to headers for kHDR.
+    headers_stream()->set_fec_policy(FEC_PROTECT_ALWAYS);
+  }
 }
 
 void GoQuicServerSession::OnConnectionClosed(QuicErrorCode error,
@@ -69,6 +98,9 @@ void GoQuicServerSession::OnWriteBlocked() {
 }
 
 void GoQuicServerSession::OnCongestionWindowChange(QuicTime now) {
+  if (!bandwidth_resumption_enabled_) {
+    return;
+  }
   // Only send updates when the application has no data to write.
   if (HasDataToWrite()) {
     return;
@@ -82,8 +114,8 @@ void GoQuicServerSession::OnCongestionWindowChange(QuicTime now) {
       sent_packet_manager.GetRttStats()->smoothed_rtt().ToMilliseconds();
   int64 now_ms = now.Subtract(last_scup_time_).ToMilliseconds();
   int64 packets_since_last_scup =
-      connection()->sequence_number_of_last_sent_packet() -
-      last_scup_sequence_number_;
+      connection()->packet_number_of_last_sent_packet() -
+      last_scup_packet_number_;
   if (now_ms < (kMinIntervalBetweenServerConfigUpdatesRTTs * srtt_ms) ||
       now_ms < kMinIntervalBetweenServerConfigUpdatesMs ||
       packets_since_last_scup < kMinPacketsBetweenServerConfigUpdates) {
@@ -145,46 +177,47 @@ void GoQuicServerSession::OnCongestionWindowChange(QuicTime now) {
   }
 
   crypto_stream_->SendServerConfigUpdate(&cached_network_params);
+
+  connection()->OnSendConnectionState(cached_network_params);
+
   last_scup_time_ = now;
-  last_scup_sequence_number_ =
-      connection()->sequence_number_of_last_sent_packet();
+  last_scup_packet_number_ = connection()->packet_number_of_last_sent_packet();
 }
 
 bool GoQuicServerSession::ShouldCreateIncomingDynamicStream(QuicStreamId id) {
+  if (!connection()->connected()) {
+    LOG(DFATAL) << "ShouldCreateIncomingDynamicStream called when disconnected";
+    return false;
+  }
+
   if (id % 2 == 0) {
     DVLOG(1) << "Invalid incoming even stream_id:" << id;
     connection()->SendConnectionClose(QUIC_INVALID_STREAM_ID);
     return false;
   }
-  if (GetNumOpenStreams() >= get_max_open_streams()) {
-    DVLOG(1) << "Failed to create a new incoming stream with id:" << id
-             << " Already " << GetNumOpenStreams() << " streams open (max "
-             << get_max_open_streams() << ").";
-    connection()->SendConnectionClose(QUIC_TOO_MANY_OPEN_STREAMS);
-    return false;
-  }
   return true;
 }
 
-QuicDataStream* GoQuicServerSession::CreateIncomingDynamicStream(
+QuicSpdyStream* GoQuicServerSession::CreateIncomingDynamicStream(
     QuicStreamId id) {
   if (!ShouldCreateIncomingDynamicStream(id)) {
     return nullptr;
   }
 
-  GoQuicSpdyServerStreamGoWrapper* stream = new GoQuicSpdyServerStreamGoWrapper(id, this); // Managed by stream_map_ of QuicSession. Deleted by STLDeleteElements function call in QuicSession
+  GoQuicSpdyServerStream* stream = new GoQuicSpdyServerStream(id, this); // Managed by stream_map_ of QuicSession. Deleted by STLDeleteElements function call in QuicSession
   stream->SetGoQuicSpdyServerStream(CreateIncomingDynamicStream_C(go_session_, id, stream));
 
   return stream;
 }
 
-QuicDataStream* GoQuicServerSession::CreateOutgoingDynamicStream() {
+QuicSpdyStream* GoQuicServerSession::CreateOutgoingDynamicStream() {
   DLOG(ERROR) << "Server push not yet supported";
   return nullptr;
 }
 
-QuicCryptoServerStream* GoQuicServerSession::GetCryptoStream() {
+QuicCryptoServerStreamBase* GoQuicServerSession::GetCryptoStream() {
   return crypto_stream_.get();
 }
 
+}  // namespace tools
 }  // namespace net

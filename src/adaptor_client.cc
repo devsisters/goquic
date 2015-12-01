@@ -1,7 +1,7 @@
 #include "adaptor_client.h"
 
 #include "go_quic_client_session.h"
-#include "go_quic_reliable_client_stream.h"
+#include "go_quic_spdy_client_stream.h"
 #include "go_quic_client_packet_writer.h"
 #include "go_quic_connection_helper.h"
 
@@ -13,6 +13,7 @@
 #include "base/strings/string_piece.h"
 
 using namespace net;
+using namespace net::tools;
 using namespace std;
 using base::StringPiece;
 
@@ -54,33 +55,31 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_write
   // Deleted automatically by scoped ptr of GoQuicClientSession
   QuicConnection* conn = new QuicConnection(
       QuicRandom::GetInstance()->RandUint64(),   // Connection ID
-      server_address,
-      helper,
-      GoQuicPacketWriterFactory(writer),
+      server_address, helper, GoQuicPacketWriterFactory(writer),
       /* owns_writer= */ true,
       /* is_server= */ Perspective::IS_CLIENT,
-      /* is_https= */ false,
       supported_versions);
 
-  GoQuicClientSession* session = new GoQuicClientSession(config, conn, helper);  // Deleted by delete_go_quic_client_session()
+  QuicServerId server_id(
+      /* host */ std::string(),//server_address->ToStringWithoutPort(),
+      /* port */ server_address.port(),
+                 net::PRIVACY_MODE_DISABLED);
 
   // TODO(hodduc) "crypto_config" should be shared as global constant, but there is no clean way to do it now T.T
   // Deleted by ~GoQuicClientSession()
-  QuicCryptoClientConfig* crypto_config = new QuicCryptoClientConfig();
+  QuicCryptoClientConfig* crypto_config = new QuicCryptoClientConfig(nullptr);
+  // TODO(hodduc): crypto_config proofverifier?
 
-  session->InitializeSession(QuicServerId(
-        /* host */ std::string(),//server_address->ToStringWithoutPort(),
-        /* port */ server_address.port(),
-        /* is_https */ false), crypto_config);
+  GoQuicClientSession* session = new GoQuicClientSession(config, conn, server_id, crypto_config);  // Deleted by delete_go_quic_client_session()
 
+  session->Initialize();
   session->CryptoConnect();
+
   return session;
 }
 
 void delete_go_quic_client_session(GoQuicClientSession* go_quic_client_session) {
-  QuicConnectionHelperInterface* helper = go_quic_client_session->helper();
   delete go_quic_client_session;
-  delete helper;
 }
 
 int go_quic_client_encryption_being_established(GoQuicClientSession* session) {
@@ -92,8 +91,8 @@ int go_quic_client_session_is_connected(GoQuicClientSession* session) {
   return session->connection()->connected() ? 1 : 0;
 }
 
-GoQuicReliableClientStream* quic_client_session_create_reliable_quic_stream(GoQuicClientSession* session, void* go_client_stream_) {
-  GoQuicReliableClientStream* stream = session->CreateOutgoingDynamicStream();
+GoQuicSpdyClientStream* quic_client_session_create_reliable_quic_stream(GoQuicClientSession* session, void* go_client_stream_) {
+  GoQuicSpdyClientStream* stream = session->CreateOutgoingDynamicStream();
   stream->SetGoQuicClientStream(go_client_stream_);
   return stream;
 }
@@ -102,11 +101,11 @@ int quic_client_session_num_active_requests(GoQuicClientSession* session) {
   return session->num_active_requests();
 }
 
-void quic_reliable_client_stream_write_headers(GoQuicReliableClientStream* stream, MapStrStr* header, int is_empty_body) {
+void quic_spdy_client_stream_write_headers(GoQuicSpdyClientStream* stream, MapStrStr* header, int is_empty_body) {
   stream->WriteHeaders(*(SpdyHeaderBlock*)header, is_empty_body, nullptr);
 }
 
-void quic_reliable_client_stream_write_or_buffer_data(GoQuicReliableClientStream* stream, char* buf, size_t bufsize, int fin) {
+void quic_spdy_client_stream_write_or_buffer_data(GoQuicSpdyClientStream* stream, char* buf, size_t bufsize, int fin) {
   stream->WriteOrBufferData_(StringPiece(buf, bufsize), (fin != 0), nullptr);
 }
 

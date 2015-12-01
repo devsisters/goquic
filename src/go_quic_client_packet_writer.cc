@@ -2,38 +2,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include<string>
+
 #include "go_quic_client_packet_writer.h"
 
-#include "base/callback_helpers.h"
-#include "base/location.h"
-#include "base/logging.h"
-#include "base/metrics/sparse_histogram.h"
-#include "net/base/io_buffer.h"
 #include "net/base/net_errors.h"
-
 #include "go_functions.h"
 
 namespace net {
+namespace tools {
 
 GoQuicClientPacketWriter::GoQuicClientPacketWriter(void* go_writer)
     : go_writer_(go_writer),
-      write_blocked_(false) {
-}
+      write_blocked_(false) {}
 
-GoQuicClientPacketWriter::~GoQuicClientPacketWriter() {
-}
-
-bool GoQuicClientPacketWriter::IsWriteBlockedDataBuffered() const {
-  return false;
-}
-
-bool GoQuicClientPacketWriter::IsWriteBlocked() const {
-  return write_blocked_;
-}
-
-void GoQuicClientPacketWriter::SetWritable() {
-  write_blocked_ = false;
-}
+GoQuicClientPacketWriter::~GoQuicClientPacketWriter() {}
 
 WriteResult GoQuicClientPacketWriter::WritePacket(
     const char* buffer,
@@ -53,7 +36,6 @@ WriteResult GoQuicClientPacketWriter::WritePacket(
   WriteStatus status = WRITE_STATUS_OK;
   if (rv < 0) {
     if (rv != ERR_IO_PENDING) {
-      UMA_HISTOGRAM_SPARSE_SLOWLY("Net.QuicSession.WriteError", -rv);
       status = WRITE_STATUS_ERROR;
     } else {
       status = WRITE_STATUS_BLOCKED;
@@ -63,4 +45,22 @@ WriteResult GoQuicClientPacketWriter::WritePacket(
   return WriteResult(status, rv);
 }
 
+bool GoQuicClientPacketWriter::IsWriteBlockedDataBuffered() const {
+  return false;
+}
+
+bool GoQuicClientPacketWriter::IsWriteBlocked() const {
+  return write_blocked_;
+}
+
+void GoQuicClientPacketWriter::SetWritable() {
+  write_blocked_ = false;
+}
+
+QuicByteCount GoQuicClientPacketWriter::GetMaxPacketSize(
+    const IPEndPoint& peer_address) const {
+  return kMaxPacketSize;
+}
+
+}  // namespace tools
 }  // namespace net

@@ -7,6 +7,7 @@
 
 
 namespace net {
+namespace tools {
 
 // TODO(hodduc) Rename TestConnectionHelper
 const QuicClock* TestConnectionHelper::GetClock() const {
@@ -25,4 +26,5 @@ TestConnectionHelper::TestConnectionHelper(void* task_runner, QuicClock* clock, 
     clock_.reset(clock);
   }
 
+}   // namespace tools
 }   // namespace net

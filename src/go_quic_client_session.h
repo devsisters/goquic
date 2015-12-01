@@ -1,52 +1,75 @@
-#ifndef NET_QUIC_QUIC_CLIENT_SESSION_H_
-#define NET_QUIC_QUIC_CLIENT_SESSION_H_
+#ifndef GO_QUIC_CLIENT_SESSION_H_
+#define GO_QUIC_CLIENT_SESSION_H_
 
-#include "go_quic_reliable_client_stream.h"
-
+#include "net/quic/quic_client_session_base.h"
 #include "net/quic/quic_crypto_client_stream.h"
 #include "net/quic/quic_protocol.h"
-#include "net/quic/crypto/crypto_protocol.h"
-#include "net/quic/quic_client_session_base.h"
+#include "go_quic_spdy_client_stream.h"
 
 namespace net {
 
-class QuicConnectionHelperInterface;
-class QuicCryptoClientConfig;
+namespace tools {
 
-class NET_EXPORT_PRIVATE GoQuicClientSession : public QuicClientSessionBase {
+class GoQuicClientSession : public QuicClientSessionBase {
  public:
-   GoQuicClientSession(const QuicConfig& config, QuicConnection* connection, QuicConnectionHelperInterface* helper);
-   ~GoQuicClientSession() override;
+  GoQuicClientSession(const QuicConfig& config,
+                      QuicConnection* connection,
+                      const QuicServerId& server_id,
+                      QuicCryptoClientConfig* crypto_config);
+  ~GoQuicClientSession() override;
+  // Set up the QuicClientSession. Must be called prior to use.
+  void Initialize() override;
 
-   void InitializeSession(const QuicServerId& server_id,
-                          QuicCryptoClientConfig* config);
+  // QuicSession methods:
+  GoQuicSpdyClientStream* CreateOutgoingDynamicStream() override;
+  QuicCryptoClientStreamBase* GetCryptoStream() override;
 
-   // QuicSession methods:
-   GoQuicReliableClientStream* CreateOutgoingDynamicStream() override;
+  // QuicClientSessionBase methods:
+  void OnProofValid(const QuicCryptoClientConfig::CachedState& cached) override;
+  void OnProofVerifyDetailsAvailable(
+      const ProofVerifyDetails& verify_details) override;
 
-   QuicCryptoClientStream* GetCryptoStream() override;
+  // Performs a crypto handshake with the server
+  void CryptoConnect();
 
-   // QuicClientSessionBase methods:
-   void OnProofValid(const QuicCryptoClientConfig::CachedState& cached) override;
-   void OnProofVerifyDetailsAvailable(
-       const ProofVerifyDetails& verify_details) override;
+  // Returns the number of client hello messages that have been sent on the
+  // crypto stream. If the handshake has completed then this is one greater
+  // than the number of round-trips needed for the handshake.
+  int GetNumSentClientHellos() const;
 
-   // Performs a crypto handshake with the server
-   void CryptoConnect();
-
-   QuicConnectionHelperInterface* helper() { return helper_; }
+  void set_respect_goaway(bool respect_goaway) {
+    respect_goaway_ = respect_goaway;
+  }
 
  protected:
-  QuicDataStream* CreateIncomingDynamicStream(QuicStreamId id) override;  
- private:
-  scoped_ptr<QuicCryptoClientStream> crypto_stream_;
-  QuicConnectionHelperInterface* helper_;
+  // QuicSession methods:
+  QuicSpdyStream* CreateIncomingDynamicStream(QuicStreamId id) override;
 
+  // Create the crypto stream. Called by Initialize()
+  virtual QuicCryptoClientStreamBase* CreateQuicCryptoStream();
+
+  // Unlike CreateOutgoingDynamicStream, which applies a bunch of sanity checks,
+  // this simply returns a new QuicSpdyClientStream. This may be used by
+  // subclasses which want to use a subclass of QuicSpdyClientStream for streams
+  // but wish to use the sanity checks in CreateOutgoingDynamicStream.
+  virtual GoQuicSpdyClientStream* CreateClientStream();
+
+  const QuicServerId& server_id() { return server_id_; }
+  QuicCryptoClientConfig* crypto_config() { return crypto_config_; }
+
+ private:
+  scoped_ptr<QuicCryptoClientStreamBase> crypto_stream_;
+  QuicServerId server_id_;
   QuicCryptoClientConfig* crypto_config_;
+
+  // If this is set to false, the client will ignore server GOAWAYs and allow
+  // the creation of streams regardless of the high chance they will fail.
+  bool respect_goaway_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicClientSession);
 };
 
+}  // namespace tools
 }  // namespace net
 
-#endif  // NET_QUIC_QUIC_CLIENT_SESSION_H_
+#endif  // GO_QUIC_CLIENT_SESSION_H_

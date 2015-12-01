@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef NET_QUIC_QUIC_SERVER_PACKET_WRITER_H_
-#define NET_QUIC_QUIC_SERVER_PACKET_WRITER_H_
+#ifndef GO_QUIC_SERVER_PACKET_WRITER_H_
+#define GO_QUIC_SERVER_PACKET_WRITER_H_
 
 #include "base/basictypes.h"
 #include "base/memory/weak_ptr.h"
@@ -17,6 +17,8 @@ namespace net {
 
 class QuicBlockedWriterInterface;
 struct WriteResult;
+
+namespace tools {
 
 class GoQuicServerPacketWriter : public QuicPacketWriter {
  public:
@@ -42,6 +44,7 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
   bool IsWriteBlockedDataBuffered() const override;
   bool IsWriteBlocked() const override;
   void SetWritable() override;
+  QuicByteCount GetMaxPacketSize(const IPEndPoint& peer_address) const override;
 
  protected:
   // Do not call WritePacket on its own -- use WritePacketWithCallback
@@ -67,6 +70,7 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
   DISALLOW_COPY_AND_ASSIGN(GoQuicServerPacketWriter);
 };
 
+}  // namespace tools
 }  // namespace net
 
-#endif  // NET_QUIC_QUIC_SERVER_PACKET_WRITER_H_
+#endif  // GO_QUIC_SERVER_PACKET_WRITER_H_

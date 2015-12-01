@@ -4,8 +4,8 @@
 //
 // A server specific QuicSession subclass.
 
-#ifndef NET_QUIC_QUIC_SERVER_SESSION_H_
-#define NET_QUIC_QUIC_SERVER_SESSION_H_
+#ifndef GO_QUIC_SERVER_SESSION_H_
+#define GO_QUIC_SERVER_SESSION_H_
 
 #include <set>
 #include <string>
@@ -17,19 +17,20 @@
 #include "net/quic/quic_crypto_server_stream.h"
 #include "net/quic/quic_protocol.h"
 #include "net/quic/quic_spdy_session.h"
-#include "net/quic/quic_data_stream.h"
 
 namespace net {
-
-namespace test {
-class QuicServerSessionPeer;
-}  // namespace test
 
 class QuicBlockedWriterInterface;
 class QuicConfig;
 class QuicConnection;
 class QuicCryptoServerConfig;
 class ReliableQuicStream;
+
+namespace tools {
+
+namespace test {
+class QuicServerSessionPeer;
+}  // namespace test
 
 // An interface from the session to the entity owning the session.
 // This lets the session notify its owner (the Dispatcher) when the connection
@@ -51,9 +52,11 @@ class GoQuicServerSessionVisitor {
 
 class GoQuicServerSession : public QuicSpdySession {
  public:
+  // |crypto_config| must outlive the session.
   GoQuicServerSession(const QuicConfig& config,
-                    QuicConnection* connection,
-                    GoQuicServerSessionVisitor* visitor);
+                      QuicConnection* connection,
+                      GoQuicServerSessionVisitor* visitor,
+                      const QuicCryptoServerConfig* crypto_config);
 
   // Override the base class to notify the owner of the connection close.
   void OnConnectionClosed(QuicErrorCode error, bool from_peer) override;
@@ -65,14 +68,28 @@ class GoQuicServerSession : public QuicSpdySession {
 
   ~GoQuicServerSession() override;
 
-  virtual void InitializeSession(const QuicCryptoServerConfig& crypto_config);
+  void Initialize() override;
 
-  const QuicCryptoServerStream* crypto_stream() const {
+  const QuicCryptoServerStreamBase* crypto_stream() const {
     return crypto_stream_.get();
   }
 
   // Override base class to process FEC config received from client.
   void OnConfigNegotiated() override;
+
+  bool UsingStatelessRejectsIfPeerSupported() {
+    if (GetCryptoStream() == nullptr) {
+      return false;
+    }
+    return GetCryptoStream()->UseStatelessRejectsIfPeerSupported();
+  }
+
+  bool PeerSupportsStatelessRejects() {
+    if (GetCryptoStream() == nullptr) {
+      return false;
+    }
+    return GetCryptoStream()->PeerSupportsStatelessRejects();
+  }
 
   void set_serving_region(std::string serving_region) {
     serving_region_ = serving_region;
@@ -89,23 +106,29 @@ class GoQuicServerSession : public QuicSpdySession {
 
  protected:
   // QuicSession methods:
-  QuicDataStream* CreateIncomingDynamicStream(QuicStreamId id) override;
-  QuicDataStream* CreateOutgoingDynamicStream() override;
-  QuicCryptoServerStream* GetCryptoStream() override;
+  QuicSpdyStream* CreateIncomingDynamicStream(QuicStreamId id) override;
+  QuicSpdyStream* CreateOutgoingDynamicStream() override;
+  QuicCryptoServerStreamBase* GetCryptoStream() override;
 
   // If we should create an incoming stream, returns true. Otherwise
   // does error handling, including communicating the error to the client and
   // possibly closing the connection, and returns false.
   virtual bool ShouldCreateIncomingDynamicStream(QuicStreamId id);
 
-  virtual QuicCryptoServerStream* CreateQuicCryptoServerStream(
-      const QuicCryptoServerConfig& crypto_config);
+  virtual QuicCryptoServerStreamBase* CreateQuicCryptoServerStream(
+      const QuicCryptoServerConfig* crypto_config);
+
+  const QuicCryptoServerConfig* crypto_config() { return crypto_config_; }
 
  private:
   friend class test::QuicServerSessionPeer;
 
-  scoped_ptr<QuicCryptoServerStream> crypto_stream_;
+  const QuicCryptoServerConfig* crypto_config_;
+  scoped_ptr<QuicCryptoServerStreamBase> crypto_stream_;
   GoQuicServerSessionVisitor* visitor_;
+
+  // Whether bandwidth resumption is enabled for this connection.
+  bool bandwidth_resumption_enabled_;
 
   // The most recent bandwidth estimate sent to the client.
   QuicBandwidth bandwidth_estimate_sent_to_client_;
@@ -118,7 +141,7 @@ class GoQuicServerSession : public QuicSpdySession {
   QuicTime last_scup_time_;
 
   // Number of packets sent to the peer, at the time we last sent a SCUP.
-  int64 last_scup_sequence_number_;
+  int64 last_scup_packet_number_;
 
   void *go_session_;
   void *go_quic_dispatcher_;
@@ -126,6 +149,7 @@ class GoQuicServerSession : public QuicSpdySession {
   DISALLOW_COPY_AND_ASSIGN(GoQuicServerSession);
 };
 
+}  // namespace tools
 }  // namespace net
 
-#endif  // NET_QUIC_QUIC_SERVER_SESSION_H_
+#endif  // GO_QUIC_SERVER_SESSION_H_

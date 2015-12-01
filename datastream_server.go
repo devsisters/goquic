@@ -2,6 +2,7 @@ package goquic
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -16,62 +17,52 @@ type SpdyServerSession struct {
 	sessionFnChan chan func()
 }
 
-func (s *SpdyServerSession) CreateIncomingDynamicStream(stream_id uint32) DataStreamProcessor {
+func (s *SpdyServerSession) CreateIncomingDynamicStream(quicServerStream *QuicServerStream, streamId uint32) DataStreamProcessor {
 	stream := &SpdyServerStream{
-		stream_id:     stream_id,
-		header_parsed: false,
-		server:        s.server,
-		buffer:        new(bytes.Buffer),
-		sessionFnChan: s.sessionFnChan,
+		streamId:         streamId,
+		server:           s.server,
+		buffer:           new(bytes.Buffer),
+		sessionFnChan:    s.sessionFnChan,
+		quicServerStream: quicServerStream,
 	}
 	return stream
 }
 
 // implement DataStreamProcessor for Server
 type SpdyServerStream struct {
-	closed          bool
-	stream_id       uint32
-	header          http.Header
-	header_parsed   bool
-	buffer          *bytes.Buffer
-	server          *QuicSpdyServer
-	sessionFnChan   chan func()
-	closeNotifyChan chan bool
+	closed           bool
+	streamId         uint32 // Just for logging purpose
+	header           http.Header
+	buffer           *bytes.Buffer
+	server           *QuicSpdyServer
+	quicServerStream *QuicServerStream
+	sessionFnChan    chan func()
+	closeNotifyChan  chan bool
 }
 
-func (stream *SpdyServerStream) ProcessData(serverStream QuicStream, newBytes []byte) int {
-	stream.buffer.Write(newBytes)
-
-	if !stream.header_parsed {
-		// We don't want to consume the buffer *yet*, so create a new reader
-		reader := bytes.NewReader(stream.buffer.Bytes())
-		header, err := spdy.ParseHeaders(reader)
-		if err != nil {
-			// Header parsing unsuccessful, maybe header is not yet completely received
-			// Append it to the buffer for parsing later
-			return int(len(newBytes))
-		}
-
-		// Header parsing successful
-		n, _ := reader.Seek(0, 1)
-		// Consume the buffer, the rest of the buffer is the body
-		stream.buffer.Next(int(n))
-
-		stream.header_parsed = true
+func (stream *SpdyServerStream) OnStreamHeadersComplete(headerBuf []byte) {
+	if header, err := spdy.ParseHeaders(bytes.NewReader(headerBuf)); err != nil {
+		// TODO(hodduc) should raise proper error
+	} else {
 		stream.header = header
-
-		// TODO(serialx): Parsing header should also exist on OnFinRead
 	}
-	// Process body
-	return len(newBytes)
 }
 
-func (stream *SpdyServerStream) OnFinRead(quicStream QuicStream) {
-	if !stream.header_parsed {
-		// TODO(serialx): Send error message
+func (stream *SpdyServerStream) OnDataAvailable(data []byte, isClosed bool) {
+	stream.buffer.Write(data)
+	if isClosed {
+		stream.ProcessRequest()
 	}
-	quicStream.CloseReadSide()
+}
 
+func (stream *SpdyServerStream) OnClose() {
+	if stream.closeNotifyChan != nil && !stream.closed {
+		stream.closeNotifyChan <- true
+	}
+	stream.closed = true
+}
+
+func (stream *SpdyServerStream) ProcessRequest() {
 	header := stream.header
 	req := new(http.Request)
 	req.Method = header.Get(":method")
@@ -84,6 +75,7 @@ func (stream *SpdyServerStream) OnFinRead(quicStream QuicStream) {
 
 	url, err := url.ParseRequestURI(rawPath)
 	if err != nil {
+		fmt.Println(" Error! ", err)
 		return
 		// TODO(serialx): Send error message
 	}
@@ -96,7 +88,7 @@ func (stream *SpdyServerStream) OnFinRead(quicStream QuicStream) {
 
 	go func() {
 		w := &spdyResponseWriter{
-			serverStream:  quicStream,
+			serverStream:  stream.quicServerStream,
 			spdyStream:    stream,
 			header:        make(http.Header),
 			sessionFnChan: stream.sessionFnChan,
@@ -111,16 +103,9 @@ func (stream *SpdyServerStream) OnFinRead(quicStream QuicStream) {
 			if stream.closed {
 				return
 			}
-			quicStream.WriteOrBufferData(make([]byte, 0), true)
+			stream.quicServerStream.WriteOrBufferData(make([]byte, 0), true)
 		}
 	}()
-}
-
-func (stream *SpdyServerStream) OnClose(quicStream QuicStream) {
-	if stream.closeNotifyChan != nil && !stream.closed {
-		stream.closeNotifyChan <- true
-	}
-	stream.closed = true
 }
 
 func (stream *SpdyServerStream) closeNotify() <-chan bool {
@@ -131,7 +116,7 @@ func (stream *SpdyServerStream) closeNotify() <-chan bool {
 }
 
 type spdyResponseWriter struct {
-	serverStream  QuicStream
+	serverStream  *QuicServerStream
 	spdyStream    *SpdyServerStream
 	header        http.Header
 	wroteHeader   bool

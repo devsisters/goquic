@@ -1,10 +1,11 @@
-#ifndef __GO_QUIC_CONNECTION_HELPER_H__
-#define __GO_QUIC_CONNECTION_HELPER_H__
+#ifndef GO_QUIC_CONNECTION_HELPER_H__
+#define GO_QUIC_CONNECTION_HELPER_H__
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_clock.h"
 #include "net/quic/crypto/quic_random.h"
 
 namespace net {
+namespace tools {
 
 // TODO(hodduc) rename TestConnectionHelper
 class TestConnectionHelper : public QuicConnectionHelperInterface {
@@ -24,5 +25,6 @@ class TestConnectionHelper : public QuicConnectionHelperInterface {
     QuicRandom* random_generator_;
 };
 
+}   // namespace tools
 }   // namespace net
 #endif

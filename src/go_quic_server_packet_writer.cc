@@ -15,6 +15,8 @@
 
 namespace net {
 
+namespace tools {
+
 GoQuicServerPacketWriter::GoQuicServerPacketWriter(
     void* go_writer,
     QuicBlockedWriterInterface* blocked_writer)
@@ -46,9 +48,7 @@ void GoQuicServerPacketWriter::OnWriteComplete(int rv) {
   DCHECK_NE(rv, ERR_IO_PENDING);
   write_blocked_ = false;
   WriteResult result(rv < 0 ? WRITE_STATUS_ERROR : WRITE_STATUS_OK, rv);
-  if (!callback_.is_null()) {
-    base::ResetAndReturn(&callback_).Run(result);
-  }
+  base::ResetAndReturn(&callback_).Run(result);
   blocked_writer_->OnCanWrite();
 }
 
@@ -74,7 +74,6 @@ WriteResult GoQuicServerPacketWriter::WritePacket(
 //      new StringIOBuffer(std::string(buffer, buf_len)));
   DCHECK(!IsWriteBlocked());
   DCHECK(!callback_.is_null());
-/*  TODO(hodduc) See quic_time_wait_list_manager.cc:WriteToWire. It should call WritePacketWithCallback to hold callback, but it isn't now. Google has been notified of this bug.  */
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
     std::string peer_ip = net::IPAddressToPackedString(peer_address.address());
@@ -96,4 +95,10 @@ WriteResult GoQuicServerPacketWriter::WritePacket(
   return WriteResult(status, rv);
 }
 
+QuicByteCount GoQuicServerPacketWriter::GetMaxPacketSize(
+    const IPEndPoint& peer_address) const {
+  return kMaxPacketSize;
+}
+
+}  // namespace tools
 }  // namespace net

@@ -6,24 +6,22 @@
 // packet and sending the clients a public reset packet with exponential
 // backoff.
 
-#ifndef NET_QUIC_QUIC_TIME_WAIT_LIST_MANAGER_H_
-#define NET_QUIC_QUIC_TIME_WAIT_LIST_MANAGER_H_
+#ifndef GO_QUIC_TIME_WAIT_LIST_MANAGER_H_
+#define GO_QUIC_TIME_WAIT_LIST_MANAGER_H_
 
 #include <deque>
 
 #include "base/basictypes.h"
-#include "base/containers/hash_tables.h"
-#include "base/strings/string_piece.h"
 #include "net/base/linked_hash_map.h"
 #include "net/quic/quic_blocked_writer_interface.h"
+#include "net/quic/quic_connection.h"
 #include "net/quic/quic_framer.h"
 #include "net/quic/quic_packet_writer.h"
 #include "net/quic/quic_protocol.h"
-#include "net/quic/quic_connection.h"
 
 namespace net {
+namespace tools {
 
-class ConnectionIdCleanUpAlarm;
 class GoQuicServerSessionVisitor;
 
 namespace test {
@@ -46,8 +44,7 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
   // helper - used to run clean up alarms. (Owned by the owner of the server)
   GoQuicTimeWaitListManager(QuicPacketWriter* writer,
                           GoQuicServerSessionVisitor* visitor,
-                          QuicConnectionHelperInterface* helper,
-                          const QuicVersionVector& supported_versions);
+                          QuicConnectionHelperInterface* helper);
   ~GoQuicTimeWaitListManager() override;
 
   // Adds the given connection_id to time wait state for kTimeWaitPeriod.
@@ -56,9 +53,11 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
   // |close_packet| is provided, it is sent again when packets are received for
   // added connection_ids. If nullptr, a public reset packet is sent with the
   // specified |version|. DCHECKs that connection_id is not already on the list.
-  void AddConnectionIdToTimeWait(QuicConnectionId connection_id,
-                                 QuicVersion version,
-                                 QuicEncryptedPacket* close_packet);  // Owned.
+  virtual void AddConnectionIdToTimeWait(
+      QuicConnectionId connection_id,
+      QuicVersion version,
+      bool connection_rejected_statelessly,
+      std::vector<QuicEncryptedPacket*>* termination_packets);
 
   // Returns true if the connection_id is in time wait state, false otherwise.
   // Packets received for this connection_id should not lead to creation of new
@@ -73,7 +72,7 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
   virtual void ProcessPacket(const IPEndPoint& server_address,
                              const IPEndPoint& client_address,
                              QuicConnectionId connection_id,
-                             QuicPacketSequenceNumber sequence_number,
+                             QuicPacketNumber packet_number,
                              const QuicEncryptedPacket& packet);
 
   // Called by the dispatcher when the underlying socket becomes writable again,
@@ -84,6 +83,10 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
   // Used to delete connection_id entries that have outlived their time wait
   // period.
   void CleanUpOldConnectionIds();
+
+  // If necessary, trims the oldest connections from the time-wait list until
+  // the size is under the configured maximum.
+  void TrimTimeWaitListIfNeeded();
 
   // Given a ConnectionId that exists in the time wait list, returns the
   // QuicVersion associated with it.
@@ -110,7 +113,7 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
   void SendPublicReset(const IPEndPoint& server_address,
                        const IPEndPoint& client_address,
                        QuicConnectionId connection_id,
-                       QuicPacketSequenceNumber rejected_sequence_number);
+                       QuicPacketNumber rejected_packet_number);
 
   // Either sends the packet and deletes it or makes pending_packets_queue_ the
   // owner of the packet.
@@ -125,6 +128,15 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
   // Register the alarm to wake up at appropriate time.
   void SetConnectionIdCleanUpAlarm();
 
+  // Removes the oldest connection from the time-wait list if it was added prior
+  // to "expiration_time".  To unconditionally remove the oldest connection, use
+  // a QuicTime::Delta:Infinity().  This function modifies the
+  // connection_id_map_.  If you plan to call this function in a loop, any
+  // iterators that you hold before the call to this function may be invalid
+  // afterward.  Returns true if the oldest connection was expired.  Returns
+  // false if the map is empty or the oldest connection has not expired.
+  bool MaybeExpireOldestConnection(QuicTime expiration_time);
+
   // A map from a recently closed connection_id to the number of packets
   // received after the termination of the connection bound to the
   // connection_id.
@@ -132,15 +144,16 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
     ConnectionIdData(int num_packets_,
                      QuicVersion version_,
                      QuicTime time_added_,
-                     QuicEncryptedPacket* close_packet)
-        : num_packets(num_packets_),
-          version(version_),
-          time_added(time_added_),
-          close_packet(close_packet) {}
+                     bool connection_rejected_statelessly);
+
+    ~ConnectionIdData();
+
     int num_packets;
     QuicVersion version;
     QuicTime time_added;
-    QuicEncryptedPacket* close_packet;
+    // These packets may contain CONNECTION_CLOSE frames, or SREJ messages.
+    std::vector<QuicEncryptedPacket*> termination_packets;
+    bool connection_rejected_statelessly;
   };
 
   // linked_hash_map allows lookup by ConnectionId and traversal in add order.
@@ -151,17 +164,15 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
   // when we are given a chance to write by the dispatcher.
   std::deque<QueuedPacket*> pending_packets_queue_;
 
-  // Used to schedule alarms to delete old connection_ids which have been in the
-  // list for too long.
-  QuicConnectionHelperInterface* helper_;
-
   // Time period for which connection_ids should remain in time wait state.
-  const QuicTime::Delta kTimeWaitPeriod_;
+  const QuicTime::Delta time_wait_period_;
 
-  // Alarm registered with the connection helper to clean up connection_ids that
-  // have
-  // out lived their duration in time wait state.
+  // Alarm to clean up connection_ids that have out lived their duration in
+  // time wait state.
   scoped_ptr<QuicAlarm> connection_id_clean_up_alarm_;
+
+  // Clock to efficiently measure approximate time.
+  const QuicClock* clock_;
 
   // Interface that writes given buffer to the socket.
   QuicPacketWriter* writer_;
@@ -172,6 +183,7 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
   DISALLOW_COPY_AND_ASSIGN(GoQuicTimeWaitListManager);
 };
 
+}  // namespace tools
 }  // namespace net
 
-#endif  // NET_QUIC_QUIC_TIME_WAIT_LIST_MANAGER_H_
+#endif  // GO_QUIC_TIME_WAIT_LIST_MANAGER_H_

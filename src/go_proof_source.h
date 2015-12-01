@@ -16,7 +16,8 @@ class GoProofSource : public net::ProofSource {
                 const std::string& server_config,
                 bool ecdsa_ok,
                 const std::vector<std::string>** out_certs,
-                std::string* out_signature) override;
+                std::string* out_signature,
+                std::string* out_leaf_cert_sct) override;
 
  private:
   void* go_proof_source_;
