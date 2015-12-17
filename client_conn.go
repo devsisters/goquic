@@ -11,15 +11,16 @@ import (
 )
 
 type Conn struct {
-	addr       *net.UDPAddr
-	sock       *net.UDPConn
-	quicClient *QuicClient
-	readChan   chan UdpData
-	writer     *ClientWriter
-	buffer     bytes.Buffer
-	header     http.Header
-	readQuitCh chan bool
-	closed     bool
+	addr        *net.UDPAddr
+	sock        *net.UDPConn
+	quicClient  *QuicClient
+	readChan    chan UdpData
+	writer      *ClientWriter
+	buffer      bytes.Buffer
+	header      http.Header
+	readQuitCh  chan bool
+	writeQuitCh chan bool
+	closed      bool
 }
 
 type errorString struct {
@@ -35,6 +36,7 @@ func (c *Conn) Close() (err error) {
 		c.quicClient.SendConnectionClosePacket()
 		c.readQuitCh <- true
 		c.closed = true
+		<-c.writeQuitCh // Wait until all writing (incluing QUIC_PEER_GOING_AWAY) has done
 	}
 	return c.quicClient.Close()
 }
@@ -153,9 +155,10 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 	}
 
 	quic_conn := &Conn{
-		addr:       addr,
-		sock:       conn_udp,
-		readQuitCh: make(chan bool, 1),
+		addr:        addr,
+		sock:        conn_udp,
+		readQuitCh:  make(chan bool, 1),
+		writeQuitCh: make(chan bool, 1),
 	}
 
 	createSpdyClientSession := func() OutgoingDataStreamCreator {
@@ -177,13 +180,16 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 		for dat := range quic_conn.writer.Ch {
 			quic_conn.sock.Write(dat.Buf)
 		}
+		quic_conn.sock.Close()
+		quic_conn.writeQuitCh <- true
 	}()
 
 	go func() {
 		buf := make([]byte, 65535)
 
+	Loop:
 		for {
-			quic_conn.sock.SetReadDeadline(time.Now().Add(time.Second)) // TIMEOUT = 1 sec
+			quic_conn.sock.SetReadDeadline(time.Now().Add(time.Second / 2)) // TIMEOUT = 0.5 sec
 			n, peer_addr, err := quic_conn.sock.ReadFromUDP(buf)
 
 			if err == nil {
@@ -192,13 +198,13 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 
 				select {
 				case <-quic_conn.readQuitCh:
-					break
+					break Loop
 				case quic_conn.readChan <- UdpData{Addr: peer_addr, Buf: buf_new}:
 				}
 			} else if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
 				select {
 				case <-quic_conn.readQuitCh:
-					break
+					break Loop
 				default:
 				}
 			} else {
@@ -206,9 +212,6 @@ func dialQuic(network string, addr *net.UDPAddr) (*Conn, error) {
 			}
 		}
 		close(quic_conn.writer.Ch)
-
-		quic_conn.sock.Close()
-		return
 	}()
 
 	if quic_conn.Connect() == false {
