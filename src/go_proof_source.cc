@@ -17,7 +17,8 @@ bool GoProofSource::GetProof(const net::IPAddressNumber& server_ip,
         const std::string& server_config,
         bool ecdsa_ok,
         const std::vector<std::string>** out_certs,
-        std::string* out_signature) {
+        std::string* out_signature,
+        std::string* out_leaf_cert_sct) {
     char **c_certs;
     int c_certs_sz;
     char *c_out_signature;

@@ -5,14 +5,10 @@
 // A server side dispatcher which dispatches a given client's data to their
 // stream.
 
-#ifndef NET_QUIC_QUIC_DISPATCHER_H_
-#define NET_QUIC_QUIC_DISPATCHER_H_
+#ifndef GO_QUIC_DISPATCHER_H_
+#define GO_QUIC_DISPATCHER_H_
 
-#include <list>
-
-#include "go_quic_time_wait_list_manager.h"
-#include "go_quic_server_packet_writer.h"
-#include "go_quic_server_session.h"
+#include <vector>
 
 #include "base/basictypes.h"
 #include "base/containers/hash_tables.h"
@@ -20,19 +16,20 @@
 #include "net/base/ip_endpoint.h"
 #include "net/base/linked_hash_map.h"
 #include "net/quic/quic_blocked_writer_interface.h"
-#include "net/quic/quic_protocol.h"
-#include "net/quic/quic_packet_writer.h"
 #include "net/quic/quic_connection.h"
+#include "net/quic/quic_protocol.h"
+#include "go_quic_server_session.h"
+#include "go_quic_time_wait_list_manager.h"
 
 namespace net {
-namespace test {
-class QuicDispatcherPeer;
-}  // namespace test
 
-class DeleteSessionsAlarm;
 class QuicConfig;
 class QuicCryptoServerConfig;
-class QuicSession;
+class GoQuicServerSession;
+
+namespace tools {
+
+class GoQuicServerPacketWriter;
 
 class ProcessPacketInterface {
  public:
@@ -42,9 +39,9 @@ class ProcessPacketInterface {
                              const QuicEncryptedPacket& packet) = 0;
 };
 
-class GoQuicDispatcher : public QuicBlockedWriterInterface,
-                         public GoQuicServerSessionVisitor,
-                         public ProcessPacketInterface {
+class GoQuicDispatcher : public GoQuicServerSessionVisitor,
+                         public ProcessPacketInterface,
+                         public QuicBlockedWriterInterface {
  public:
   // Creates per-connection packet writers out of the GoQuicDispatcher's shared
   // QuicPacketWriter. The per-connection writers' IsWriteBlocked() state must
@@ -55,17 +52,29 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
    public:
     virtual ~PacketWriterFactory() {}
 
-    virtual QuicPacketWriter* Create(GoQuicServerPacketWriter* writer,
+    virtual QuicPacketWriter* Create(QuicPacketWriter* writer,
                                      QuicConnection* connection) = 0;
   };
 
   // Creates ordinary QuicPerConnectionPacketWriter instances.
-  class DefaultPacketWriterFactory : public PacketWriterFactory {
+  // XXX(hodduc): We use CustomPacketWriterFactory in quic_simple_server.cc
+  // instead of DefaultPacketWriterFatory in quic_dispatcher.h
+  //
+  // This is to use QuicSimpleServerPacketWriter as shared writer instead of
+  // general QuicPacketWriter interface.
+  class CustomPacketWriterFactory : public PacketWriterFactory {
    public:
-    ~DefaultPacketWriterFactory() override {}
+    ~CustomPacketWriterFactory() override {}
 
-    QuicPacketWriter* Create(GoQuicServerPacketWriter* writer,
+    QuicPacketWriter* Create(QuicPacketWriter* writer,
                              QuicConnection* connection) override;
+
+    void set_shared_writer(GoQuicServerPacketWriter* shared_writer) {
+      shared_writer_ = shared_writer;
+    }
+
+   private:
+    GoQuicServerPacketWriter* shared_writer_;  // Not owned.
   };
 
   // Ideally we'd have a linked_hash_set: the  boolean is unused.
@@ -76,7 +85,7 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
   // of supported QUIC versions. Takes ownership of |packet_writer_factory|,
   // which is used to create per-connection writers.
   GoQuicDispatcher(const QuicConfig& config,
-                   const QuicCryptoServerConfig& crypto_config,
+                   const QuicCryptoServerConfig* crypto_config,
                    const QuicVersionVector& supported_versions,
                    PacketWriterFactory* packet_writer_factory,
                    QuicConnectionHelperInterface* helper,
@@ -84,24 +93,23 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
 
   ~GoQuicDispatcher() override;
 
-  // Takes ownership of the packet writer.
-  virtual void Initialize(GoQuicServerPacketWriter* writer);
+  // Takes ownership of |writer|.
+  void InitializeWithWriter(QuicPacketWriter* writer);
 
   // Process the incoming packet by creating a new session, passing it to
-  // an existing session, or passing it to the TimeWaitListManager.
+  // an existing session, or passing it to the time wait list.
   void ProcessPacket(const IPEndPoint& server_address,
                      const IPEndPoint& client_address,
                      const QuicEncryptedPacket& packet) override;
+
+  // Called when the socket becomes writable to allow queued writes to happen.
+  void OnCanWrite() override;
 
   // Returns true if there's anything in the blocked writer list.
   virtual bool HasPendingWrites() const;
 
   // Sends ConnectionClose frames to all connected clients.
   void Shutdown();
-
-  // QuicBlockedWriterInterface implementation:
-  // Called when the socket becomes writable to allow queued writes to happen.
-  void OnCanWrite() override;
 
   // GoQuicServerSessionVisitor interface implementation:
   // Ensure that the closed connection is cleaned up asynchronously.
@@ -111,46 +119,67 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
   // Queues the blocked writer for later resumption.
   void OnWriteBlocked(QuicBlockedWriterInterface* blocked_writer) override;
 
-  // Called whenever the QuicTimeWaitListManager adds a new connection to the
+  // Called whenever the time wait list manager adds a new connection to the
   // time-wait list.
   void OnConnectionAddedToTimeWaitList(QuicConnectionId connection_id) override;
 
-  // Called whenever the QuicTimeWaitListManager removes an old connection from
+  // Called whenever the time wait list manager removes an old connection from
   // the time-wait list.
   void OnConnectionRemovedFromTimeWaitList(
       QuicConnectionId connection_id) override;
 
-  typedef base::hash_map<QuicConnectionId, QuicSession*> SessionMap;
+  typedef base::hash_map<QuicConnectionId, GoQuicServerSession*> SessionMap;
+
+  const SessionMap& session_map() const { return session_map_; }
 
   // Deletes all sessions on the closed session list and clears the list.
   void DeleteSessions();
 
-  const SessionMap& session_map() const { return session_map_; }
+  // The largest packet number we expect to receive with a connection
+  // ID for a connection that is not established yet.  The current design will
+  // send a handshake and then up to 50 or so data packets, and then it may
+  // resend the handshake packet up to 10 times.  (Retransmitted packets are
+  // sent with unique packet numbers.)
+  static const QuicPacketNumber kMaxReasonableInitialPacketNumber = 100;
+  static_assert(kMaxReasonableInitialPacketNumber >=
+                    kInitialCongestionWindow + 10,
+                "kMaxReasonableInitialPacketNumber is unreasonably small "
+                "relative to kInitialCongestionWindow.");
 
-  QuicConnectionHelperInterface* helper() { return helper_; }
+  // XXX(hodduc): Originally this helper is protected, but we need helper() on adaptor.cc so move this to public.
+  QuicConnectionHelperInterface* helper() { return helper_.get(); }
 
  protected:
-  virtual QuicSession* CreateQuicSession(QuicConnectionId connection_id,
-                                         const IPEndPoint& server_address,
-                                         const IPEndPoint& client_address);
-
-  virtual QuicConnection* CreateQuicConnection(
+  virtual GoQuicServerSession* CreateQuicSession(
       QuicConnectionId connection_id,
-      const IPEndPoint& server_address,
       const IPEndPoint& client_address);
 
   // Called by |framer_visitor_| when the public header has been parsed.
   virtual bool OnUnauthenticatedPublicHeader(
       const QuicPacketPublicHeader& header);
 
+  // Values to be returned by ValidityChecks() to indicate what should be done
+  // with a packet.  Fates with greater values are considered to be higher
+  // priority, in that if one validity check indicates a lower-valued fate and
+  // another validity check indicates a higher-valued fate, the higher-valued
+  // fate should be obeyed.
+  enum QuicPacketFate {
+    // Process the packet normally, which is usually to establish a connection.
+    kFateProcess,
+    // Put the connection ID into time-wait state and send a public reset.
+    kFateTimeWait,
+    // Drop the packet (ignore and give no response).
+    kFateDrop,
+  };
+
+  // This method is called by OnUnauthenticatedHeader on packets not associated
+  // with a known connection ID.  It applies validity checks and returns a
+  // QuicPacketFate to tell what should be done with the packet.
+  virtual QuicPacketFate ValidityChecks(const QuicPacketHeader& header);
+
   // Create and return the time wait list manager for this dispatcher, which
   // will be owned by the dispatcher as time_wait_list_manager_
   virtual GoQuicTimeWaitListManager* CreateQuicTimeWaitListManager();
-
-  // Replaces the packet writer with |writer|. Takes ownership of |writer|.
-  void set_writer(GoQuicServerPacketWriter* writer) {
-    writer_.reset(writer);
-  }
 
   GoQuicTimeWaitListManager* time_wait_list_manager() {
     return time_wait_list_manager_.get();
@@ -172,19 +201,20 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
 
   const QuicConfig& config() const { return config_; }
 
-  const QuicCryptoServerConfig& crypto_config() const { return crypto_config_; }
+  const QuicCryptoServerConfig* crypto_config() const { return crypto_config_; }
 
   QuicFramer* framer() { return &framer_; }
 
-  GoQuicServerPacketWriter* writer() { return writer_.get(); }
+  QuicPacketWriter* writer() { return writer_.get(); }
 
   const QuicConnection::PacketWriterFactory& connection_writer_factory() {
     return connection_writer_factory_;
   }
 
+  void SetLastError(QuicErrorCode error);
+
  private:
   class QuicFramerVisitor;
-  friend class net::test::QuicDispatcherPeer;
 
   // An adapter that creates packet writers using the dispatcher's
   // PacketWriterFactory and shared writer. Essentially, it just curries the
@@ -192,7 +222,7 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
   class PacketWriterFactoryAdapter :
     public QuicConnection::PacketWriterFactory {
    public:
-    PacketWriterFactoryAdapter(GoQuicDispatcher* dispatcher);
+    explicit PacketWriterFactoryAdapter(GoQuicDispatcher* dispatcher);
     ~PacketWriterFactoryAdapter() override;
 
     QuicPacketWriter* Create(QuicConnection* connection) const override;
@@ -205,15 +235,16 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
   // of a data packet that is destined for the time wait manager.
   void OnUnauthenticatedHeader(const QuicPacketHeader& header);
 
-  // Removes the session from the session map and write blocked list, and
-  // adds the ConnectionId to the time-wait list.
-  void CleanUpSession(SessionMap::iterator it);
+  // Removes the session from the session map and write blocked list, and adds
+  // the ConnectionId to the time-wait list.  If |session_closed_statelessly| is
+  // true, any future packets for the ConnectionId will be black-holed.
+  void CleanUpSession(SessionMap::iterator it, bool session_closed_statelessly);
 
   bool HandlePacketForTimeWait(const QuicPacketPublicHeader& header);
 
-  const QuicConfig config_;
+  const QuicConfig& config_;
 
-  const QuicCryptoServerConfig& crypto_config_;
+  const QuicCryptoServerConfig* crypto_config_;
 
   // The list of connections waiting to write.
   WriteBlockedList write_blocked_list_;
@@ -223,17 +254,17 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
   // Entity that manages connection_ids in time wait state.
   scoped_ptr<GoQuicTimeWaitListManager> time_wait_list_manager_;
 
+  // The list of closed but not-yet-deleted sessions.
+  std::vector<GoQuicServerSession*> closed_session_list_;
+
   // The helper used for all connections. Owned by the server.
-  QuicConnectionHelperInterface* helper_;
+  scoped_ptr<QuicConnectionHelperInterface> helper_;
 
   // An alarm which deletes closed sessions.
   scoped_ptr<QuicAlarm> delete_sessions_alarm_;
 
-  // The list of closed but not-yet-deleted sessions.
-  std::list<QuicSession*> closed_session_list_;
-
   // The writer to write to the socket with.
-  scoped_ptr<GoQuicServerPacketWriter> writer_;
+  scoped_ptr<QuicPacketWriter> writer_;
 
   // A per-connection writer that is passed to the time wait list manager.
   scoped_ptr<QuicPacketWriter> time_wait_list_writer_;
@@ -258,11 +289,16 @@ class GoQuicDispatcher : public QuicBlockedWriterInterface,
   QuicFramer framer_;
   scoped_ptr<QuicFramerVisitor> framer_visitor_;
 
+  // The last error set by SetLastError(), which is called by
+  // framer_visitor_->OnError().
+  QuicErrorCode last_error_;
+
   void *go_quic_dispatcher_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicDispatcher);
 };
 
+}  // namespace tools
 }  // namespace net
 
-#endif  // NET_QUIC_QUIC_DISPATCHER_H_
+#endif  // GO_QUIC_DISPATCHER_H_

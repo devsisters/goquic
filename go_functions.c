@@ -30,26 +30,6 @@ void* CreateIncomingDynamicStream_C(void* go_quic_server_session, uint32_t id, v
     return CreateIncomingDynamicStream(go_quic_server_session, id, go_quic_spdy_server_stream_go_wrapper);
 }
 
-uint32_t DataStreamProcessorProcessData_C(void* go_data_stream_processor, const char *data, uint32_t data_len) {
-    return DataStreamProcessorProcessData(go_data_stream_processor, (void *)data, data_len, 1);
-}
-
-uint32_t DataStreamProcessorProcessDataClient_C(void* go_data_stream_processor, const char *data, uint32_t data_len) {
-    return DataStreamProcessorProcessData(go_data_stream_processor, (void *)data, data_len, 0);
-}
-
-void DataStreamProcessorOnFinRead_C(void* go_data_stream_processor) {
-    DataStreamProcessorOnFinRead(go_data_stream_processor, 1);
-}
-
-void DataStreamProcessorOnClose_C(void* go_data_stream_processor) {
-    DataStreamProcessorOnClose(go_data_stream_processor, 0);
-}
-
-void DataStreamProcessorOnCloseServer_C(void* go_data_stream_processor) {
-    DataStreamProcessorOnClose(go_data_stream_processor, 1);
-}
-
 void UnregisterQuicServerStreamFromSession_C(void* go_stream) {
     UnregisterQuicServerStreamFromSession(go_stream);
 }
@@ -72,4 +52,37 @@ void GoQuicAlarmCancelImpl_C(void *go_quic_alarm) {
 
 void GoQuicAlarmDestroy_C(void *go_quic_alarm) {
     GoQuicAlarmDestroy(go_quic_alarm);
+}
+
+void GoQuicSpdyClientStreamOnStreamHeadersComplete_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len) {
+    GoQuicSpdyClientStreamOnStreamHeadersComplete(go_quic_spdy_client_stream, (void *)data, data_len);
+}
+void GoQuicSpdyClientStreamOnDataAvailable_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len, int is_closed) {
+    GoQuicSpdyClientStreamOnDataAvailable(go_quic_spdy_client_stream, (void *)data, data_len, is_closed);
+}
+void GoQuicSpdyClientStreamOnClose_C(void* go_quic_spdy_client_stream) {
+    GoQuicSpdyClientStreamOnClose(go_quic_spdy_client_stream);
+}
+
+void GoQuicSpdyServerStreamOnStreamHeadersComplete_C(void* go_quic_spdy_server_stream, const char *data, uint32_t data_len) {
+    GoQuicSpdyServerStreamOnStreamHeadersComplete(go_quic_spdy_server_stream, (void *)data, data_len);
+}
+void GoQuicSpdyServerStreamOnDataAvailable_C(void* go_quic_spdy_server_stream, const char *data, uint32_t data_len, int is_closed) {
+    GoQuicSpdyServerStreamOnDataAvailable(go_quic_spdy_server_stream, (void *)data, data_len, is_closed);
+}
+
+void GoQuicSpdyServerStreamOnClose_C(void* go_quic_spdy_server_stream) {
+    GoQuicSpdyServerStreamOnClose(go_quic_spdy_server_stream);
+}
+
+void* NewProofVerifyJob_C(void* go_proof_verifier, const char* hostname, size_t hostname_len, const char* server_config, size_t server_config_len, const char* cert_sct, size_t cert_sct_len, const char* signature, size_t signature_len) {
+    return NewProofVerifyJob(go_proof_verifier, (void *)hostname, hostname_len, (void *)server_config, server_config_len, (void *)cert_sct, cert_sct_len, (void *)signature, signature_len);
+}
+
+void ProofVerifyJobAddCert_C(void* job, const char* cert, size_t cert_len) {
+    ProofVerifyJobAddCert(job, (void *)cert, cert_len);
+}
+
+int ProofVerifyJobVerifyProof_C(void* job) {
+    return ProofVerifyJobVerifyProof(job);
 }

@@ -1,31 +1,26 @@
 #include "go_quic_client_session.h"
-#include "go_quic_reliable_client_stream.h"
 
-#include "net/quic/quic_connection.h"
 #include "net/quic/crypto/crypto_protocol.h"
-#include "net/quic/quic_crypto_client_stream.h"
 #include "net/quic/quic_server_id.h"
+#include "go_quic_spdy_client_stream.h"
 
 namespace net {
+namespace tools {
 
 GoQuicClientSession::GoQuicClientSession(const QuicConfig& config,
                                          QuicConnection* connection,
-                                         QuicConnectionHelperInterface* helper)
+                                         const QuicServerId& server_id,
+                                         QuicCryptoClientConfig* crypto_config)
     : QuicClientSessionBase(connection, config),
-      helper_(helper) {
-}
+      server_id_(server_id),
+      crypto_config_(crypto_config),
+      respect_goaway_(true) {}
 
 GoQuicClientSession::~GoQuicClientSession() {
-  delete crypto_config_;
 }
 
-void GoQuicClientSession::InitializeSession(
-    const QuicServerId& server_id,
-    QuicCryptoClientConfig* crypto_config
-    ) {
-  crypto_stream_.reset(
-      new QuicCryptoClientStream(server_id, this, nullptr, crypto_config));
-  crypto_config_ = crypto_config;
+void GoQuicClientSession::Initialize() {
+  crypto_stream_.reset(CreateQuicCryptoStream());
   QuicClientSessionBase::Initialize();
 }
 
@@ -35,7 +30,7 @@ void GoQuicClientSession::OnProofValid(
 void GoQuicClientSession::OnProofVerifyDetailsAvailable(
     const ProofVerifyDetails& /*verify_details*/) {}
 
-GoQuicReliableClientStream* GoQuicClientSession::CreateOutgoingDynamicStream() {
+GoQuicSpdyClientStream* GoQuicClientSession::CreateOutgoingDynamicStream() {
   if (!crypto_stream_->encryption_established()) {
     DVLOG(1) << "Encryption not active so no outgoing stream created.";
     return nullptr;
@@ -45,18 +40,21 @@ GoQuicReliableClientStream* GoQuicClientSession::CreateOutgoingDynamicStream() {
              << "Already " << GetNumOpenStreams() << " open.";
     return nullptr;
   }
-  if (goaway_received()) {
+  if (goaway_received() && respect_goaway_) {
     DVLOG(1) << "Failed to create a new outgoing stream. "
              << "Already received goaway.";
     return nullptr;
   }
-  GoQuicReliableClientStream* stream
-      = new GoQuicReliableClientStream(GetNextStreamId(), this);
+  GoQuicSpdyClientStream* stream = CreateClientStream();
   ActivateStream(stream);
   return stream;
 }
 
-QuicCryptoClientStream* GoQuicClientSession::GetCryptoStream() {
+GoQuicSpdyClientStream* GoQuicClientSession::CreateClientStream() {
+  return new GoQuicSpdyClientStream(GetNextOutgoingStreamId(), this);
+}
+
+QuicCryptoClientStreamBase* GoQuicClientSession::GetCryptoStream() {
   return crypto_stream_.get();
 }
 
@@ -65,9 +63,22 @@ void GoQuicClientSession::CryptoConnect() {
   crypto_stream_->CryptoConnect();
 }
 
-QuicDataStream* GoQuicClientSession::CreateIncomingDynamicStream(QuicStreamId id) {
+int GoQuicClientSession::GetNumSentClientHellos() const {
+  return crypto_stream_->num_sent_client_hellos();
+}
+
+QuicSpdyStream* GoQuicClientSession::CreateIncomingDynamicStream(
+    QuicStreamId id) {
   // TODO(hodduc) Support server push
+  DLOG(ERROR) << "Server push not supported";
   return nullptr;
 }
+
+QuicCryptoClientStreamBase* GoQuicClientSession::CreateQuicCryptoStream() {
+  return new QuicCryptoClientStream(server_id_, this, nullptr, crypto_config_);
+  // XXX(hodduc) third parameter is for implementation-specific context, which is nullable.
+}
+
+}  // namespace tools
 
 }   // namespace net

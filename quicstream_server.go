@@ -1,7 +1,6 @@
 package goquic
 
 // #include "src/adaptor.h"
-// #include "src/adaptor_client.h"
 import "C"
 import (
 	"net/http"
@@ -21,10 +20,10 @@ func (stream *QuicServerStream) UserStream() DataStreamProcessor {
 }
 
 func (stream *QuicServerStream) WriteHeader(header http.Header, is_body_empty bool) {
-	header_c := C.initialize_map()
+	header_c := C.initialize_header_block()
 	for key, values := range header {
 		value := strings.Join(values, ", ")
-		C.insert_map(header_c, (*C.char)(unsafe.Pointer(&[]byte(key)[0])), C.size_t(len(key)),
+		C.insert_header_block(header_c, (*C.char)(unsafe.Pointer(&[]byte(key)[0])), C.size_t(len(key)),
 			(*C.char)(unsafe.Pointer(&[]byte(value)[0])), C.size_t(len(value)))
 	}
 
@@ -33,7 +32,7 @@ func (stream *QuicServerStream) WriteHeader(header http.Header, is_body_empty bo
 	} else {
 		C.quic_spdy_server_stream_write_headers(stream.wrapper, header_c, 0)
 	}
-	C.delete_map(header_c)
+	C.delete_header_block(header_c)
 }
 
 func (stream *QuicServerStream) WriteOrBufferData(body []byte, fin bool) {
@@ -49,8 +48,4 @@ func (stream *QuicServerStream) WriteOrBufferData(body []byte, fin bool) {
 	}
 }
 
-func (stream *QuicServerStream) CloseReadSide() {
-	C.quic_spdy_server_stream_close_read_side(stream.wrapper)
-}
-
-// TODO: delete(stream.session.quicServerStreams, stream)
+// TODO(hodduc): delete(stream.session.quicServerStreams, stream)

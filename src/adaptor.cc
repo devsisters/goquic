@@ -3,7 +3,7 @@
 #include "go_quic_dispatcher.h"
 #include "go_quic_connection_helper.h"
 #include "go_quic_server_packet_writer.h"
-#include "go_quic_spdy_server_stream_go_wrapper.h"
+#include "go_quic_spdy_server_stream.h"
 #include "go_quic_alarm_go_wrapper.h"
 #include "go_proof_source.h"
 #include "go_ephemeral_key_source.h"
@@ -28,6 +28,7 @@
 #define EXPECT_TRUE(x) { if (!(x)) printf("ERROR"); }
 
 using namespace net;
+using namespace net::tools;
 using namespace std;
 using base::StringPiece;
 
@@ -45,8 +46,10 @@ void set_log_level(int level) {
   logging::SetMinLogLevel(level);
 }
 
+
+
 GoQuicDispatcher *create_quic_dispatcher(void* go_writer, void* go_quic_dispatcher, void* go_task_runner, QuicCryptoServerConfig* crypto_config) {
-  QuicConfig config;
+  QuicConfig* config = new QuicConfig();
 
   // TODO(serialx, hodduc): What is "secret"?
   // TODO(hodduc) "crypto_config" should be shared as global constant, but there is no clean way to do it now T.T
@@ -54,7 +57,7 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_writer, void* go_quic_dispatch
   QuicClock* clock = new QuicClock(); // Deleted by scoped ptr of TestConnectionHelper
   QuicRandom* random_generator = QuicRandom::GetInstance();
 
-  TestConnectionHelper *helper = new TestConnectionHelper(go_task_runner, clock, random_generator); // Deleted by delete_go_quic_dispatcher()
+  TestConnectionHelper* helper = new TestConnectionHelper(go_task_runner, clock, random_generator); // Deleted by delete_go_quic_dispatcher()
   QuicVersionVector versions(net::QuicSupportedVersions());
 
   /* Initialize Configs ------------------------------------------------*/
@@ -63,41 +66,41 @@ GoQuicDispatcher *create_quic_dispatcher(void* go_writer, void* go_quic_dispatch
   // sensible value for a server: 1 MB for session, 64 KB for each stream.
   const uint32 kInitialSessionFlowControlWindow = 1 * 1024 * 1024;  // 1 MB
   const uint32 kInitialStreamFlowControlWindow = 64 * 1024;         // 64 KB
-  if (config.GetInitialStreamFlowControlWindowToSend() ==
+  if (config->GetInitialStreamFlowControlWindowToSend() ==
       kMinimumFlowControlSendWindow) {
-    config.SetInitialStreamFlowControlWindowToSend(
+    config->SetInitialStreamFlowControlWindowToSend(
         kInitialStreamFlowControlWindow);
   }
-  if (config.GetInitialSessionFlowControlWindowToSend() ==
+  if (config->GetInitialSessionFlowControlWindowToSend() ==
       kMinimumFlowControlSendWindow) {
-    config.SetInitialSessionFlowControlWindowToSend(
+    config->SetInitialSessionFlowControlWindowToSend(
         kInitialSessionFlowControlWindow);
   }
   /* Initialize Configs Ends ----------------------------------------*/
 
   // Deleted by delete_go_quic_dispatcher()
-  GoQuicDispatcher* dispatcher = new GoQuicDispatcher(config,
-      *crypto_config,
+  GoQuicDispatcher::CustomPacketWriterFactory* factory = new GoQuicDispatcher::CustomPacketWriterFactory();
+  GoQuicDispatcher* dispatcher = new GoQuicDispatcher(*config,
+      crypto_config,
       versions,
-      new GoQuicDispatcher::DefaultPacketWriterFactory(),  // Delete by scoped ptr of GoQuicDispatcher
+      factory,  // Delete by scoped ptr of GoQuicDispatcher
       helper,
       go_quic_dispatcher);
 
   GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(go_writer, dispatcher); // Deleted by scoped ptr of GoQuicDispatcher
 
-  dispatcher->Initialize(writer);
+  factory->set_shared_writer(writer);
+  dispatcher->InitializeWithWriter(writer);
 
   return dispatcher;
 }
 
 QuicCryptoServerConfig *init_crypto_config(void *go_proof_source) {
-  QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance());
+  GoProofSource *proof_source = new GoProofSource(go_proof_source);  // Deleted by scoped ptr of QuicCryptoServerConfig
+  QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig("secret", QuicRandom::GetInstance(), proof_source);
   crypto_config->set_strike_register_no_startup_period();
   net::EphemeralKeySource *keySource = new GoEphemeralKeySource();
   crypto_config->SetEphemeralKeySource(keySource);
-
-  GoProofSource *proof_source = new GoProofSource(go_proof_source);  // Deleted by scoped ptr of QuicCryptoServerConfig
-  crypto_config->SetProofSource(proof_source);
 
   QuicClock* clock = new QuicClock();  // XXX: Not deleted. This should be initialized EXACTLY ONCE
   QuicRandom* random_generator = QuicRandom::GetInstance();  // XXX: Not deleted. This should be initialized EXACTLY ONCE
@@ -137,24 +140,23 @@ void delete_quic_encrypted_packet(QuicEncryptedPacket *packet) {
 }
 
 // Utility wrappers for C++ std::map
-MapStrStr* initialize_map() {
-  return new MapStrStr; // Delete by delete_map
+SpdyHeaderBlock* initialize_header_block() {
+  return new SpdyHeaderBlock; // Delete by delete_header_block
 }
 
-void delete_map(MapStrStr* map) {
-  delete map;
+void delete_header_block(SpdyHeaderBlock* block) {
+  delete block;
 }
 
-void insert_map(MapStrStr* map, char* key, size_t key_len, char* value, size_t value_len) {
-  map->insert(
-      std::pair<std::string, std::string>(std::string(key, key_len), std::string(value, value_len)));
+void insert_header_block(SpdyHeaderBlock* block, char* key, size_t key_len, char* value, size_t value_len) {
+  (*block)[base::StringPiece(std::string(key, key_len))] = base::StringPiece(std::string(value, value_len));
 }
 
-void quic_spdy_server_stream_write_headers(GoQuicSpdyServerStreamGoWrapper* wrapper, MapStrStr* header, int is_empty_body) {
-  wrapper->WriteHeaders(*(SpdyHeaderBlock*)header, is_empty_body, nullptr);
+void quic_spdy_server_stream_write_headers(GoQuicSpdyServerStream* wrapper, SpdyHeaderBlock* block, int is_empty_body) {
+  wrapper->WriteHeaders(*block, is_empty_body, nullptr);
 }
 
-void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrapper* wrapper, char* buf, size_t bufsize, int fin) {
+void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStream* wrapper, char* buf, size_t bufsize, int fin) {
   wrapper->WriteOrBufferData_(StringPiece(buf, bufsize), (fin != 0), nullptr);
 }
 
@@ -168,8 +170,4 @@ int64_t clock_now(QuicClock* quic_clock) {
 
 void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv) {
   cb->OnWriteComplete(rv);
-}
-
-void quic_spdy_server_stream_close_read_side(GoQuicSpdyServerStreamGoWrapper* wrapper) {
-  wrapper->CloseReadSide_();
 }

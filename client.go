@@ -66,7 +66,7 @@ func (q *QuicRoundTripper) RoundTrip(request *http.Request) (*http.Response, err
 		st.WriteHeader(header, true)
 	}
 
-	recvHeader, err := st.ReadHeader()
+	recvHeader, err := st.Header()
 	if err != nil {
 		return nil, err
 	}

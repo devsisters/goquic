@@ -4,10 +4,11 @@
 
 #include "go_quic_per_connection_packet_writer.h"
 
-#include "go_quic_server_packet_writer.h"
 #include "base/bind.h"
+#include "go_quic_server_packet_writer.h"
 
 namespace net {
+namespace tools {
 
 GoQuicPerConnectionPacketWriter::GoQuicPerConnectionPacketWriter(
     GoQuicServerPacketWriter* shared_writer,
@@ -56,4 +57,10 @@ void GoQuicPerConnectionPacketWriter::OnWriteComplete(WriteResult result) {
   }
 }
 
+QuicByteCount GoQuicPerConnectionPacketWriter::GetMaxPacketSize(
+    const IPEndPoint& peer_address) const {
+  return shared_writer_->GetMaxPacketSize(peer_address);
+}
+
+}  // namespace tools
 }  // namespace net

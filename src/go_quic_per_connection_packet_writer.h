@@ -2,14 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef NET_QUIC_QUIC_PER_CONNECTION_PACKET_WRITER_H_
-#define NET_QUIC_QUIC_PER_CONNECTION_PACKET_WRITER_H_
+#ifndef GO_QUIC_PER_CONNECTION_PACKET_WRITER_H_
+#define GO_QUIC_PER_CONNECTION_PACKET_WRITER_H_
 
 #include "base/memory/weak_ptr.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_packet_writer.h"
 
 namespace net {
+namespace tools {
 
 class GoQuicServerPacketWriter;
 
@@ -20,8 +21,9 @@ class GoQuicServerPacketWriter;
 class GoQuicPerConnectionPacketWriter : public QuicPacketWriter {
  public:
   // Does not take ownership of |shared_writer| or |connection|.
-  GoQuicPerConnectionPacketWriter(GoQuicServerPacketWriter* shared_writer,
-                                QuicConnection* connection);
+  GoQuicPerConnectionPacketWriter(
+      GoQuicServerPacketWriter* shared_writer,
+      QuicConnection* connection);
   ~GoQuicPerConnectionPacketWriter() override;
 
   QuicPacketWriter* shared_writer() const;
@@ -36,6 +38,7 @@ class GoQuicPerConnectionPacketWriter : public QuicPacketWriter {
   bool IsWriteBlockedDataBuffered() const override;
   bool IsWriteBlocked() const override;
   void SetWritable() override;
+  QuicByteCount GetMaxPacketSize(const IPEndPoint& peer_address) const override;
 
  private:
   void OnWriteComplete(WriteResult result);
@@ -48,6 +51,7 @@ class GoQuicPerConnectionPacketWriter : public QuicPacketWriter {
   DISALLOW_COPY_AND_ASSIGN(GoQuicPerConnectionPacketWriter);
 };
 
+}  // namespace tools
 }  // namespace net
 
-#endif  // NET_QUIC_QUIC_PER_CONNECTION_PACKET_WRITER_H_
+#endif  // GO_QUIC_PER_CONNECTION_PACKET_WRITER_H_

@@ -7,7 +7,7 @@
 
 #ifdef __cplusplus
 #include "go_quic_dispatcher.h"
-#include "go_quic_spdy_server_stream_go_wrapper.h"
+#include "go_quic_spdy_server_stream.h"
 #include "go_quic_alarm_go_wrapper.h"
 #include "go_quic_server_packet_writer.h"
 #include "base/basictypes.h"
@@ -15,9 +15,11 @@
 #include "net/quic/quic_protocol.h"
 #include "net/base/net_util.h"
 #include "net/base/ip_endpoint.h"
-using namespace net;
+#include "net/spdy/spdy_header_block.h"
 
-typedef std::map<std::string, std::string> MapStrStr;
+using namespace net;
+using namespace net::tools;
+
 extern "C" {
 #else
 typedef void QuicConnection;
@@ -25,8 +27,8 @@ typedef void QuicEncryptedPacket;
 typedef void IPAddressNumber;
 typedef void IPEndPoint;
 typedef void GoQuicDispatcher;
-typedef void GoQuicSpdyServerStreamGoWrapper;
-typedef void MapStrStr;
+typedef void GoQuicSpdyServerStream;
+typedef void SpdyHeaderBlock;
 typedef void GoQuicAlarmGoWrapper;
 typedef void QuicClock;
 typedef void GoQuicServerPacketWriter;
@@ -50,16 +52,15 @@ QuicCryptoServerConfig *init_crypto_config(void *go_proof_source);
 void delete_go_quic_dispatcher(GoQuicDispatcher *dispatcher);
 void quic_dispatcher_process_packet(GoQuicDispatcher *dispatcher, struct GoIPEndPoint *go_self_address, struct GoIPEndPoint *go_peer_address, char *buffer, size_t length);
 
-MapStrStr* initialize_map();
-void delete_map(MapStrStr* map);
-void insert_map(MapStrStr* map, char* key, size_t key_len, char* value, size_t value_len);
+SpdyHeaderBlock* initialize_header_block();
+void delete_header_block(SpdyHeaderBlock* map);
+void insert_header_block(SpdyHeaderBlock* map, char* key, size_t key_len, char* value, size_t value_len);
 
-void quic_spdy_server_stream_write_headers(GoQuicSpdyServerStreamGoWrapper* wrapper, MapStrStr* header, int is_empty_body);
-void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStreamGoWrapper* wrapper, char* buf, size_t bufsize, int fin);
+void quic_spdy_server_stream_write_headers(GoQuicSpdyServerStream* wrapper, SpdyHeaderBlock* header, int is_empty_body);
+void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStream* wrapper, char* buf, size_t bufsize, int fin);
 void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm);
 int64_t clock_now(QuicClock* clock);
 void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv);
-void quic_spdy_server_stream_close_read_side(GoQuicSpdyServerStreamGoWrapper* wrapper);
 void test_quic();
 #ifdef __cplusplus
 }
