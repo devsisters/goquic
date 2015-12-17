@@ -21,7 +21,7 @@ class GoQuicClientSession : public QuicClientSessionBase {
   void Initialize() override;
 
   // QuicSession methods:
-  GoQuicSpdyClientStream* CreateOutgoingDynamicStream() override;
+  GoQuicSpdyClientStream* CreateOutgoingDynamicStream(SpdyPriority priority) override;
   QuicCryptoClientStreamBase* GetCryptoStream() override;
 
   // QuicClientSessionBase methods:

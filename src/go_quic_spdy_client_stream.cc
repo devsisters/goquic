@@ -36,13 +36,24 @@ void GoQuicSpdyClientStream::OnStreamFrame(const QuicStreamFrame& frame) {
   QuicSpdyStream::OnStreamFrame(frame);
 }
 
-void GoQuicSpdyClientStream::OnStreamHeadersComplete(bool fin,
-                                                     size_t frame_len) {
-  QuicSpdyStream::OnStreamHeadersComplete(fin, frame_len);
-  GoQuicSpdyClientStreamOnStreamHeadersComplete_C(go_quic_client_stream_,
-                                                  decompressed_headers().data(),
-                                                  decompressed_headers().length());
+void GoQuicSpdyClientStream::OnInitialHeadersComplete(bool fin,
+                                                      size_t frame_len) {
+  QuicSpdyStream::OnInitialHeadersComplete(fin, frame_len);
+
+  DCHECK(headers_decompressed());
+  GoQuicSpdyClientStreamOnInitialHeadersComplete_C(go_quic_client_stream_,
+                                                   decompressed_headers().data(),
+                                                   decompressed_headers().length());
   MarkHeadersConsumed(decompressed_headers().length());
+}
+
+void GoQuicSpdyClientStream::OnTrailingHeadersComplete(bool fin,
+                                                       size_t frame_len) {
+  QuicSpdyStream::OnTrailingHeadersComplete(fin, frame_len);
+  GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(go_quic_client_stream_,
+                                                    decompressed_trailers().data(),
+                                                    decompressed_trailers().length());
+  MarkTrailersConsumed(decompressed_trailers().length());
 }
 
 void GoQuicSpdyClientStream::OnDataAvailable() {

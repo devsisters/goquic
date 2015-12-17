@@ -40,12 +40,16 @@ type SpdyServerStream struct {
 	closeNotifyChan  chan bool
 }
 
-func (stream *SpdyServerStream) OnStreamHeadersComplete(headerBuf []byte) {
+func (stream *SpdyServerStream) OnInitialHeadersComplete(headerBuf []byte) {
 	if header, err := spdy.ParseHeaders(bytes.NewReader(headerBuf)); err != nil {
 		// TODO(hodduc) should raise proper error
 	} else {
 		stream.header = header
 	}
+}
+
+func (stream *SpdyServerStream) OnTrailingHeadersComplete(headerBuf []byte) {
+	// TODO(hodduc)
 }
 
 func (stream *SpdyServerStream) OnDataAvailable(data []byte, isClosed bool) {

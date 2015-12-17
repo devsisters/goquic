@@ -30,14 +30,15 @@ void GoQuicClientSession::OnProofValid(
 void GoQuicClientSession::OnProofVerifyDetailsAvailable(
     const ProofVerifyDetails& /*verify_details*/) {}
 
-GoQuicSpdyClientStream* GoQuicClientSession::CreateOutgoingDynamicStream() {
+GoQuicSpdyClientStream* GoQuicClientSession::CreateOutgoingDynamicStream(
+    SpdyPriority priority) {
   if (!crypto_stream_->encryption_established()) {
     DVLOG(1) << "Encryption not active so no outgoing stream created.";
     return nullptr;
   }
-  if (GetNumOpenStreams() >= get_max_open_streams()) {
+  if (GetNumOpenOutgoingStreams() >= get_max_open_streams()) {
     DVLOG(1) << "Failed to create a new outgoing stream. "
-             << "Already " << GetNumOpenStreams() << " open.";
+             << "Already " << GetNumOpenOutgoingStreams() << " open.";
     return nullptr;
   }
   if (goaway_received() && respect_goaway_) {
@@ -46,6 +47,7 @@ GoQuicSpdyClientStream* GoQuicClientSession::CreateOutgoingDynamicStream() {
     return nullptr;
   }
   GoQuicSpdyClientStream* stream = CreateClientStream();
+  stream->SetPriority(priority);
   ActivateStream(stream);
   return stream;
 }

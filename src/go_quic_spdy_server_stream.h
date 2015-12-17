@@ -19,7 +19,8 @@ class GoQuicSpdyServerStream : public QuicSpdyStream {
   void SetGoQuicSpdyServerStream(void* go_quic_spdy_server_stream);
 
   // QuicSpdyStream
-  void OnStreamHeadersComplete(bool fin, size_t frame_len) override;
+  void OnInitialHeadersComplete(bool fin, size_t frame_len) override;
+  void OnTrailingHeadersComplete(bool fin, size_t frame_len) override;
 
   // ReliableQuicStream implementation called by the sequencer when there is
   // data (or a FIN) to be read.

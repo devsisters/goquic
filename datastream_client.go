@@ -37,13 +37,17 @@ type SpdyClientStream struct {
 	closed bool
 }
 
-func (stream *SpdyClientStream) OnStreamHeadersComplete(headerBuf []byte) {
+func (stream *SpdyClientStream) OnInitialHeadersComplete(headerBuf []byte) {
 	if header, err := spdy.ParseHeaders(bytes.NewReader(headerBuf)); err != nil {
 		// TODO(hodduc) should raise proper error
 	} else {
 		stream.header = header
 		stream.headerParsed = true
 	}
+}
+
+func (stream *SpdyClientStream) OnTrailingHeadersComplete(headerBuf []byte) {
+	// TODO(hodduc)
 }
 
 func (stream *SpdyClientStream) OnDataAvailable(data []byte, isClosed bool) {

@@ -19,10 +19,12 @@ void GoQuicAlarmSetImpl_C(void* go_quic_alarm, int64_t deadline);
 void GoQuicAlarmCancelImpl_C(void* go_quic_alarm);
 void GoQuicAlarmDestroy_C(void *go_quic_alarm);
 
-void GoQuicSpdyClientStreamOnStreamHeadersComplete_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len);
+void GoQuicSpdyClientStreamOnInitialHeadersComplete_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len);
+void GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len);
 void GoQuicSpdyClientStreamOnDataAvailable_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len, int is_closed);
 void GoQuicSpdyClientStreamOnClose_C(void* go_quic_spdy_client_stream);
-void GoQuicSpdyServerStreamOnStreamHeadersComplete_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len);
+void GoQuicSpdyServerStreamOnInitialHeadersComplete_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len);
+void GoQuicSpdyServerStreamOnTrailingHeadersComplete_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len);
 void GoQuicSpdyServerStreamOnDataAvailable_C(void* go_quic_spdy_server_stream, const char *data, uint32_t data_len, int is_closed);
 void GoQuicSpdyServerStreamOnClose_C(void* go_quic_spdy_server_stream);
 

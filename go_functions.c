@@ -54,8 +54,11 @@ void GoQuicAlarmDestroy_C(void *go_quic_alarm) {
     GoQuicAlarmDestroy(go_quic_alarm);
 }
 
-void GoQuicSpdyClientStreamOnStreamHeadersComplete_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len) {
-    GoQuicSpdyClientStreamOnStreamHeadersComplete(go_quic_spdy_client_stream, (void *)data, data_len);
+void GoQuicSpdyClientStreamOnInitialHeadersComplete_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len) {
+    GoQuicSpdyClientStreamOnInitialHeadersComplete(go_quic_spdy_client_stream, (void *)data, data_len);
+}
+void GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len) {
+    GoQuicSpdyClientStreamOnTrailingHeadersComplete(go_quic_spdy_client_stream, (void *)data, data_len);
 }
 void GoQuicSpdyClientStreamOnDataAvailable_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len, int is_closed) {
     GoQuicSpdyClientStreamOnDataAvailable(go_quic_spdy_client_stream, (void *)data, data_len, is_closed);
@@ -64,8 +67,10 @@ void GoQuicSpdyClientStreamOnClose_C(void* go_quic_spdy_client_stream) {
     GoQuicSpdyClientStreamOnClose(go_quic_spdy_client_stream);
 }
 
-void GoQuicSpdyServerStreamOnStreamHeadersComplete_C(void* go_quic_spdy_server_stream, const char *data, uint32_t data_len) {
-    GoQuicSpdyServerStreamOnStreamHeadersComplete(go_quic_spdy_server_stream, (void *)data, data_len);
+void GoQuicSpdyServerStreamOnInitialHeadersComplete_C(void* go_quic_spdy_server_stream, const char *data, uint32_t data_len) {
+    GoQuicSpdyServerStreamOnInitialHeadersComplete(go_quic_spdy_server_stream, (void *)data, data_len);
+}
+void GoQuicSpdyServerStreamOnTrailingHeadersComplete_C(void* go_quic_spdy_server_stream, const char *data, uint32_t data_len) { GoQuicSpdyServerStreamOnTrailingHeadersComplete(go_quic_spdy_server_stream, (void *)data, data_len);
 }
 void GoQuicSpdyServerStreamOnDataAvailable_C(void* go_quic_spdy_server_stream, const char *data, uint32_t data_len, int is_closed) {
     GoQuicSpdyServerStreamOnDataAvailable(go_quic_spdy_server_stream, (void *)data, data_len, is_closed);

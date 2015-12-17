@@ -210,9 +210,32 @@ QuicSpdyStream* GoQuicServerSession::CreateIncomingDynamicStream(
   return stream;
 }
 
-QuicSpdyStream* GoQuicServerSession::CreateOutgoingDynamicStream() {
-  DLOG(ERROR) << "Server push not yet supported";
-  return nullptr;
+bool GoQuicServerSession::ShouldCreateOutgoingDynamicStream() {
+  if (!connection()->connected()) {
+    LOG(DFATAL) << "ShouldCreateOutgoingDynamicStream called when disconnected";
+    return false;
+  }
+  if (!crypto_stream_->encryption_established()) {
+    LOG(DFATAL) << "Encryption not established so no outgoing stream created.";
+    return false;
+  }
+  if (GetNumOpenOutgoingStreams() >= get_max_open_streams()) {
+    VLOG(1) << "No more streams should be created. "
+            << "Already " << GetNumOpenOutgoingStreams() << " open.";
+    return false;
+  }
+  return true;
+}
+
+QuicSpdyStream* GoQuicServerSession::CreateOutgoingDynamicStream(SpdyPriority priority) {
+  if (!ShouldCreateOutgoingDynamicStream()) {
+    return nullptr;
+  }
+
+  QuicSpdyStream* stream =
+      new GoQuicSpdyServerStream(GetNextOutgoingStreamId(), this);
+  ActivateStream(stream);
+  return stream;
 }
 
 QuicCryptoServerStreamBase* GoQuicServerSession::GetCryptoStream() {

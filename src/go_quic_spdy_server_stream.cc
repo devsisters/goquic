@@ -19,14 +19,20 @@ void GoQuicSpdyServerStream::SetGoQuicSpdyServerStream(void* go_quic_spdy_server
   go_quic_spdy_server_stream_ = go_quic_spdy_server_stream;
 }
 
-void GoQuicSpdyServerStream::OnStreamHeadersComplete(bool fin, size_t frame_len) {
-  QuicSpdyStream::OnStreamHeadersComplete(fin, frame_len);
+void GoQuicSpdyServerStream::OnInitialHeadersComplete(bool fin,
+                                                      size_t frame_len) {
+  QuicSpdyStream::OnInitialHeadersComplete(fin, frame_len);
 
-  GoQuicSpdyServerStreamOnStreamHeadersComplete_C(go_quic_spdy_server_stream_,
-      decompressed_headers().data(),
-      decompressed_headers().length());
-
+  GoQuicSpdyServerStreamOnInitialHeadersComplete_C(go_quic_spdy_server_stream_,
+                                                   decompressed_headers().data(),
+                                                   decompressed_headers().length());
   MarkHeadersConsumed(decompressed_headers().length());
+}
+
+void GoQuicSpdyServerStream::OnTrailingHeadersComplete(bool fin,
+                                                       size_t frame_len) {
+  LOG(DFATAL) << "Server does not support receiving Trailers.";
+  // TODO(hodduc): Should Send error response
 }
 
 void GoQuicSpdyServerStream::OnDataAvailable() {

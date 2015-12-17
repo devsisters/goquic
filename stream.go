@@ -10,7 +10,8 @@ import (
 
 //   (~= QuicSpdy(Server|Client)Stream)
 type DataStreamProcessor interface {
-	OnStreamHeadersComplete(data []byte)
+	OnInitialHeadersComplete(data []byte)
+	OnTrailingHeadersComplete(data []byte)
 	OnDataAvailable(data []byte, isClosed bool)
 	OnClose()
 }
@@ -56,11 +57,18 @@ func CreateIncomingDynamicStream(session_c unsafe.Pointer, stream_id uint32, wra
 	return unsafe.Pointer(stream)
 }
 
-//export GoQuicSpdyServerStreamOnStreamHeadersComplete
-func GoQuicSpdyServerStreamOnStreamHeadersComplete(go_quic_spdy_server_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
+//export GoQuicSpdyServerStreamOnInitialHeadersComplete
+func GoQuicSpdyServerStreamOnInitialHeadersComplete(go_quic_spdy_server_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
 	stream := (*QuicServerStream)(go_quic_spdy_server_stream)
 	buf := C.GoBytes(data, C.int(data_len))
-	stream.UserStream().OnStreamHeadersComplete(buf)
+	stream.UserStream().OnInitialHeadersComplete(buf)
+}
+
+//export GoQuicSpdyServerStreamOnTrailingHeadersComplete
+func GoQuicSpdyServerStreamOnTrailingHeadersComplete(go_quic_spdy_server_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
+	stream := (*QuicServerStream)(go_quic_spdy_server_stream)
+	buf := C.GoBytes(data, C.int(data_len))
+	stream.UserStream().OnTrailingHeadersComplete(buf)
 }
 
 //export GoQuicSpdyServerStreamOnDataAvailable
@@ -76,11 +84,18 @@ func GoQuicSpdyServerStreamOnClose(go_quic_spdy_server_stream unsafe.Pointer) {
 	stream.UserStream().OnClose()
 }
 
-//export GoQuicSpdyClientStreamOnStreamHeadersComplete
-func GoQuicSpdyClientStreamOnStreamHeadersComplete(go_quic_spdy_client_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
+//export GoQuicSpdyClientStreamOnInitialHeadersComplete
+func GoQuicSpdyClientStreamOnInitialHeadersComplete(go_quic_spdy_client_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
 	stream := (*QuicClientStream)(go_quic_spdy_client_stream)
 	buf := C.GoBytes(data, C.int(data_len))
-	stream.UserStream().OnStreamHeadersComplete(buf)
+	stream.UserStream().OnInitialHeadersComplete(buf)
+}
+
+//export GoQuicSpdyClientStreamOnTrailingHeadersComplete
+func GoQuicSpdyClientStreamOnTrailingHeadersComplete(go_quic_spdy_client_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
+	stream := (*QuicClientStream)(go_quic_spdy_client_stream)
+	buf := C.GoBytes(data, C.int(data_len))
+	stream.UserStream().OnTrailingHeadersComplete(buf)
 }
 
 //export GoQuicSpdyClientStreamOnDataAvailable

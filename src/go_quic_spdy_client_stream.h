@@ -30,8 +30,11 @@ class NET_EXPORT_PRIVATE GoQuicSpdyClientStream : public QuicSpdyStream {
   // SPDY/HTTP does not support bidirectional streaming.
   void OnStreamFrame(const QuicStreamFrame& frame) override;
 
-  // Override the base class to store the size of the headers.
-  void OnStreamHeadersComplete(bool fin, size_t frame_len) override;
+  // Override the base class to parse and store headers.
+  void OnInitialHeadersComplete(bool fin, size_t frame_len) override;
+
+  // Override the base class to parse and store trailers.
+  void OnTrailingHeadersComplete(bool fin, size_t frame_len) override;
 
   // ReliableQuicStream implementation called by the session when there's
   // data for us.
@@ -43,9 +46,9 @@ class NET_EXPORT_PRIVATE GoQuicSpdyClientStream : public QuicSpdyStream {
   // we could access this function from C (go) side.
   void WriteOrBufferData_(base::StringPiece data, bool fin, net::QuicAckListenerInterface* ack_listener);
 
-  // While the server's set_priority shouldn't be called externally, the creator
+  // While the server's SetPriority shouldn't be called externally, the creator
   // of client-side streams should be able to set the priority.
-  using QuicSpdyStream::set_priority;
+  using QuicSpdyStream::SetPriority;
 
   bool allow_bidirectional_data() const { return allow_bidirectional_data_; }
 
