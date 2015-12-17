@@ -28,6 +28,7 @@ type QuicClient struct {
 	session                 *QuicClientSession
 	createQuicClientSession func() OutgoingDataStreamCreator
 	taskRunner              *TaskRunner
+	proofVerifier           *ProofVerifier
 }
 
 type QuicClientSession struct {
@@ -40,19 +41,20 @@ func (s *QuicClientSession) NumActiveRequests() int {
 	return int(C.quic_client_session_num_active_requests(s.quicClientSession))
 }
 
-func CreateQuicClient(addr *net.UDPAddr, conn QuicConn, createQuicClientSession func() OutgoingDataStreamCreator, taskRunner *TaskRunner) (qc *QuicClient, err error) {
+func CreateQuicClient(addr *net.UDPAddr, conn QuicConn, createQuicClientSession func() OutgoingDataStreamCreator, taskRunner *TaskRunner, proofVerifier *ProofVerifier) (qc *QuicClient, err error) {
 	return &QuicClient{
 		addr:                    addr,
 		conn:                    conn,
 		taskRunner:              taskRunner,
 		createQuicClientSession: createQuicClientSession,
+		proofVerifier:           proofVerifier,
 	}, nil
 }
 
 func (qc *QuicClient) StartConnect() {
 	addr := CreateIPEndPointPacked(qc.addr)
 	qc.session = &QuicClientSession{
-		quicClientSession: C.create_go_quic_client_session_and_initialize(unsafe.Pointer(qc.conn.Writer()), unsafe.Pointer(qc.taskRunner), addr), // Deleted on QuicClient.Close(),
+		quicClientSession: C.create_go_quic_client_session_and_initialize(unsafe.Pointer(qc.conn.Writer()), unsafe.Pointer(qc.taskRunner), unsafe.Pointer(qc.proofVerifier), addr), // Deleted on QuicClient.Close(),
 		quicClientStreams: make(map[*QuicClientStream]bool),
 		streamCreator:     qc.createQuicClientSession(),
 	}

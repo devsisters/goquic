@@ -95,3 +95,33 @@ func InitCryptoConfig(proofSource *ProofSource) *ServerCryptoConfig {
 	cryptoConfig_c := C.init_crypto_config(unsafe.Pointer(proofSource))
 	return &ServerCryptoConfig{cryptoConfig_c}
 }
+
+//export GetProof
+func GetProof(proof_source_c unsafe.Pointer, server_ip_c unsafe.Pointer, server_ip_sz C.size_t, hostname_c unsafe.Pointer, hostname_sz_c C.size_t, server_config_c unsafe.Pointer, server_config_sz_c C.size_t, ecdsa_ok_c C.int, out_certs_c ***C.char, out_certs_sz_c *C.int, out_certs_item_sz_c **C.size_t, out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
+	proofSource := (*ProofSource)(proof_source_c)
+	if !proofSource.impl.IsSecure() {
+		return C.int(0)
+	}
+
+	serverIp := net.IP(C.GoBytes(server_ip_c, C.int(server_ip_sz)))
+	hostname := C.GoBytes(hostname_c, C.int(hostname_sz_c))
+	serverConfig := C.GoBytes(server_config_c, C.int(server_config_sz_c))
+	ecdsaOk := int(ecdsa_ok_c) > 0
+
+	certs, sig := proofSource.impl.GetProof(serverIp, hostname, serverConfig, ecdsaOk)
+	certsCStrList := make([](*C.char), 0, 10)
+	certsCStrSzList := make([](C.size_t), 0, 10)
+	for _, outCert := range certs {
+		outCert_c := C.CString(string(outCert)) // Must free this C string in C code
+		certsCStrList = append(certsCStrList, outCert_c)
+		certsCStrSzList = append(certsCStrSzList, C.size_t(len(outCert)))
+	}
+
+	*out_certs_c = (**C.char)(unsafe.Pointer(&certsCStrList[0]))
+	*out_certs_sz_c = C.int(len(certsCStrList))
+	*out_certs_item_sz_c = (*C.size_t)(unsafe.Pointer(&certsCStrSzList[0]))
+	*out_signature_c = C.CString(string(sig)) // Must free C string
+	*out_signature_sz_c = C.size_t(len(sig))
+
+	return C.int(1)
+}

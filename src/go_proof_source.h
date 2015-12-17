@@ -1,9 +1,11 @@
 #ifndef __GO_PROOF_SOURCE__H__
 #define __GO_PROOF_SOURCE__H__
+
+#include <map>
+
 #include "net/quic/crypto/proof_source.h"
 #include "net/base/host_port_pair.h"
 
-#include <map>
 
 class GoProofSource : public net::ProofSource {
  public:

@@ -4,6 +4,7 @@
 #include "go_quic_spdy_client_stream.h"
 #include "go_quic_client_packet_writer.h"
 #include "go_quic_connection_helper.h"
+#include "go_proof_verifier.h"
 
 #include "net/base/ip_endpoint.h"
 #include "net/quic/quic_connection.h"
@@ -35,7 +36,7 @@ class GoQuicPacketWriterFactory : public QuicConnection::PacketWriterFactory {
 };
 
 
-GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_writer, void* task_runner, struct GoIPEndPoint* go_server_address) {
+GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_writer, void* task_runner, void* go_proof_verifier, struct GoIPEndPoint* go_server_address) {
   IPAddressNumber server_ip_addr(go_server_address->ip_buf, go_server_address->ip_buf + go_server_address->ip_length);
   IPEndPoint server_address(server_ip_addr, go_server_address->port);
 
@@ -67,7 +68,8 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_write
 
   // TODO(hodduc) "crypto_config" should be shared as global constant, but there is no clean way to do it now T.T
   // Deleted by ~GoQuicClientSession()
-  QuicCryptoClientConfig* crypto_config = new QuicCryptoClientConfig(nullptr);
+  ProofVerifier *proof_verifier = new GoProofVerifier(go_proof_verifier);
+  QuicCryptoClientConfig* crypto_config = new QuicCryptoClientConfig(proof_verifier);
   // TODO(hodduc): crypto_config proofverifier?
 
   GoQuicClientSession* session = new GoQuicClientSession(config, conn, server_id, crypto_config);  // Deleted by delete_go_quic_client_session()

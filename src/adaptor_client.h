@@ -23,7 +23,7 @@ typedef void MapStrStr;
 typedef void QuicEncryptedPacket;
 #endif
 
-GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_writer, void* task_runner, struct GoIPEndPoint* go_server_address);
+GoQuicClientSession* create_go_quic_client_session_and_initialize(void* go_writer, void* task_runner, void* go_proof_verifier, struct GoIPEndPoint* go_server_address);
 void delete_go_quic_client_session(GoQuicClientSession* go_quic_client_session);
 int go_quic_client_encryption_being_established(GoQuicClientSession* session);
 int go_quic_client_session_is_connected(GoQuicClientSession* session);

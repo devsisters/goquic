@@ -75,4 +75,14 @@ void GoQuicSpdyServerStreamOnClose_C(void* go_quic_spdy_server_stream) {
     GoQuicSpdyServerStreamOnClose(go_quic_spdy_server_stream);
 }
 
+void* NewProofVerifyJob_C(void* go_proof_verifier, const char* hostname, size_t hostname_len, const char* server_config, size_t server_config_len, const char* cert_sct, size_t cert_sct_len, const char* signature, size_t signature_len) {
+    return NewProofVerifyJob(go_proof_verifier, (void *)hostname, hostname_len, (void *)server_config, server_config_len, (void *)cert_sct, cert_sct_len, (void *)signature, signature_len);
+}
 
+void ProofVerifyJobAddCert_C(void* job, const char* cert, size_t cert_len) {
+    ProofVerifyJobAddCert(job, (void *)cert, cert_len);
+}
+
+int ProofVerifyJobVerifyProof_C(void* job) {
+    return ProofVerifyJobVerifyProof(job);
+}

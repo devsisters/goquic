@@ -25,6 +25,11 @@ void GoQuicSpdyClientStreamOnClose_C(void* go_quic_spdy_client_stream);
 void GoQuicSpdyServerStreamOnStreamHeadersComplete_C(void* go_quic_spdy_client_stream, const char *data, uint32_t data_len);
 void GoQuicSpdyServerStreamOnDataAvailable_C(void* go_quic_spdy_server_stream, const char *data, uint32_t data_len, int is_closed);
 void GoQuicSpdyServerStreamOnClose_C(void* go_quic_spdy_server_stream);
+
+void* NewProofVerifyJob_C(void* go_proof_verifier, const char* hostname, size_t hostname_len, const char* server_config, size_t server_config_len, const char* cert_sct, size_t cert_sct_len, const char* signature, size_t signature_len);
+void ProofVerifyJobAddCert_C(void* job, const char* cert, size_t cert_len);
+int ProofVerifyJobVerifyProof_C(void* job);
+
 #ifdef __cplusplus
 }
 #endif
