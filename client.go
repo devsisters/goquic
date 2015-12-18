@@ -92,6 +92,8 @@ func (q *QuicRoundTripper) RoundTrip(request *http.Request) (*http.Response, err
 	}
 	resp.Request = request
 
+	resp.Trailer = st.Trailer()
+
 	if q.keepConnection {
 		resp.Body = ioutil.NopCloser(st)
 	} else {

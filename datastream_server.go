@@ -49,7 +49,6 @@ func (stream *SpdyServerStream) OnInitialHeadersComplete(headerBuf []byte) {
 }
 
 func (stream *SpdyServerStream) OnTrailingHeadersComplete(headerBuf []byte) {
-	// TODO(hodduc)
 }
 
 func (stream *SpdyServerStream) OnDataAvailable(data []byte, isClosed bool) {
@@ -102,6 +101,7 @@ func (stream *SpdyServerStream) ProcessRequest() {
 		} else {
 			http.DefaultServeMux.ServeHTTP(w, req)
 		}
+		// TODO:
 
 		stream.sessionFnChan <- func() {
 			if stream.closed {
@@ -119,6 +119,7 @@ func (stream *SpdyServerStream) closeNotify() <-chan bool {
 	return stream.closeNotifyChan
 }
 
+// TODO(hodduc): Somehow support trailing headers
 type spdyResponseWriter struct {
 	serverStream  *QuicServerStream
 	spdyStream    *SpdyServerStream

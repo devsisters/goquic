@@ -29,6 +29,8 @@ type SpdyClientStream struct {
 	pendingReads     *lane.Queue
 	header           http.Header
 	headerParsed     bool
+	trailer          http.Header
+	trailerParsed    bool
 	// True readFinished means that this stream is half-closed on read-side
 	readFinished bool
 	// True writeFinished means that this stream is half-closed on write-side
@@ -47,7 +49,12 @@ func (stream *SpdyClientStream) OnInitialHeadersComplete(headerBuf []byte) {
 }
 
 func (stream *SpdyClientStream) OnTrailingHeadersComplete(headerBuf []byte) {
-	// TODO(hodduc)
+	if header, err := spdy.ParseHeaders(bytes.NewReader(headerBuf)); err != nil {
+		// TODO(hodduc) should raise proper error
+	} else {
+		stream.trailer = header
+		stream.trailerParsed = true
+	}
 }
 
 func (stream *SpdyClientStream) OnDataAvailable(data []byte, isClosed bool) {
@@ -71,6 +78,18 @@ func (stream *SpdyClientStream) Header() (http.Header, error) {
 		return stream.header, nil
 	} else {
 		return http.Header{}, errors.New("Cannot read header")
+	}
+}
+
+func (stream *SpdyClientStream) Trailer() http.Header {
+	for stream.pendingReads.Empty() {
+		stream.conn.waitForEvents()
+	}
+
+	if stream.trailerParsed {
+		return stream.trailer
+	} else {
+		return http.Header{}
 	}
 }
 
