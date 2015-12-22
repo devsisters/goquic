@@ -7,6 +7,7 @@
 #include "net/base/host_port_pair.h"
 
 
+// This should be thread-safe, because multiple dispatcher may concurrently call GetProof()
 class GoProofSource : public net::ProofSource {
  public:
   GoProofSource(void* go_proof_source);

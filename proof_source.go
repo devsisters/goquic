@@ -19,6 +19,7 @@ type ProofSource struct {
 }
 
 type ProofSourceImpl interface {
+	// Implementor should be thread-safe
 	GetProof(addr net.IP, hostname []byte, serverConfig []byte, ecdsaOk bool) (outCerts [][]byte, outSignature []byte)
 	IsSecure() bool
 }
@@ -111,6 +112,9 @@ func GetProof(proof_source_c unsafe.Pointer, server_ip_c unsafe.Pointer, server_
 	certs, sig := proofSource.impl.GetProof(serverIp, hostname, serverConfig, ecdsaOk)
 	certsCStrList := make([](*C.char), 0, 10)
 	certsCStrSzList := make([](C.size_t), 0, 10)
+
+	// XXX(hodduc): certsCStrList and certsCStrSzList may be garbage collected before reading in C side, isn't it?
+
 	for _, outCert := range certs {
 		outCert_c := C.CString(string(outCert)) // Must free this C string in C code
 		certsCStrList = append(certsCStrList, outCert_c)

@@ -37,13 +37,18 @@ bool GoProofSource::GetProof(const net::IPAddressNumber& server_ip,
         certs->push_back(std::string(c_certs[i], c_certs_item_sz[i]));
         free(c_certs[i]);  // Created from go side
     }
+
+    /*
     // XXX(serialx): certs_cache_ only keeps growing. And we don't actually use it for cache. :(
+    // XXX(hodduc): this code is not thread-safe. should be locked when this snippet is uncommented
+    //
     auto it = certs_cache_.find(hostname);
     if (it != certs_cache_.end()) {
         certs_cache_.erase(it);  // Erase former allocated vector
         delete it->second;
     }
     certs_cache_[hostname] = certs;
+    */
 
     std::string signature(c_out_signature, c_out_signature_sz);
     free(c_out_signature);  // Created from go side
