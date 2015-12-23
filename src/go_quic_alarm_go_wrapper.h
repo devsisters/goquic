@@ -15,7 +15,6 @@ class GoQuicAlarmGoWrapper : public QuicAlarm {
                          void* task_runner,
                          QuicAlarm::Delegate* delegate)
       : QuicAlarm(delegate),
-        clock_(clock),
         go_quic_alarm_(CreateGoQuicAlarm_C(this, clock, task_runner)) {}
 
     virtual ~GoQuicAlarmGoWrapper() {
@@ -41,7 +40,6 @@ class GoQuicAlarmGoWrapper : public QuicAlarm {
     }
 
   private:
-    QuicClock* clock_;
     void* go_quic_alarm_;
 
     int64_t quic_clock_to_int64(QuicTime time) {
