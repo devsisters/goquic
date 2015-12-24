@@ -85,9 +85,9 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 			case 0xC:
 				connId = binary.LittleEndian.Uint64(buf[1:9])
 			case 0x8:
-				connId = binary.LittleEndian.Uint64(buf[1:5])
+				connId = uint64(binary.LittleEndian.Uint32(buf[1:5]))
 			case 0x4:
-				connId = binary.LittleEndian.Uint64(buf[1:2])
+				connId = uint64(binary.LittleEndian.Uint16(buf[1:2]))
 			default:
 				connId = 0
 			}
