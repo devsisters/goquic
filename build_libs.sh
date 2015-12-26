@@ -8,8 +8,10 @@ if [ $ARCH_TYPE == "x86_64" ]; then
     GOARCH="amd64"
 elif [ $ARCH_TYPE == "x86" ]; then
     GOARCH="386"
+elif [ $ARCH_TYPE == "amd64" ]; then       # freeBSD?
+    GOARCH="amd64"
 else
-    echo "Unkown architecture"
+    echo "Unknown architecture"
     exit 1
 fi
 
@@ -17,8 +19,10 @@ if [ $OS_TYPE == "Linux" ]; then
     GOOS="linux"
 elif [ $OS_TYPE == "Darwin" ]; then
     GOOS="darwin"
+elif [ $OS_TYPE == "FreeBSD" ]; then
+    GOOS="freebsd"
 else
-    echo "Unkown OS"
+    echo "Unknown OS"
     exit 1
 fi
 
@@ -47,7 +51,11 @@ cp libquic/build/boringssl/crypto/libcrypto.a libquic/build/boringssl/ssl/libssl
 
 rm -fr build libgoquic.a
 
-make -j
+if [ $GOOS == "freebsd" ]; then
+    gmake -j
+else
+    make -j
+fi
 mv libgoquic.a $TARGET_DIR
 
 echo $TARGET_DIR updated

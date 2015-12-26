@@ -18,7 +18,7 @@ void* CreateGoSession_C(void* go_quic_dispatcher, void* quic_server_session) {
     return CreateGoSession(go_quic_dispatcher, quic_server_session);
 }
 
-void* DeleteGoSession_C(void* go_quic_dispatcher, void* go_quic_server_session) {
+void DeleteGoSession_C(void* go_quic_dispatcher, void* go_quic_server_session) {
     DeleteGoSession(go_quic_dispatcher, go_quic_server_session);
 }
 
