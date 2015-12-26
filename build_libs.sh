@@ -1,5 +1,4 @@
-#!/usr/bin/env bash
-set -e
+#!/bin/sh -e
 
 ARCH_TYPE=$(uname -m)
 OS_TYPE=$(uname -s)
@@ -30,10 +29,7 @@ echo "GOARCH: $GOARCH"
 echo "GOOS: $GOOS"
 
 if [ ! -d libquic ]; then
-    #git clone https://github.com/devsisters/libquic.git
-    git clone git@github.com:devsisters/libquic.git
-    #cd libquic
-    #git checkout $REV
+    git clone https://github.com/devsisters/libquic.git
 fi
 
 cd libquic
