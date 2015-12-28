@@ -43,30 +43,17 @@ func main() {
 	flag.Parse()
 	goquic.SetLogLevel(logLevel)
 
-	useEncryption := false
-	if len(cert) > 0 && len(key) > 0 {
-		useEncryption = true
+	if len(cert) == 0 || len(key) == 0 {
+		log.Fatal("QUIC doesn't support non-encrypted mode anymore. Please provide -cert and -key option!")
 	}
 
-	scheme := "http"
-	if useEncryption {
-		scheme = "https"
-	}
-	log.Printf("About to listen on %d. Go to %s://127.0.0.1:%d/", port, scheme, port)
+	log.Printf("About to listen on %d. Go to https://127.0.0.1:%d/", port, port)
 	portStr := fmt.Sprintf(":%d", port)
 
 	http.HandleFunc("/", httpHandler)
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir(serveRoot))))
 
-	var err error
-
-	if useEncryption {
-		err = goquic.ListenAndServeSecure(portStr, cert, key, numOfServers, nil)
-	} else {
-		err = goquic.ListenAndServe(portStr, numOfServers, nil)
-	}
-
-	if err != nil {
+	if err := goquic.ListenAndServe(portStr, cert, key, numOfServers, nil); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -167,38 +167,44 @@ func parsePort(addr string) (port int, err error) {
 	return port, nil
 }
 
-func ListenAndServe(addr string, numOfServers int, handler http.Handler) error {
-	if handler == nil {
-		handler = http.DefaultServeMux
-	}
-	return ListenAndServeRaw(addr, "", "", numOfServers, handler, handler)
-}
-
-func ListenAndServeSecure(addr string, certFile string, keyFile string, numOfServers int, handler http.Handler) error {
+func ListenAndServe(addr string, certFile string, keyFile string, numOfServers int, handler http.Handler) error {
 	if handler == nil {
 		handler = http.DefaultServeMux
 	}
 	if certFile == "" || keyFile == "" {
 		return errors.New("cert / key should be provided")
 	}
-	return ListenAndServeRaw(addr, certFile, keyFile, numOfServers, handler, handler)
+
+	if server, err := NewServer(addr, certFile, keyFile, numOfServers, handler, handler); err != nil {
+		return err
+	} else {
+		return server.ListenAndServe()
+	}
 }
 
 func ListenAndServeQuicSpdyOnly(addr string, certFile string, keyFile string, numOfServers int, handler http.Handler) error {
 	if handler == nil {
 		handler = http.DefaultServeMux
 	}
-	return ListenAndServeRaw(addr, certFile, keyFile, numOfServers, handler, nil)
+	if certFile == "" || keyFile == "" {
+		return errors.New("cert / key should be provided")
+	}
+
+	if server, err := NewServer(addr, certFile, keyFile, numOfServers, handler, nil); err != nil {
+		return err
+	} else {
+		return server.ListenAndServe()
+	}
 }
 
-func ListenAndServeRaw(addr string, certFile string, keyFile string, numOfServers int, quicHandler http.Handler, nonQuicHandler http.Handler) error {
+func NewServer(addr string, certFile string, keyFile string, numOfServers int, quicHandler http.Handler, nonQuicHandler http.Handler) (*QuicSpdyServer, error) {
 	port, err := parsePort(addr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if quicHandler == nil {
-		return errors.New("quic handler should be provided")
+		return nil, errors.New("quic handler should be provided")
 	}
 
 	if nonQuicHandler != nil {
@@ -222,7 +228,7 @@ func ListenAndServeRaw(addr string, certFile string, keyFile string, numOfServer
 	if certFile != "" && keyFile != "" {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
 		server.isSecure = true
@@ -231,5 +237,5 @@ func ListenAndServeRaw(addr string, certFile string, keyFile string, numOfServer
 		server.isSecure = false
 	}
 
-	return server.ListenAndServe()
+	return server, nil
 }
