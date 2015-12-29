@@ -139,7 +139,6 @@ void delete_quic_encrypted_packet(QuicEncryptedPacket *packet) {
   delete packet;
 }
 
-// Utility wrappers for C++ std::map
 SpdyHeaderBlock* initialize_header_block() {
   return new SpdyHeaderBlock; // Delete by delete_header_block
 }
@@ -170,4 +169,54 @@ int64_t clock_now(QuicClock* quic_clock) {
 
 void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv) {
   cb->OnWriteComplete(rv);
+}
+
+struct ConnStat quic_server_session_connection_stat(GoQuicServerSession* sess) {
+  QuicConnection* conn = sess->connection();
+  QuicConnectionStats stats = conn->GetStats();
+
+  struct ConnStat stat = {
+    (uint64)(conn->connection_id()),
+
+    stats.bytes_sent,
+    stats.packets_sent,
+    stats.stream_bytes_sent,
+    stats.packets_discarded,
+
+    stats.bytes_received,
+    stats.packets_received,
+    stats.packets_processed,
+    stats.stream_bytes_received,
+
+    stats.bytes_retransmitted,
+    stats.packets_retransmitted,
+
+    stats.bytes_spuriously_retransmitted,
+    stats.packets_spuriously_retransmitted,
+    stats.packets_lost,
+
+    stats.slowstart_packets_sent,
+    stats.slowstart_packets_lost,
+
+    stats.packets_revived,
+    stats.packets_dropped,
+    stats.crypto_retransmit_count,
+    stats.loss_timeout_count,
+    stats.tlp_count,
+    stats.rto_count,
+
+    stats.min_rtt_us,
+    stats.srtt_us,
+    stats.max_packet_size,
+    stats.max_received_packet_size,
+
+    stats.estimated_bandwidth.ToBitsPerSecond(),
+
+    stats.packets_reordered,
+    stats.max_sequence_reordering,
+    stats.max_time_reordering_us,
+    stats.tcp_loss_events
+  };
+
+  return stat;
 }

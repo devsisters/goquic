@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -30,6 +31,25 @@ func httpHandler(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("AtEnd3", "value 3") // These will appear as trailers.
 }
 
+func statisticsHandler(server *goquic.QuicSpdyServer) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		stat, err := server.Statistics()
+		if err != nil {
+			http.Error(w, "cannot load statistics", http.StatusInternalServerError)
+			return
+		}
+
+		r, err := json.Marshal(stat)
+		if err != nil {
+			http.Error(w, "cannot marshal stat objects", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(r)
+	}
+}
+
 func init() {
 	flag.IntVar(&numOfServers, "n", 1, "Number of concurrent quic dispatchers")
 	flag.IntVar(&port, "port", 8080, "TCP/UDP port number to listen")
@@ -53,7 +73,12 @@ func main() {
 	http.HandleFunc("/", httpHandler)
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir(serveRoot))))
 
-	if err := goquic.ListenAndServe(portStr, cert, key, numOfServers, nil); err != nil {
+	server, err := goquic.NewServer(portStr, cert, key, numOfServers, http.DefaultServeMux, http.DefaultServeMux)
+	if err != nil {
 		log.Fatal(err)
 	}
+
+	http.Handle("/statistics/json", statisticsHandler(server))
+
+	log.Fatal(server.ListenAndServe())
 }

@@ -20,11 +20,37 @@ type QuicSpdyServer struct {
 	ReadTimeout    time.Duration
 	WriteTimeout   time.Duration
 	MaxHeaderBytes int
-	numOfServers   int
 	Certificate    tls.Certificate
-	isSecure       bool
-	sessionFnChan  chan func()
-	proofSource    *ProofSource // to prevent garbage collecting
+
+	numOfServers  int
+	isSecure      bool
+	proofSource   *ProofSource // to prevent garbage collecting
+	statisticsReq [](chan statCallback)
+}
+
+func (srv *QuicSpdyServer) Statistics() (*ServerStatistics, error) {
+	if srv.statisticsReq == nil {
+		return nil, errors.New("Server not started")
+	}
+
+	serverStat := &ServerStatistics{}
+	dispatcherStatCh := make(chan DispatcherStatistics)
+
+	go func() {
+		for i := 0; i < len(srv.statisticsReq); i++ {
+			cb := make(statCallback, 1)
+			srv.statisticsReq[i] <- cb         // Send "cb" cannel to dispatcher
+			dispatcherStat := <-cb             // Get return value from "cb" channel
+			dispatcherStatCh <- dispatcherStat // Send return value to pipeline
+		}
+		close(dispatcherStatCh)
+	}()
+
+	for dispatcherStat := range dispatcherStatCh {
+		serverStat.SessionStatistics = append(serverStat.SessionStatistics, dispatcherStat.SessionStatistics...)
+	}
+
+	return serverStat, nil
 }
 
 func (srv *QuicSpdyServer) ListenAndServe() error {
@@ -40,11 +66,13 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 	proofSource := NewProofSource(serverProofSource)
 	cryptoConfig := InitCryptoConfig(proofSource)
 	srv.proofSource = proofSource
+	srv.statisticsReq = make([](chan statCallback), srv.numOfServers)
 
 	// N consumers
 	for i := 0; i < srv.numOfServers; i++ {
 		rch := make(chan UdpData, 500)
 		wch := make(chan UdpData, 500) // TODO(serialx, hodduc): Optimize buffer size
+		statch := make(chan statCallback, 0)
 
 		conn, err := reuseport.NewReusablePortPacketConn("udp4", addr)
 		if err != nil {
@@ -65,7 +93,8 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 
 		readChanArray[i] = rch
 		writerArray[i] = NewServerWriter(wch)
-		go srv.Serve(listen_addr, writerArray[i], readChanArray[i], cryptoConfig)
+		srv.statisticsReq[i] = statch
+		go srv.Serve(listen_addr, writerArray[i], readChanArray[i], srv.statisticsReq[i], cryptoConfig)
 	}
 
 	// N producers
@@ -117,7 +146,7 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 	return nil
 }
 
-func (srv *QuicSpdyServer) Serve(listen_addr *net.UDPAddr, writer *ServerWriter, readChan chan UdpData, cryptoConfig *ServerCryptoConfig) error {
+func (srv *QuicSpdyServer) Serve(listen_addr *net.UDPAddr, writer *ServerWriter, readChan chan UdpData, statChan chan statCallback, cryptoConfig *ServerCryptoConfig) error {
 	runtime.LockOSThread()
 
 	sessionFnChan := make(chan func())
@@ -142,6 +171,12 @@ func (srv *QuicSpdyServer) Serve(listen_addr *net.UDPAddr, writer *ServerWriter,
 				break
 			}
 			fn()
+		case statCallback, ok := <-statChan:
+			if !ok {
+				break
+			}
+			stat := dispatcher.Statistics()
+			statCallback <- stat
 		}
 	}
 }

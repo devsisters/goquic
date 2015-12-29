@@ -25,11 +25,11 @@ namespace net {
 
 class QuicConfig;
 class QuicCryptoServerConfig;
-class GoQuicServerSession;
 
 namespace tools {
 
 class GoQuicServerPacketWriter;
+class GoQuicServerSession;
 
 class ProcessPacketInterface {
  public:

@@ -24,10 +24,9 @@ extern "C" {
 #else
 typedef void QuicConnection;
 typedef void QuicEncryptedPacket;
-typedef void IPAddressNumber;
-typedef void IPEndPoint;
 typedef void GoQuicDispatcher;
 typedef void GoQuicSpdyServerStream;
+typedef void GoQuicServerSession;
 typedef void SpdyHeaderBlock;
 typedef void GoQuicAlarmGoWrapper;
 typedef void QuicClock;
@@ -61,7 +60,7 @@ void quic_spdy_server_stream_write_or_buffer_data(GoQuicSpdyServerStream* wrappe
 void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm);
 int64_t clock_now(QuicClock* clock);
 void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv);
-void test_quic();
+struct ConnStat quic_server_session_connection_stat(GoQuicServerSession* sess);
 #ifdef __cplusplus
 }
 #endif

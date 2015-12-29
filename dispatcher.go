@@ -46,6 +46,14 @@ func (d *QuicDispatcher) ProcessPacket(self_address *net.UDPAddr, peer_address *
 	)
 }
 
+func (d *QuicDispatcher) Statistics() DispatcherStatistics {
+	stat := DispatcherStatistics{make([]SessionStatistics, 0)}
+	for session, _ := range d.quicServerSessions {
+		stat.SessionStatistics = append(stat.SessionStatistics, SessionStatistics{C.quic_server_session_connection_stat(session.quicServerSession)})
+	}
+	return stat
+}
+
 //export CreateGoSession
 func CreateGoSession(dispatcher_c unsafe.Pointer, session_c unsafe.Pointer) unsafe.Pointer {
 	dispatcher := (*QuicDispatcher)(dispatcher_c)
