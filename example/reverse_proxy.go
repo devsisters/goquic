@@ -42,11 +42,7 @@ func main() {
 
 	proxyUrl := flag.Arg(0)
 
-	scheme := "http"
-	if useEncryption {
-		scheme = "https"
-	}
-	log.Printf("About to listen on %d. Go to %s://127.0.0.1:%d/", port, scheme, port)
+	log.Printf("About to listen on %d. Go to https://127.0.0.1:%d/", port, port)
 	portStr := fmt.Sprintf(":%d", port)
 
 	parsedUrl, err := url.Parse(proxyUrl)
