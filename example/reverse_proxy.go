@@ -40,10 +40,6 @@ func main() {
 		return
 	}
 
-	useEncryption := false
-	if len(cert) > 0 && len(key) > 0 {
-		useEncryption = true
-	}
 	proxyUrl := flag.Arg(0)
 
 	scheme := "http"
@@ -60,11 +56,7 @@ func main() {
 
 	log.Printf("Starting reverse proxy for backend URL: %v", parsedUrl)
 
-	if useEncryption {
-		err = goquic.ListenAndServeSecure(portStr, cert, key, numOfServers, httputil.NewSingleHostReverseProxy(parsedUrl))
-	} else {
-		err = goquic.ListenAndServe(portStr, numOfServers, httputil.NewSingleHostReverseProxy(parsedUrl))
-	}
+	err = goquic.ListenAndServe(portStr, cert, key, numOfServers, httputil.NewSingleHostReverseProxy(parsedUrl))
 	if err != nil {
 		log.Fatal(err)
 	}
