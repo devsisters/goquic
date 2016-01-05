@@ -3,22 +3,22 @@
 ARCH_TYPE=$(uname -m)
 OS_TYPE=$(uname -s)
 
-if [ $ARCH_TYPE == "x86_64" ]; then
+if [ $ARCH_TYPE = "x86_64" ]; then
     GOARCH="amd64"
-elif [ $ARCH_TYPE == "x86" ]; then
+elif [ $ARCH_TYPE = "x86" ]; then
     GOARCH="386"
-elif [ $ARCH_TYPE == "amd64" ]; then       # freeBSD?
+elif [ $ARCH_TYPE = "amd64" ]; then       # freeBSD?
     GOARCH="amd64"
 else
     echo "Unknown architecture"
     exit 1
 fi
 
-if [ $OS_TYPE == "Linux" ]; then
+if [ $OS_TYPE = "Linux" ]; then
     GOOS="linux"
-elif [ $OS_TYPE == "Darwin" ]; then
+elif [ $OS_TYPE = "Darwin" ]; then
     GOOS="darwin"
-elif [ $OS_TYPE == "FreeBSD" ]; then
+elif [ $OS_TYPE = "FreeBSD" ]; then
     GOOS="freebsd"
 else
     echo "Unknown OS"
@@ -47,7 +47,7 @@ cp libquic/build/boringssl/crypto/libcrypto.a libquic/build/boringssl/ssl/libssl
 
 rm -fr build libgoquic.a
 
-if [ $GOOS == "freebsd" ]; then
+if [ $GOOS = "freebsd" ]; then
     gmake -j
 else
     make -j
