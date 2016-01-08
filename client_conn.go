@@ -115,7 +115,7 @@ func (c *Conn) CreateStream() *SpdyClientStream {
 	stream := &SpdyClientStream{
 		conn:             c,
 		quicClientStream: quicClientStream,
-		pendingReads:     lane.NewQueue(),
+		pendingReads:     lane.NewDeque(),
 	}
 	quicClientStream.userStream = stream
 	return stream

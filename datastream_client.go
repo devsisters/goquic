@@ -24,9 +24,10 @@ func (c *SpdyClientSession) CreateOutgoingDynamicStream() DataStreamProcessor {
 
 // implement DataStreamProcessor for Client
 type SpdyClientStream struct {
+	// not goroutine-safe
 	conn             *Conn
 	quicClientStream *QuicClientStream
-	pendingReads     *lane.Queue
+	pendingReads     *lane.Deque
 	header           http.Header
 	headerParsed     bool
 	trailer          http.Header
@@ -58,7 +59,7 @@ func (stream *SpdyClientStream) OnTrailingHeadersComplete(headerBuf []byte) {
 }
 
 func (stream *SpdyClientStream) OnDataAvailable(data []byte, isClosed bool) {
-	stream.pendingReads.Enqueue(data)
+	stream.pendingReads.Append(data)
 	if isClosed {
 		stream.readFinished = true
 	}
@@ -93,7 +94,7 @@ func (stream *SpdyClientStream) Trailer() http.Header {
 	}
 }
 
-func (stream *SpdyClientStream) Read(buf []byte) (int, error) {
+func (stream *SpdyClientStream) Read(p []byte) (int, error) {
 	stream.conn.processEventsWithDeadline(time.Now()) // Process any pending events
 
 	// We made sure we've processed all events. So pendingReads.Empty() means that it is really empty
@@ -109,8 +110,13 @@ func (stream *SpdyClientStream) Read(buf []byte) (int, error) {
 		}
 	}
 
-	buffer := stream.pendingReads.Dequeue().([]byte)
-	return copy(buf, buffer), nil // XXX(serialx): Must do buffering to respect io.Reader specs
+	buffer := stream.pendingReads.Shift().([]byte)
+	if len(p) < len(buffer) {
+		stream.pendingReads.Prepend(buffer[len(p):])
+		return copy(p, buffer[:len(p)]), nil
+	} else {
+		return copy(p, buffer), nil
+	}
 }
 
 func (stream *SpdyClientStream) WriteHeader(header http.Header, isBodyEmpty bool) {
