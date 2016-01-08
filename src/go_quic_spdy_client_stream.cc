@@ -57,6 +57,8 @@ void GoQuicSpdyClientStream::OnTrailingHeadersComplete(bool fin,
 }
 
 void GoQuicSpdyClientStream::OnDataAvailable() {
+  std::string buf;
+
   while (HasBytesToRead()) {
     struct iovec iov;
     if (GetReadableRegions(&iov, 1) == 0) {
@@ -65,8 +67,8 @@ void GoQuicSpdyClientStream::OnDataAvailable() {
     }
     DVLOG(1) << "Client processed " << iov.iov_len << " bytes for stream "
              << id();
-    data_.append(static_cast<char*>(iov.iov_base), iov.iov_len);
 
+    buf.append(static_cast<char*>(iov.iov_base), iov.iov_len);
     MarkConsumed(iov.iov_len);
   }
   if (sequencer()->IsClosed()) {
@@ -75,7 +77,8 @@ void GoQuicSpdyClientStream::OnDataAvailable() {
     sequencer()->SetUnblocked();
   }
 
-  GoQuicSpdyClientStreamOnDataAvailable_C(go_quic_client_stream_, data_.data(), data_.length(), sequencer()->IsClosed());
+  // XXX(hodduc): We can call OnDataAvailable every times(with iov) or just once. Which one is better???
+  GoQuicSpdyClientStreamOnDataAvailable_C(go_quic_client_stream_, buf.data(), buf.size(), sequencer()->IsClosed());
 }
 
 void GoQuicSpdyClientStream::OnClose() {

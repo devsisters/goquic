@@ -53,7 +53,6 @@ class NET_EXPORT_PRIVATE GoQuicSpdyClientStream : public QuicSpdyStream {
   bool allow_bidirectional_data() const { return allow_bidirectional_data_; }
 
  private:
-  std::string data_;
   // When true allows the sending of a request to continue while the response is
   // arriving.
   // XXX: Currently not supported in goquic
