@@ -38,14 +38,15 @@ func (q *QuicRoundTripper) RoundTrip(request *http.Request) (*http.Response, err
 	var conn *Conn
 	var exists bool
 
-	conn, exists = q.conns[request.Host]
+	conn, exists = q.conns[request.URL.Host]
 	if !q.keepConnection || !exists {
-		conn_new, err := Dial("udp4", request.Host)
+		conn_new, err := Dial("udp4", request.URL.Host)
 		if err != nil {
 			return nil, err
 		}
 
-		q.conns[request.Host] = conn_new
+		q.conns[request.URL.Host] = conn_new
+
 		conn = conn_new
 	}
 	st := conn.CreateStream()
@@ -56,7 +57,7 @@ func (q *QuicRoundTripper) RoundTrip(request *http.Request) (*http.Response, err
 			header.Add(k, vv)
 		}
 	}
-	header.Set(":host", request.Host)
+	header.Set(":host", request.URL.Host)
 	header.Set(":version", request.Proto)
 	header.Set(":method", request.Method)
 	header.Set(":path", request.URL.RequestURI())
@@ -105,6 +106,7 @@ func (q *QuicRoundTripper) RoundTrip(request *http.Request) (*http.Response, err
 			return nil, err
 		}
 		resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
 		conn.Close()
 	}
 
