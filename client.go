@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type QuicRoundTripper struct {
 	conns          map[string]*Conn
+	connsLock      *sync.RWMutex
 	keepConnection bool
 }
 
@@ -23,6 +25,7 @@ type badStringError struct {
 func NewRoundTripper(keepConnection bool) *QuicRoundTripper {
 	return &QuicRoundTripper{
 		conns:          make(map[string]*Conn),
+		connsLock:      &sync.RWMutex{},
 		keepConnection: keepConnection,
 	}
 }
@@ -38,17 +41,24 @@ func (q *QuicRoundTripper) RoundTrip(request *http.Request) (*http.Response, err
 	var conn *Conn
 	var exists bool
 
+	q.connsLock.RLock()
 	conn, exists = q.conns[request.URL.Host]
+	q.connsLock.RUnlock()
 	if !q.keepConnection || !exists {
 		conn_new, err := Dial("udp4", request.URL.Host)
 		if err != nil {
 			return nil, err
 		}
 
+		q.connsLock.Lock()
 		q.conns[request.URL.Host] = conn_new
+		q.connsLock.Unlock()
 
 		conn = conn_new
 	}
+
+	conn.Lock()
+	defer conn.Unlock()
 	st := conn.CreateStream()
 
 	header := make(http.Header)

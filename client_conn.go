@@ -5,12 +5,14 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/oleiade/lane"
 )
 
 type Conn struct {
+	sync.Mutex
 	addr        *net.UDPAddr
 	sock        *net.UDPConn
 	quicClient  *QuicClient
