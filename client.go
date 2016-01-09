@@ -33,9 +33,9 @@ func NewRoundTripper(keepConnection bool) *QuicRoundTripper {
 func (e *badStringError) Error() string { return fmt.Sprintf("%s %q", e.what, e.str) }
 
 func (q *QuicRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
-	if request.Method != "GET" {
-		return nil, errors.New("non-GET request is not supported yet. Sorry.")
-		// TODO(hodduc): POST / HEAD / PUT support
+	if request.Method != "GET" && request.Method != "POST" {
+		return nil, errors.New("non-GET/POST request is not supported yet. Sorry.")
+		// TODO(hodduc): HEAD / PUT support
 	}
 
 	var conn *Conn
@@ -75,6 +75,21 @@ func (q *QuicRoundTripper) RoundTrip(request *http.Request) (*http.Response, err
 
 	if request.Method == "GET" {
 		st.WriteHeader(header, true)
+	} else if request.Method == "POST" {
+		st.WriteHeader(header, false)
+
+		body, err := ioutil.ReadAll(request.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, err := st.Write(body); err != nil {
+			return nil, err
+		}
+
+		if err := st.FinWrite(); err != nil {
+			return nil, err
+		}
 	}
 
 	recvHeader, err := st.Header()
