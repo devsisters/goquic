@@ -24,12 +24,13 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
  public:
   typedef base::Callback<void(WriteResult)> WriteCallback;
 
-  GoQuicServerPacketWriter(void *go_writer,
-      QuicBlockedWriterInterface* blocked_writer);
+  GoQuicServerPacketWriter(void* go_writer,
+                           QuicBlockedWriterInterface* blocked_writer);
   ~GoQuicServerPacketWriter() override;
 
   // Use this method to write packets rather than WritePacket:
-  // GoQuicServerPacketWriter requires a callback to exist for every write, which
+  // GoQuicServerPacketWriter requires a callback to exist for every write,
+  // which
   // will be called once the write completes.
   virtual WriteResult WritePacketWithCallback(
       const char* buffer,

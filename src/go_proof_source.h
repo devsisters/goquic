@@ -6,8 +6,8 @@
 #include "net/quic/crypto/proof_source.h"
 #include "net/base/host_port_pair.h"
 
-
-// This should be thread-safe, because multiple dispatcher may concurrently call GetProof()
+// This should be thread-safe, because multiple dispatcher may concurrently call
+// GetProof()
 class GoProofSource : public net::ProofSource {
  public:
   GoProofSource(void* go_proof_source);
@@ -24,7 +24,7 @@ class GoProofSource : public net::ProofSource {
 
  private:
   void* go_proof_source_;
-  std::map<std::string, std::vector<std::string>* > certs_cache_;
+  std::map<std::string, std::vector<std::string>*> certs_cache_;
   std::vector<std::string> certs_;
   DISALLOW_COPY_AND_ASSIGN(GoProofSource);
 };

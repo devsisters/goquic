@@ -18,7 +18,7 @@ type SpdyServerSession struct {
 }
 
 func (s *SpdyServerSession) CreateIncomingDynamicStream(quicServerStream *QuicServerStream, streamId uint32) DataStreamProcessor {
-	stream := &SpdyServerStream{
+	stream := &SimpleServerStream{
 		streamId:         streamId,
 		server:           s.server,
 		buffer:           new(bytes.Buffer),
@@ -29,7 +29,7 @@ func (s *SpdyServerSession) CreateIncomingDynamicStream(quicServerStream *QuicSe
 }
 
 // implement DataStreamProcessor for Server
-type SpdyServerStream struct {
+type SimpleServerStream struct {
 	closed           bool
 	streamId         uint32 // Just for logging purpose
 	header           http.Header
@@ -40,7 +40,7 @@ type SpdyServerStream struct {
 	closeNotifyChan  chan bool
 }
 
-func (stream *SpdyServerStream) OnInitialHeadersComplete(headerBuf []byte) {
+func (stream *SimpleServerStream) OnInitialHeadersComplete(headerBuf []byte) {
 	if header, err := spdy.ParseHeaders(bytes.NewReader(headerBuf)); err != nil {
 		// TODO(hodduc) should raise proper error
 	} else {
@@ -48,24 +48,24 @@ func (stream *SpdyServerStream) OnInitialHeadersComplete(headerBuf []byte) {
 	}
 }
 
-func (stream *SpdyServerStream) OnTrailingHeadersComplete(headerBuf []byte) {
+func (stream *SimpleServerStream) OnTrailingHeadersComplete(headerBuf []byte) {
 }
 
-func (stream *SpdyServerStream) OnDataAvailable(data []byte, isClosed bool) {
+func (stream *SimpleServerStream) OnDataAvailable(data []byte, isClosed bool) {
 	stream.buffer.Write(data)
 	if isClosed {
 		stream.ProcessRequest()
 	}
 }
 
-func (stream *SpdyServerStream) OnClose() {
+func (stream *SimpleServerStream) OnClose() {
 	if stream.closeNotifyChan != nil && !stream.closed {
 		stream.closeNotifyChan <- true
 	}
 	stream.closed = true
 }
 
-func (stream *SpdyServerStream) ProcessRequest() {
+func (stream *SimpleServerStream) ProcessRequest() {
 	header := stream.header
 	req := new(http.Request)
 	req.Method = header.Get(":method")
@@ -112,7 +112,7 @@ func (stream *SpdyServerStream) ProcessRequest() {
 	}()
 }
 
-func (stream *SpdyServerStream) closeNotify() <-chan bool {
+func (stream *SimpleServerStream) closeNotify() <-chan bool {
 	if stream.closeNotifyChan == nil {
 		stream.closeNotifyChan = make(chan bool, 1)
 	}
@@ -122,7 +122,7 @@ func (stream *SpdyServerStream) closeNotify() <-chan bool {
 // TODO(hodduc): Somehow support trailing headers
 type spdyResponseWriter struct {
 	serverStream  *QuicServerStream
-	spdyStream    *SpdyServerStream
+	spdyStream    *SimpleServerStream
 	header        http.Header
 	wroteHeader   bool
 	sessionFnChan chan func()

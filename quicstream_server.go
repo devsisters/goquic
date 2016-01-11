@@ -28,9 +28,9 @@ func (stream *QuicServerStream) WriteHeader(header http.Header, is_body_empty bo
 	}
 
 	if is_body_empty {
-		C.quic_spdy_server_stream_write_headers(stream.wrapper, header_c, 1)
+		C.quic_simple_server_stream_write_headers(stream.wrapper, header_c, 1)
 	} else {
-		C.quic_spdy_server_stream_write_headers(stream.wrapper, header_c, 0)
+		C.quic_simple_server_stream_write_headers(stream.wrapper, header_c, 0)
 	}
 	C.delete_header_block(header_c)
 }
@@ -42,9 +42,9 @@ func (stream *QuicServerStream) WriteOrBufferData(body []byte, fin bool) {
 	}
 
 	if len(body) == 0 {
-		C.quic_spdy_server_stream_write_or_buffer_data(stream.wrapper, (*C.char)(unsafe.Pointer(nil)), C.size_t(0), fin_int)
+		C.quic_simple_server_stream_write_or_buffer_data(stream.wrapper, (*C.char)(unsafe.Pointer(nil)), C.size_t(0), fin_int)
 	} else {
-		C.quic_spdy_server_stream_write_or_buffer_data(stream.wrapper, (*C.char)(unsafe.Pointer(&body[0])), C.size_t(len(body)), fin_int)
+		C.quic_simple_server_stream_write_or_buffer_data(stream.wrapper, (*C.char)(unsafe.Pointer(&body[0])), C.size_t(len(body)), fin_int)
 	}
 }
 

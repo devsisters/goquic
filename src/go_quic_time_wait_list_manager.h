@@ -43,8 +43,8 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
   // visitor - the entity that manages blocked writers. (The dispatcher)
   // helper - used to run clean up alarms. (Owned by the owner of the server)
   GoQuicTimeWaitListManager(QuicPacketWriter* writer,
-                          GoQuicServerSessionVisitor* visitor,
-                          QuicConnectionHelperInterface* helper);
+                            GoQuicServerSessionVisitor* visitor,
+                            QuicConnectionHelperInterface* helper);
   ~GoQuicTimeWaitListManager() override;
 
   // Adds the given connection_id to time wait state for kTimeWaitPeriod.

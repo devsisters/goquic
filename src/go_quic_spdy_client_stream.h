@@ -44,7 +44,9 @@ class NET_EXPORT_PRIVATE GoQuicSpdyClientStream : public QuicSpdyStream {
 
   // we need a proxy because ReliableQuicStream::WriteOrBufferData is protected.
   // we could access this function from C (go) side.
-  void WriteOrBufferData_(base::StringPiece data, bool fin, net::QuicAckListenerInterface* ack_listener);
+  void WriteOrBufferData_(base::StringPiece data,
+                          bool fin,
+                          net::QuicAckListenerInterface* ack_listener);
 
   // While the server's SetPriority shouldn't be called externally, the creator
   // of client-side streams should be able to set the priority.

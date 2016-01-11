@@ -89,7 +89,7 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
                    const QuicVersionVector& supported_versions,
                    PacketWriterFactory* packet_writer_factory,
                    QuicConnectionHelperInterface* helper,
-                   void *go_quic_dispatcher);
+                   void* go_quic_dispatcher);
 
   ~GoQuicDispatcher() override;
 
@@ -146,7 +146,8 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
                 "kMaxReasonableInitialPacketNumber is unreasonably small "
                 "relative to kInitialCongestionWindow.");
 
-  // XXX(hodduc): Originally this helper is protected, but we need helper() on adaptor.cc so move this to public.
+  // XXX(hodduc): Originally this helper is protected, but we need helper() on
+  // adaptor.cc so move this to public.
   QuicConnectionHelperInterface* helper() { return helper_.get(); }
 
  protected:
@@ -189,15 +190,9 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
     return supported_versions_;
   }
 
-  const IPEndPoint& current_server_address() {
-    return current_server_address_;
-  }
-  const IPEndPoint& current_client_address() {
-    return current_client_address_;
-  }
-  const QuicEncryptedPacket& current_packet() {
-    return *current_packet_;
-  }
+  const IPEndPoint& current_server_address() { return current_server_address_; }
+  const IPEndPoint& current_client_address() { return current_client_address_; }
+  const QuicEncryptedPacket& current_packet() { return *current_packet_; }
 
   const QuicConfig& config() const { return config_; }
 
@@ -219,8 +214,8 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   // An adapter that creates packet writers using the dispatcher's
   // PacketWriterFactory and shared writer. Essentially, it just curries the
   // writer argument away from QuicDispatcher::PacketWriterFactory.
-  class PacketWriterFactoryAdapter :
-    public QuicConnection::PacketWriterFactory {
+  class PacketWriterFactoryAdapter
+      : public QuicConnection::PacketWriterFactory {
    public:
     explicit PacketWriterFactoryAdapter(GoQuicDispatcher* dispatcher);
     ~PacketWriterFactoryAdapter() override;
@@ -293,7 +288,7 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   // framer_visitor_->OnError().
   QuicErrorCode last_error_;
 
-  void *go_quic_dispatcher_;
+  void* go_quic_dispatcher_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicDispatcher);
 };

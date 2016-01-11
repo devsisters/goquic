@@ -17,13 +17,13 @@ class GoQuicServerPacketWriter;
 // A connection-specific packet writer that notifies its connection when its
 // writes to the shared GoQuicServerPacketWriter complete.
 // This class is necessary because multiple connections can share the same
-// GoQuicServerPacketWriter, so it has no way to know which connection to notify.
+// GoQuicServerPacketWriter, so it has no way to know which connection to
+// notify.
 class GoQuicPerConnectionPacketWriter : public QuicPacketWriter {
  public:
   // Does not take ownership of |shared_writer| or |connection|.
-  GoQuicPerConnectionPacketWriter(
-      GoQuicServerPacketWriter* shared_writer,
-      QuicConnection* connection);
+  GoQuicPerConnectionPacketWriter(GoQuicServerPacketWriter* shared_writer,
+                                  QuicConnection* connection);
   ~GoQuicPerConnectionPacketWriter() override;
 
   QuicPacketWriter* shared_writer() const;
@@ -44,7 +44,7 @@ class GoQuicPerConnectionPacketWriter : public QuicPacketWriter {
   void OnWriteComplete(WriteResult result);
 
   GoQuicServerPacketWriter* shared_writer_;  // Not owned.
-  QuicConnection* connection_;  // Not owned.
+  QuicConnection* connection_;               // Not owned.
 
   base::WeakPtrFactory<GoQuicPerConnectionPacketWriter> weak_factory_;
 

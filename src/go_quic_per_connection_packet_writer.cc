@@ -15,11 +15,9 @@ GoQuicPerConnectionPacketWriter::GoQuicPerConnectionPacketWriter(
     QuicConnection* connection)
     : shared_writer_(shared_writer),
       connection_(connection),
-      weak_factory_(this){
-}
+      weak_factory_(this) {}
 
-GoQuicPerConnectionPacketWriter::~GoQuicPerConnectionPacketWriter() {
-}
+GoQuicPerConnectionPacketWriter::~GoQuicPerConnectionPacketWriter() {}
 
 QuicPacketWriter* GoQuicPerConnectionPacketWriter::shared_writer() const {
   return shared_writer_;
@@ -31,10 +29,7 @@ WriteResult GoQuicPerConnectionPacketWriter::WritePacket(
     const IPAddressNumber& self_address,
     const IPEndPoint& peer_address) {
   return shared_writer_->WritePacketWithCallback(
-      buffer,
-      buf_len,
-      self_address,
-      peer_address,
+      buffer, buf_len, self_address, peer_address,
       base::Bind(&GoQuicPerConnectionPacketWriter::OnWriteComplete,
                  weak_factory_.GetWeakPtr()));
 }

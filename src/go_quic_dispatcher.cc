@@ -24,8 +24,7 @@ namespace {
 class DeleteSessionsAlarm : public QuicAlarm::Delegate {
  public:
   explicit DeleteSessionsAlarm(GoQuicDispatcher* dispatcher)
-      : dispatcher_(dispatcher) {
-  }
+      : dispatcher_(dispatcher) {}
 
   QuicTime OnAlarm() override {
     dispatcher_->DeleteSessions();
@@ -44,8 +43,7 @@ class DeleteSessionsAlarm : public QuicAlarm::Delegate {
 class GoQuicDispatcher::QuicFramerVisitor : public QuicFramerVisitorInterface {
  public:
   explicit QuicFramerVisitor(GoQuicDispatcher* dispatcher)
-      : dispatcher_(dispatcher),
-        connection_id_(0) {}
+      : dispatcher_(dispatcher), connection_id_(0) {}
 
   // QuicFramerVisitorInterface implementation
   void OnPacket() override {}
@@ -164,9 +162,8 @@ GoQuicDispatcher::PacketWriterFactoryAdapter::~PacketWriterFactoryAdapter() {}
 
 QuicPacketWriter* GoQuicDispatcher::PacketWriterFactoryAdapter::Create(
     QuicConnection* connection) const {
-  return dispatcher_->packet_writer_factory_->Create(
-      dispatcher_->writer_.get(),
-      connection);
+  return dispatcher_->packet_writer_factory_->Create(dispatcher_->writer_.get(),
+                                                     connection);
 }
 
 GoQuicDispatcher::GoQuicDispatcher(const QuicConfig& config,
@@ -174,12 +171,12 @@ GoQuicDispatcher::GoQuicDispatcher(const QuicConfig& config,
                                    const QuicVersionVector& supported_versions,
                                    PacketWriterFactory* packet_writer_factory,
                                    QuicConnectionHelperInterface* helper,
-                                   void *go_quic_dispatcher)
+                                   void* go_quic_dispatcher)
     : config_(config),
       crypto_config_(crypto_config),
       helper_(helper),
-      delete_sessions_alarm_(
-          helper_->CreateAlarm(new DeleteSessionsAlarm(this))), // alarm's delegate is deleted by scoped_ptr of QuicAlarm
+      delete_sessions_alarm_(helper_->CreateAlarm(new DeleteSessionsAlarm(
+          this))),  // alarm's delegate is deleted by scoped_ptr of QuicAlarm
       packet_writer_factory_(packet_writer_factory),
       connection_writer_factory_(this),
       supported_versions_(supported_versions),
@@ -417,10 +414,9 @@ void GoQuicDispatcher::OnConnectionClosed(QuicConnectionId connection_id,
     return;
   }
 
-  DVLOG_IF(1, error != QUIC_NO_ERROR) << "Closing connection ("
-                                      << connection_id
-                                      << ") due to error: "
-                                      << QuicUtils::ErrorToString(error);
+  DVLOG_IF(1, error != QUIC_NO_ERROR)
+      << "Closing connection (" << connection_id
+      << ") due to error: " << QuicUtils::ErrorToString(error);
 
   if (closed_session_list_.empty()) {
     delete_sessions_alarm_->Cancel();
@@ -435,8 +431,8 @@ void GoQuicDispatcher::OnConnectionClosed(QuicConnectionId connection_id,
 void GoQuicDispatcher::OnWriteBlocked(
     QuicBlockedWriterInterface* blocked_writer) {
   if (!writer_->IsWriteBlocked()) {
-    LOG(DFATAL) <<
-        "QuicDispatcher::OnWriteBlocked called when the writer is not blocked.";
+    LOG(DFATAL) << "QuicDispatcher::OnWriteBlocked called when the writer is "
+                   "not blocked.";
     // Return without adding the connection to the blocked list, to avoid
     // infinite loops in OnCanWrite.
     return;
@@ -464,9 +460,10 @@ GoQuicServerSession* GoQuicDispatcher::CreateQuicSession(
 
   // Deleted by DeleteSession()
   GoQuicServerSession* session =
-    new GoQuicServerSession(config_, connection, this, crypto_config_);
+      new GoQuicServerSession(config_, connection, this, crypto_config_);
 
-  session->SetGoSession(go_quic_dispatcher_, CreateGoSession_C(go_quic_dispatcher_, session));
+  session->SetGoSession(go_quic_dispatcher_,
+                        CreateGoSession_C(go_quic_dispatcher_, session));
   session->Initialize();
   return session;
 }

@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 #include "go_quic_server_session.h"
-#include "go_quic_spdy_server_stream.h"
+#include "go_quic_simple_server_stream.h"
 #include "go_functions.h"
 
 #include "base/logging.h"
@@ -39,7 +39,8 @@ void GoQuicServerSession::Initialize() {
 
 QuicCryptoServerStreamBase* GoQuicServerSession::CreateQuicCryptoServerStream(
     const QuicCryptoServerConfig* crypto_config) {
-  return new QuicCryptoServerStream(crypto_config, this);  // Deleted by scoped ptr (crypto_stream_)
+  return new QuicCryptoServerStream(
+      crypto_config, this);  // Deleted by scoped ptr (crypto_stream_)
 }
 
 void GoQuicServerSession::OnConfigNegotiated() {
@@ -82,7 +83,7 @@ void GoQuicServerSession::OnConfigNegotiated() {
 }
 
 void GoQuicServerSession::OnConnectionClosed(QuicErrorCode error,
-                                           bool from_peer) {
+                                             bool from_peer) {
   QuicSession::OnConnectionClosed(error, from_peer);
   // In the unlikely event we get a connection close while doing an asynchronous
   // crypto event, make sure we cancel the callback.
@@ -204,8 +205,11 @@ QuicSpdyStream* GoQuicServerSession::CreateIncomingDynamicStream(
     return nullptr;
   }
 
-  GoQuicSpdyServerStream* stream = new GoQuicSpdyServerStream(id, this); // Managed by stream_map_ of QuicSession. Deleted by STLDeleteElements function call in QuicSession
-  stream->SetGoQuicSpdyServerStream(CreateIncomingDynamicStream_C(go_session_, id, stream));
+  GoQuicSimpleServerStream* stream = new GoQuicSimpleServerStream(
+      id, this);  // Managed by stream_map_ of QuicSession. Deleted by
+                  // STLDeleteElements function call in QuicSession
+  stream->SetGoQuicSimpleServerStream(
+      CreateIncomingDynamicStream_C(go_session_, id, stream));
 
   return stream;
 }
@@ -227,13 +231,14 @@ bool GoQuicServerSession::ShouldCreateOutgoingDynamicStream() {
   return true;
 }
 
-QuicSpdyStream* GoQuicServerSession::CreateOutgoingDynamicStream(SpdyPriority priority) {
+QuicSpdyStream* GoQuicServerSession::CreateOutgoingDynamicStream(
+    SpdyPriority priority) {
   if (!ShouldCreateOutgoingDynamicStream()) {
     return nullptr;
   }
 
   QuicSpdyStream* stream =
-      new GoQuicSpdyServerStream(GetNextOutgoingStreamId(), this);
+      new GoQuicSimpleServerStream(GetNextOutgoingStreamId(), this);
   ActivateStream(stream);
   return stream;
 }

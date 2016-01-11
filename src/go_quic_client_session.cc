@@ -16,8 +16,7 @@ GoQuicClientSession::GoQuicClientSession(const QuicConfig& config,
       crypto_config_(crypto_config),
       respect_goaway_(true) {}
 
-GoQuicClientSession::~GoQuicClientSession() {
-}
+GoQuicClientSession::~GoQuicClientSession() {}
 
 void GoQuicClientSession::Initialize() {
   crypto_stream_.reset(CreateQuicCryptoStream());
@@ -78,9 +77,10 @@ QuicSpdyStream* GoQuicClientSession::CreateIncomingDynamicStream(
 
 QuicCryptoClientStreamBase* GoQuicClientSession::CreateQuicCryptoStream() {
   return new QuicCryptoClientStream(server_id_, this, nullptr, crypto_config_);
-  // XXX(hodduc) third parameter is for implementation-specific context, which is nullable.
+  // XXX(hodduc) third parameter is for implementation-specific context, which
+  // is nullable.
 }
 
 }  // namespace tools
 
-}   // namespace net
+}  // namespace net

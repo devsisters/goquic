@@ -1,7 +1,7 @@
 #ifndef __GO_PROOF_VERIFIER__H__
 #define __GO_PROOF_VERIFIER__H__
 
-#include<string>
+#include <string>
 
 #include "net/quic/crypto/proof_verifier.h"
 
@@ -14,7 +14,7 @@ class NET_EXPORT_PRIVATE GoProofVerifyDetails : public ProofVerifyDetails {
     return nullptr;
   }
 
-  //CertVerifyResult cert_verify_result;
+  // CertVerifyResult cert_verify_result;
 };
 
 class NET_EXPORT_PRIVATE GoProofVerifier : public ProofVerifier {
@@ -39,6 +39,6 @@ class NET_EXPORT_PRIVATE GoProofVerifier : public ProofVerifier {
   DISALLOW_COPY_AND_ASSIGN(GoProofVerifier);
 };
 
-} // namespace net
+}  // namespace net
 
 #endif  // __GO_PROOF_VERIFIER__H__

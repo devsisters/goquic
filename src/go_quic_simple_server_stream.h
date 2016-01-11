@@ -11,12 +11,12 @@ class QuicSpdySession;
 
 namespace tools {
 
-class GoQuicSpdyServerStream : public QuicSpdyStream {
+class GoQuicSimpleServerStream : public QuicSpdyStream {
  public:
-  GoQuicSpdyServerStream(QuicStreamId id, QuicSpdySession* session);
-  ~GoQuicSpdyServerStream() override;
+  GoQuicSimpleServerStream(QuicStreamId id, QuicSpdySession* session);
+  ~GoQuicSimpleServerStream() override;
 
-  void SetGoQuicSpdyServerStream(void* go_quic_spdy_server_stream);
+  void SetGoQuicSimpleServerStream(void* go_quic_spdy_server_stream);
 
   // QuicSpdyStream
   void OnInitialHeadersComplete(bool fin, size_t frame_len) override;
@@ -30,14 +30,16 @@ class GoQuicSpdyServerStream : public QuicSpdyStream {
 
   // we need a proxy because ReliableQuicStream::WriteOrBufferData is protected.
   // we could access this function from C (go) side.
-  void WriteOrBufferData_(base::StringPiece data, bool fin, net::QuicAckListenerInterface* ack_listener);
+  void WriteOrBufferData_(base::StringPiece data,
+                          bool fin,
+                          net::QuicAckListenerInterface* ack_listener);
 
  private:
   void* go_quic_spdy_server_stream_;
 
   std::string body_;
 
-  DISALLOW_COPY_AND_ASSIGN(GoQuicSpdyServerStream);
+  DISALLOW_COPY_AND_ASSIGN(GoQuicSimpleServerStream);
 };
 
 }  // namespace tools

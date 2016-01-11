@@ -13,7 +13,7 @@ namespace tools {
 
 class GoQuicClientPacketWriter : public QuicPacketWriter {
  public:
-  GoQuicClientPacketWriter(void *go_writer);
+  GoQuicClientPacketWriter(void* go_writer);
   ~GoQuicClientPacketWriter() override;
 
   // QuicPacketWriter implementation:
@@ -27,9 +27,7 @@ class GoQuicClientPacketWriter : public QuicPacketWriter {
   QuicByteCount GetMaxPacketSize(const IPEndPoint& peer_address) const override;
 
  protected:
-  void set_write_blocked(bool is_blocked) {
-    write_blocked_ = is_blocked;
-  }
+  void set_write_blocked(bool is_blocked) { write_blocked_ = is_blocked; }
 
  private:
   void* go_writer_;

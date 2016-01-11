@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include<string>
+#include <string>
 
 #include "go_quic_client_packet_writer.h"
 
@@ -13,8 +13,7 @@ namespace net {
 namespace tools {
 
 GoQuicClientPacketWriter::GoQuicClientPacketWriter(void* go_writer)
-    : go_writer_(go_writer),
-      write_blocked_(false) {}
+    : go_writer_(go_writer), write_blocked_(false) {}
 
 GoQuicClientPacketWriter::~GoQuicClientPacketWriter() {}
 
@@ -27,7 +26,8 @@ WriteResult GoQuicClientPacketWriter::WritePacket(
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
     std::string peer_ip = net::IPAddressToPackedString(peer_address.address());
-    WriteToUDPClient_C(go_writer_, (char *)peer_ip.c_str(), peer_ip.size(), peer_address.port(), (void *)buffer, buf_len);
+    WriteToUDPClient_C(go_writer_, (char*)peer_ip.c_str(), peer_ip.size(),
+                       peer_address.port(), (void*)buffer, buf_len);
 
     rv = buf_len;
   } else {

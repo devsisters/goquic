@@ -57,30 +57,30 @@ func CreateIncomingDynamicStream(session_c unsafe.Pointer, stream_id uint32, wra
 	return unsafe.Pointer(stream)
 }
 
-//export GoQuicSpdyServerStreamOnInitialHeadersComplete
-func GoQuicSpdyServerStreamOnInitialHeadersComplete(go_quic_spdy_server_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
-	stream := (*QuicServerStream)(go_quic_spdy_server_stream)
+//export GoQuicSimpleServerStreamOnInitialHeadersComplete
+func GoQuicSimpleServerStreamOnInitialHeadersComplete(go_quic_simple_server_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
+	stream := (*QuicServerStream)(go_quic_simple_server_stream)
 	buf := C.GoBytes(data, C.int(data_len))
 	stream.UserStream().OnInitialHeadersComplete(buf)
 }
 
-//export GoQuicSpdyServerStreamOnTrailingHeadersComplete
-func GoQuicSpdyServerStreamOnTrailingHeadersComplete(go_quic_spdy_server_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
-	stream := (*QuicServerStream)(go_quic_spdy_server_stream)
+//export GoQuicSimpleServerStreamOnTrailingHeadersComplete
+func GoQuicSimpleServerStreamOnTrailingHeadersComplete(go_quic_simple_server_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
+	stream := (*QuicServerStream)(go_quic_simple_server_stream)
 	buf := C.GoBytes(data, C.int(data_len))
 	stream.UserStream().OnTrailingHeadersComplete(buf)
 }
 
-//export GoQuicSpdyServerStreamOnDataAvailable
-func GoQuicSpdyServerStreamOnDataAvailable(go_quic_spdy_server_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32, is_closed C.int) {
-	stream := (*QuicServerStream)(go_quic_spdy_server_stream)
+//export GoQuicSimpleServerStreamOnDataAvailable
+func GoQuicSimpleServerStreamOnDataAvailable(go_quic_simple_server_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32, is_closed C.int) {
+	stream := (*QuicServerStream)(go_quic_simple_server_stream)
 	buf := C.GoBytes(data, C.int(data_len))
 	stream.UserStream().OnDataAvailable(buf, (is_closed > 0))
 }
 
-//export GoQuicSpdyServerStreamOnClose
-func GoQuicSpdyServerStreamOnClose(go_quic_spdy_server_stream unsafe.Pointer) {
-	stream := (*QuicServerStream)(go_quic_spdy_server_stream)
+//export GoQuicSimpleServerStreamOnClose
+func GoQuicSimpleServerStreamOnClose(go_quic_simple_server_stream unsafe.Pointer) {
+	stream := (*QuicServerStream)(go_quic_simple_server_stream)
 	stream.UserStream().OnClose()
 }
 

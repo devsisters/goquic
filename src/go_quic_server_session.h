@@ -100,9 +100,7 @@ class GoQuicServerSession : public QuicSpdySession {
     go_session_ = go_session;
   }
 
-  void* GetGoSession() {
-    return go_session_;
-  }
+  void* GetGoSession() { return go_session_; }
 
  protected:
   // QuicSession methods:
@@ -149,8 +147,8 @@ class GoQuicServerSession : public QuicSpdySession {
   // Number of packets sent to the peer, at the time we last sent a SCUP.
   int64 last_scup_packet_number_;
 
-  void *go_session_;
-  void *go_quic_dispatcher_;
+  void* go_session_;
+  void* go_quic_dispatcher_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicServerSession);
 };

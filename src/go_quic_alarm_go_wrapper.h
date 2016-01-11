@@ -10,42 +10,35 @@
 namespace net {
 
 class GoQuicAlarmGoWrapper : public QuicAlarm {
-  public:
-    GoQuicAlarmGoWrapper(QuicClock* clock,
-                         void* task_runner,
-                         QuicAlarm::Delegate* delegate)
+ public:
+  GoQuicAlarmGoWrapper(QuicClock* clock,
+                       void* task_runner,
+                       QuicAlarm::Delegate* delegate)
       : QuicAlarm(delegate),
         go_quic_alarm_(CreateGoQuicAlarm_C(this, clock, task_runner)) {}
 
-    virtual ~GoQuicAlarmGoWrapper() {
-      // Notify go object that we are destroyed
-      GoQuicAlarmDestroy_C(go_quic_alarm_);
-    }
+  virtual ~GoQuicAlarmGoWrapper() {
+    // Notify go object that we are destroyed
+    GoQuicAlarmDestroy_C(go_quic_alarm_);
+  }
 
-    // Should be called by gowrapper only
-    void Fire_() {
-      Fire();
-    }
+  // Should be called by gowrapper only
+  void Fire_() { Fire(); }
 
-    void SetGoQuicAlarm(void *go_quic_alarm) {
-      go_quic_alarm_ = go_quic_alarm;
-    }
+  void SetGoQuicAlarm(void* go_quic_alarm) { go_quic_alarm_ = go_quic_alarm; }
 
-  protected:
-    void SetImpl() override {
-      GoQuicAlarmSetImpl_C(go_quic_alarm_, quic_clock_to_int64(deadline()));
-    }
-    void CancelImpl() override {
-      GoQuicAlarmCancelImpl_C(go_quic_alarm_);
-    }
+ protected:
+  void SetImpl() override {
+    GoQuicAlarmSetImpl_C(go_quic_alarm_, quic_clock_to_int64(deadline()));
+  }
+  void CancelImpl() override { GoQuicAlarmCancelImpl_C(go_quic_alarm_); }
 
-  private:
-    void* go_quic_alarm_;
+ private:
+  void* go_quic_alarm_;
 
-    int64_t quic_clock_to_int64(QuicTime time) {
-      return time.Subtract(QuicTime::Zero()).ToMicroseconds();
-    }
+  int64_t quic_clock_to_int64(QuicTime time) {
+    return time.Subtract(QuicTime::Zero()).ToMicroseconds();
+  }
 };
-
 }
 #endif

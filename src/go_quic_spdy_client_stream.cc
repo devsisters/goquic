@@ -16,14 +16,14 @@ namespace tools {
 
 GoQuicSpdyClientStream::GoQuicSpdyClientStream(QuicStreamId id,
                                                GoQuicClientSession* session)
-    : QuicSpdyStream(id, session),
-      allow_bidirectional_data_(false) {}
+    : QuicSpdyStream(id, session), allow_bidirectional_data_(false) {}
 
 GoQuicSpdyClientStream::~GoQuicSpdyClientStream() {
   UnregisterQuicClientStreamFromSession_C(go_quic_client_stream_);
 }
 
-void GoQuicSpdyClientStream::SetGoQuicClientStream(void* go_quic_client_stream) {
+void GoQuicSpdyClientStream::SetGoQuicClientStream(
+    void* go_quic_client_stream) {
   go_quic_client_stream_ = go_quic_client_stream;
 }
 
@@ -41,18 +41,18 @@ void GoQuicSpdyClientStream::OnInitialHeadersComplete(bool fin,
   QuicSpdyStream::OnInitialHeadersComplete(fin, frame_len);
 
   DCHECK(headers_decompressed());
-  GoQuicSpdyClientStreamOnInitialHeadersComplete_C(go_quic_client_stream_,
-                                                   decompressed_headers().data(),
-                                                   decompressed_headers().length());
+  GoQuicSpdyClientStreamOnInitialHeadersComplete_C(
+      go_quic_client_stream_, decompressed_headers().data(),
+      decompressed_headers().length());
   MarkHeadersConsumed(decompressed_headers().length());
 }
 
 void GoQuicSpdyClientStream::OnTrailingHeadersComplete(bool fin,
                                                        size_t frame_len) {
   QuicSpdyStream::OnTrailingHeadersComplete(fin, frame_len);
-  GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(go_quic_client_stream_,
-                                                    decompressed_trailers().data(),
-                                                    decompressed_trailers().length());
+  GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(
+      go_quic_client_stream_, decompressed_trailers().data(),
+      decompressed_trailers().length());
   MarkTrailersConsumed(decompressed_trailers().length());
 }
 
@@ -78,7 +78,10 @@ void GoQuicSpdyClientStream::OnDataAvailable() {
   }
 
   // XXX(hodduc): We can call OnDataAvailable every times(with iov) or just once. Which one is better???
-  GoQuicSpdyClientStreamOnDataAvailable_C(go_quic_client_stream_, buf.data(), buf.size(), sequencer()->IsClosed());
+  GoQuicSpdyClientStreamOnDataAvailable_C(go_quic_client_stream_,
+                                          buf.data(),
+                                          buf.size(),
+                                          sequencer()->IsClosed());
 }
 
 void GoQuicSpdyClientStream::OnClose() {
@@ -87,7 +90,9 @@ void GoQuicSpdyClientStream::OnClose() {
 }
 
 void GoQuicSpdyClientStream::WriteOrBufferData_(
-    base::StringPiece data, bool fin, net::QuicAckListenerInterface* ack_listener) {
+    base::StringPiece data,
+    bool fin,
+    net::QuicAckListenerInterface* ack_listener) {
   WriteOrBufferData(data, fin, ack_listener);
 }
 

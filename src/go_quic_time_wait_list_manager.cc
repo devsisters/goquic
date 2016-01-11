@@ -32,8 +32,7 @@ class ConnectionIdCleanUpAlarm : public QuicAlarm::Delegate {
  public:
   explicit ConnectionIdCleanUpAlarm(
       GoQuicTimeWaitListManager* time_wait_list_manager)
-      : time_wait_list_manager_(time_wait_list_manager) {
-  }
+      : time_wait_list_manager_(time_wait_list_manager) {}
 
   QuicTime OnAlarm() override {
     time_wait_list_manager_->CleanUpOldConnectionIds();
@@ -62,8 +61,7 @@ class GoQuicTimeWaitListManager::QueuedPacket {
                QuicEncryptedPacket* packet)
       : server_address_(server_address),
         client_address_(client_address),
-        packet_(packet) {
-  }
+        packet_(packet) {}
 
   const IPEndPoint& server_address() const { return server_address_; }
   const IPEndPoint& client_address() const { return client_address_; }
@@ -83,8 +81,9 @@ GoQuicTimeWaitListManager::GoQuicTimeWaitListManager(
     QuicConnectionHelperInterface* helper)
     : time_wait_period_(
           QuicTime::Delta::FromSeconds(FLAGS_quic_time_wait_list_seconds)),
-      connection_id_clean_up_alarm_(
-          helper->CreateAlarm(new ConnectionIdCleanUpAlarm(this))),  // alarm's delegate is deleted by scoped ptr of QuicAlarm
+      connection_id_clean_up_alarm_(helper->CreateAlarm(
+          new ConnectionIdCleanUpAlarm(this))),  // alarm's delegate is deleted
+                                                 // by scoped ptr of QuicAlarm
       clock_(helper->GetClock()),
       writer_(writer),
       visitor_(visitor) {
@@ -95,8 +94,7 @@ GoQuicTimeWaitListManager::~GoQuicTimeWaitListManager() {
   connection_id_clean_up_alarm_->Cancel();
   STLDeleteElements(&pending_packets_queue_);
   for (ConnectionIdMap::iterator it = connection_id_map_.begin();
-       it != connection_id_map_.end();
-       ++it) {
+       it != connection_id_map_.end(); ++it) {
     STLDeleteElements(&it->second.termination_packets);
   }
 }
@@ -213,11 +211,10 @@ void GoQuicTimeWaitListManager::SendPublicReset(
   // TODO(satyamshekhar): generate a valid nonce for this connection_id.
   packet.nonce_proof = 1010101;
   packet.client_address = client_address;
-  // Deleted by "delete packet" in SendOrQueuePacket() or managed by pending_packets_queue_.
-  QueuedPacket* queued_packet = new QueuedPacket(
-      server_address,
-      client_address,
-      BuildPublicReset(packet));
+  // Deleted by "delete packet" in SendOrQueuePacket() or managed by
+  // pending_packets_queue_.
+  QueuedPacket* queued_packet = new QueuedPacket(server_address, client_address,
+                                                 BuildPublicReset(packet));
   // Takes ownership of the packet.
   SendOrQueuePacket(queued_packet);
 }
@@ -244,8 +241,7 @@ bool GoQuicTimeWaitListManager::WriteToWire(QueuedPacket* queued_packet) {
     return false;
   }
   WriteResult result = writer_->WritePacket(
-      queued_packet->packet()->data(),
-      queued_packet->packet()->length(),
+      queued_packet->packet()->data(), queued_packet->packet()->length(),
       queued_packet->server_address().address(),
       queued_packet->client_address());
   if (result.status == WRITE_STATUS_BLOCKED) {

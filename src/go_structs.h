@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 struct GoIPEndPoint {
-  unsigned char *ip_buf;
+  unsigned char* ip_buf;
   size_t ip_length;
   uint16_t port;
 };
@@ -51,7 +51,7 @@ struct ConnStat {
   size_t Rto_count;  // Count of times the rto timer fired.
 
   int64_t Min_rtt_us;  // Minimum RTT in microseconds.
-  int64_t Srtt_us;  // Smoothed RTT in microseconds.
+  int64_t Srtt_us;     // Smoothed RTT in microseconds.
   uint64_t Max_packet_size;
   uint64_t Max_received_packet_size;
 
