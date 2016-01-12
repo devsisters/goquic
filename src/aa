@@ -1,0 +1,166 @@
+diff --git a/src/go_quic_server_session_base.cc b/src/go_quic_server_session_base.cc
+index f24c47c..fc8b74d 100644
+--- a/src/go_quic_server_session_base.cc
++++ b/src/go_quic_server_session_base.cc
+@@ -15,7 +15,7 @@
+ namespace net {
+ namespace tools {
+ 
+-GoQuicServerSession::GoQuicServerSession(
++GoQuicServerSessionBase::GoQuicServerSessionBase(
+     const QuicConfig& config,
+     QuicConnection* connection,
+     GoQuicServerSessionVisitor* visitor,
+@@ -28,22 +28,16 @@ GoQuicServerSession::GoQuicServerSession(
+       last_scup_time_(QuicTime::Zero()),
+       last_scup_packet_number_(0) {}
+ 
+-GoQuicServerSession::~GoQuicServerSession() {
++GoQuicServerSessionBase::~GoQuicServerSessionBase() {
+   DeleteGoSession_C(go_quic_dispatcher_, go_session_);
+ }
+ 
+-void GoQuicServerSession::Initialize() {
++void GoQuicServerSessionBase::Initialize() {
+   crypto_stream_.reset(CreateQuicCryptoServerStream(crypto_config_));
+   QuicSpdySession::Initialize();
+ }
+ 
+-QuicCryptoServerStreamBase* GoQuicServerSession::CreateQuicCryptoServerStream(
+-    const QuicCryptoServerConfig* crypto_config) {
+-  return new QuicCryptoServerStream(
+-      crypto_config, this);  // Deleted by scoped ptr (crypto_stream_)
+-}
+-
+-void GoQuicServerSession::OnConfigNegotiated() {
++void GoQuicServerSessionBase::OnConfigNegotiated() {
+   QuicSession::OnConfigNegotiated();
+ 
+   if (!config()->HasReceivedConnectionOptions()) {
+@@ -63,7 +57,7 @@ void GoQuicServerSession::OnConfigNegotiated() {
+       last_bandwidth_resumption || max_bandwidth_resumption;
+   if (cached_network_params != nullptr && bandwidth_resumption_enabled_ &&
+       cached_network_params->serving_region() == serving_region_) {
+-    int64 seconds_since_estimate =
++    int64_t seconds_since_estimate =
+         connection()->clock()->WallNow().ToUNIXSeconds() -
+         cached_network_params->timestamp();
+     bool estimate_within_last_hour =
+@@ -82,7 +76,7 @@ void GoQuicServerSession::OnConfigNegotiated() {
+   }
+ }
+ 
+-void GoQuicServerSession::OnConnectionClosed(QuicErrorCode error,
++void GoQuicServerSessionBase::OnConnectionClosed(QuicErrorCode error,
+                                              bool from_peer) {
+   QuicSession::OnConnectionClosed(error, from_peer);
+   // In the unlikely event we get a connection close while doing an asynchronous
+@@ -93,12 +87,12 @@ void GoQuicServerSession::OnConnectionClosed(QuicErrorCode error,
+   visitor_->OnConnectionClosed(connection()->connection_id(), error);
+ }
+ 
+-void GoQuicServerSession::OnWriteBlocked() {
++void GoQuicServerSessionBase::OnWriteBlocked() {
+   QuicSession::OnWriteBlocked();
+   visitor_->OnWriteBlocked(connection());
+ }
+ 
+-void GoQuicServerSession::OnCongestionWindowChange(QuicTime now) {
++void GoQuicServerSessionBase::OnCongestionWindowChange(QuicTime now) {
+   if (!bandwidth_resumption_enabled_) {
+     return;
+   }
+@@ -111,10 +105,10 @@ void GoQuicServerSession::OnCongestionWindowChange(QuicTime now) {
+   // client, or not enough packets have been sent, then return early.
+   const QuicSentPacketManager& sent_packet_manager =
+       connection()->sent_packet_manager();
+-  int64 srtt_ms =
++  int64_t srtt_ms =
+       sent_packet_manager.GetRttStats()->smoothed_rtt().ToMilliseconds();
+-  int64 now_ms = now.Subtract(last_scup_time_).ToMilliseconds();
+-  int64 packets_since_last_scup =
++  int64_t now_ms = now.Subtract(last_scup_time_).ToMilliseconds();
++  int64_t packets_since_last_scup =
+       connection()->packet_number_of_last_sent_packet() -
+       last_scup_packet_number_;
+   if (now_ms < (kMinIntervalBetweenServerConfigUpdatesRTTs * srtt_ms) ||
+@@ -135,7 +129,7 @@ void GoQuicServerSession::OnCongestionWindowChange(QuicTime now) {
+   // we sent to the client, and if so, send the new one.
+   QuicBandwidth new_bandwidth_estimate = bandwidth_recorder.BandwidthEstimate();
+ 
+-  int64 bandwidth_delta =
++  int64_t bandwidth_delta =
+       std::abs(new_bandwidth_estimate.ToBitsPerSecond() -
+                bandwidth_estimate_sent_to_client_.ToBitsPerSecond());
+ 
+@@ -155,7 +149,7 @@ void GoQuicServerSession::OnCongestionWindowChange(QuicTime now) {
+   // Include max bandwidth in the update.
+   QuicBandwidth max_bandwidth_estimate =
+       bandwidth_recorder.MaxBandwidthEstimate();
+-  int32 max_bandwidth_timestamp = bandwidth_recorder.MaxBandwidthTimestamp();
++  int32_t max_bandwidth_timestamp = bandwidth_recorder.MaxBandwidthTimestamp();
+ 
+   // Fill the proto before passing it to the crypto stream to send.
+   CachedNetworkParameters cached_network_params;
+@@ -185,7 +179,7 @@ void GoQuicServerSession::OnCongestionWindowChange(QuicTime now) {
+   last_scup_packet_number_ = connection()->packet_number_of_last_sent_packet();
+ }
+ 
+-bool GoQuicServerSession::ShouldCreateIncomingDynamicStream(QuicStreamId id) {
++bool GoQuicServerSessionBase::ShouldCreateIncomingDynamicStream(QuicStreamId id) {
+   if (!connection()->connected()) {
+     LOG(DFATAL) << "ShouldCreateIncomingDynamicStream called when disconnected";
+     return false;
+@@ -193,28 +187,14 @@ bool GoQuicServerSession::ShouldCreateIncomingDynamicStream(QuicStreamId id) {
+ 
+   if (id % 2 == 0) {
+     DVLOG(1) << "Invalid incoming even stream_id:" << id;
+-    connection()->SendConnectionClose(QUIC_INVALID_STREAM_ID);
++    connection()->SendConnectionCloseWithDetails(
++        QUIC_INVALID_STREAM_ID, "Client created even numbered stream");
+     return false;
+   }
+   return true;
+ }
+ 
+-QuicSpdyStream* GoQuicServerSession::CreateIncomingDynamicStream(
+-    QuicStreamId id) {
+-  if (!ShouldCreateIncomingDynamicStream(id)) {
+-    return nullptr;
+-  }
+-
+-  GoQuicSimpleServerStream* stream = new GoQuicSimpleServerStream(
+-      id, this);  // Managed by stream_map_ of QuicSession. Deleted by
+-                  // STLDeleteElements function call in QuicSession
+-  stream->SetGoQuicSimpleServerStream(
+-      CreateIncomingDynamicStream_C(go_session_, id, stream));
+-
+-  return stream;
+-}
+-
+-bool GoQuicServerSession::ShouldCreateOutgoingDynamicStream() {
++bool GoQuicServerSessionBase::ShouldCreateOutgoingDynamicStream() {
+   if (!connection()->connected()) {
+     LOG(DFATAL) << "ShouldCreateOutgoingDynamicStream called when disconnected";
+     return false;
+@@ -231,19 +211,7 @@ bool GoQuicServerSession::ShouldCreateOutgoingDynamicStream() {
+   return true;
+ }
+ 
+-QuicSpdyStream* GoQuicServerSession::CreateOutgoingDynamicStream(
+-    SpdyPriority priority) {
+-  if (!ShouldCreateOutgoingDynamicStream()) {
+-    return nullptr;
+-  }
+-
+-  QuicSpdyStream* stream =
+-      new GoQuicSimpleServerStream(GetNextOutgoingStreamId(), this);
+-  ActivateStream(stream);
+-  return stream;
+-}
+-
+-QuicCryptoServerStreamBase* GoQuicServerSession::GetCryptoStream() {
++QuicCryptoServerStreamBase* GoQuicServerSessionBase::GetCryptoStream() {
+   return crypto_stream_.get();
+ }
+ 

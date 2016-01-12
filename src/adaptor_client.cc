@@ -46,10 +46,10 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(
 
   QuicConfig config = QuicConfig();
   QuicClock* clock =
-      new QuicClock();  // Deleted by scoped ptr of TestConnectionHelper
+      new QuicClock();  // Deleted by scoped ptr of GoQuicConnectionHelper
   QuicRandom* random_generator = QuicRandom::GetInstance();
 
-  TestConnectionHelper* helper = new TestConnectionHelper(
+  GoQuicConnectionHelper* helper = new GoQuicConnectionHelper(
       task_runner, clock,
       random_generator);  // Deleted by delete_go_quic_client_session()
 
@@ -156,5 +156,5 @@ void go_quic_client_session_process_packet(GoQuicClientSession* session,
 
 void go_quic_client_session_connection_send_connection_close_packet(
     GoQuicClientSession* session) {
-  session->connection()->SendConnectionClosePacket(QUIC_PEER_GOING_AWAY, "");
+  session->connection()->SendConnectionCloseWithDetails(QUIC_PEER_GOING_AWAY, "Client disconnectiong");
 }

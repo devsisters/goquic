@@ -4,14 +4,15 @@
 //
 // A server specific QuicSession subclass.
 
-#ifndef GO_QUIC_SERVER_SESSION_H_
-#define GO_QUIC_SERVER_SESSION_H_
+#ifndef GO_QUIC_SERVER_SESSION_BASE_H_
+#define GO_QUIC_SERVER_SESSION_BASE_H_
+
+#include <stdint.h>
 
 #include <set>
 #include <string>
 #include <vector>
 
-#include "base/basictypes.h"
 #include "base/containers/hash_tables.h"
 #include "base/memory/scoped_ptr.h"
 #include "net/quic/quic_crypto_server_stream.h"
@@ -27,10 +28,6 @@ class QuicCryptoServerConfig;
 class ReliableQuicStream;
 
 namespace tools {
-
-namespace test {
-class QuicServerSessionPeer;
-}  // namespace test
 
 // An interface from the session to the entity owning the session.
 // This lets the session notify its owner (the Dispatcher) when the connection
@@ -50,13 +47,13 @@ class GoQuicServerSessionVisitor {
       QuicConnectionId connection_id) {}
 };
 
-class GoQuicServerSession : public QuicSpdySession {
+class GoQuicServerSessionBase : public QuicSpdySession {
  public:
   // |crypto_config| must outlive the session.
-  GoQuicServerSession(const QuicConfig& config,
-                      QuicConnection* connection,
-                      GoQuicServerSessionVisitor* visitor,
-                      const QuicCryptoServerConfig* crypto_config);
+  GoQuicServerSessionBase(const QuicConfig& config,
+                          QuicConnection* connection,
+                          GoQuicServerSessionVisitor* visitor,
+                          const QuicCryptoServerConfig* crypto_config);
 
   // Override the base class to notify the owner of the connection close.
   void OnConnectionClosed(QuicErrorCode error, bool from_peer) override;
@@ -66,7 +63,7 @@ class GoQuicServerSession : public QuicSpdySession {
   // estimate.
   void OnCongestionWindowChange(QuicTime now) override;
 
-  ~GoQuicServerSession() override;
+  ~GoQuicServerSessionBase() override;
 
   void Initialize() override;
 
@@ -76,20 +73,6 @@ class GoQuicServerSession : public QuicSpdySession {
 
   // Override base class to process FEC config received from client.
   void OnConfigNegotiated() override;
-
-  bool UsingStatelessRejectsIfPeerSupported() {
-    if (GetCryptoStream() == nullptr) {
-      return false;
-    }
-    return GetCryptoStream()->UseStatelessRejectsIfPeerSupported();
-  }
-
-  bool PeerSupportsStatelessRejects() {
-    if (GetCryptoStream() == nullptr) {
-      return false;
-    }
-    return GetCryptoStream()->PeerSupportsStatelessRejects();
-  }
 
   void set_serving_region(std::string serving_region) {
     serving_region_ = serving_region;
@@ -103,9 +86,7 @@ class GoQuicServerSession : public QuicSpdySession {
   void* GetGoSession() { return go_session_; }
 
  protected:
-  // QuicSession methods:
-  QuicSpdyStream* CreateIncomingDynamicStream(QuicStreamId id) override;
-  QuicSpdyStream* CreateOutgoingDynamicStream(SpdyPriority priority) override;
+  // QuicSession methods(override them with return type of QuicSpdyStream*):
   QuicCryptoServerStreamBase* GetCryptoStream() override;
 
   // If an outgoing stream can be created, return true.
@@ -120,13 +101,14 @@ class GoQuicServerSession : public QuicSpdySession {
   virtual bool ShouldCreateIncomingDynamicStream(QuicStreamId id);
 
   virtual QuicCryptoServerStreamBase* CreateQuicCryptoServerStream(
-      const QuicCryptoServerConfig* crypto_config);
+      const QuicCryptoServerConfig* crypto_config) = 0;
 
   const QuicCryptoServerConfig* crypto_config() { return crypto_config_; }
 
- private:
-  friend class test::QuicServerSessionPeer;
+  void* go_session_;
+  void* go_quic_dispatcher_;
 
+ private:
   const QuicCryptoServerConfig* crypto_config_;
   scoped_ptr<QuicCryptoServerStreamBase> crypto_stream_;
   GoQuicServerSessionVisitor* visitor_;
@@ -145,12 +127,9 @@ class GoQuicServerSession : public QuicSpdySession {
   QuicTime last_scup_time_;
 
   // Number of packets sent to the peer, at the time we last sent a SCUP.
-  int64 last_scup_packet_number_;
+  int64_t last_scup_packet_number_;
 
-  void* go_session_;
-  void* go_quic_dispatcher_;
-
-  DISALLOW_COPY_AND_ASSIGN(GoQuicServerSession);
+  DISALLOW_COPY_AND_ASSIGN(GoQuicServerSessionBase);
 };
 
 }  // namespace tools

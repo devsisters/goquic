@@ -11,7 +11,6 @@
 
 #include <deque>
 
-#include "base/basictypes.h"
 #include "net/base/linked_hash_map.h"
 #include "net/quic/quic_blocked_writer_interface.h"
 #include "net/quic/quic_connection.h"

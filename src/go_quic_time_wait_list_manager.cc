@@ -18,7 +18,7 @@
 #include "net/quic/quic_framer.h"
 #include "net/quic/quic_protocol.h"
 #include "net/quic/quic_utils.h"
-#include "go_quic_server_session.h"
+#include "go_quic_server_session_base.h"
 
 using base::StringPiece;
 

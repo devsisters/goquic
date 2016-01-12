@@ -10,6 +10,7 @@
 #include "go_quic_per_connection_packet_writer.h"
 #include "go_quic_time_wait_list_manager.h"
 #include "go_quic_server_packet_writer.h"
+#include "go_quic_simple_server_session.h"
 
 namespace net {
 
@@ -296,7 +297,7 @@ void GoQuicDispatcher::OnUnauthenticatedHeader(const QuicPacketHeader& header) {
   switch (fate) {
     case kFateProcess: {
       // Create a session and process the packet.
-      GoQuicServerSession* session =
+      GoQuicServerSessionBase* session =
           CreateQuicSession(connection_id, current_client_address_);
       DVLOG(1) << "Created new session for " << connection_id;
       session_map_.insert(std::make_pair(connection_id, session));
@@ -395,8 +396,9 @@ bool GoQuicDispatcher::HasPendingWrites() const {
 
 void GoQuicDispatcher::Shutdown() {
   while (!session_map_.empty()) {
-    GoQuicServerSession* session = session_map_.begin()->second;
-    session->connection()->SendConnectionClose(QUIC_PEER_GOING_AWAY);
+    GoQuicServerSessionBase* session = session_map_.begin()->second;
+    session->connection()->SendConnectionCloseWithDetails(
+        QUIC_PEER_GOING_AWAY, "Server shutdown imminent");
     // Validate that the session removes itself from the session map on close.
     DCHECK(session_map_.empty() || session_map_.begin()->second != session);
   }
@@ -450,7 +452,7 @@ void GoQuicDispatcher::OnConnectionRemovedFromTimeWaitList(
   DVLOG(1) << "Connection " << connection_id << " removed from time wait list.";
 }
 
-GoQuicServerSession* GoQuicDispatcher::CreateQuicSession(
+GoQuicServerSessionBase* GoQuicDispatcher::CreateQuicSession(
     QuicConnectionId connection_id,
     const IPEndPoint& client_address) {
   // The QuicServerSession takes ownership of |connection| below.
@@ -459,8 +461,8 @@ GoQuicServerSession* GoQuicDispatcher::CreateQuicSession(
       /* owns_writer= */ true, Perspective::IS_SERVER, supported_versions_);
 
   // Deleted by DeleteSession()
-  GoQuicServerSession* session =
-      new GoQuicServerSession(config_, connection, this, crypto_config_);
+  GoQuicServerSessionBase* session =
+      new GoQuicSimpleServerSession(config_, connection, this, crypto_config_);
 
   session->SetGoSession(go_quic_dispatcher_,
                         CreateGoSession_C(go_quic_dispatcher_, session));

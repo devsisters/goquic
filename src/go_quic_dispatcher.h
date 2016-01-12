@@ -10,7 +10,6 @@
 
 #include <vector>
 
-#include "base/basictypes.h"
 #include "base/containers/hash_tables.h"
 #include "base/memory/scoped_ptr.h"
 #include "net/base/ip_endpoint.h"
@@ -18,7 +17,7 @@
 #include "net/quic/quic_blocked_writer_interface.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_protocol.h"
-#include "go_quic_server_session.h"
+#include "go_quic_server_session_base.h"
 #include "go_quic_time_wait_list_manager.h"
 
 namespace net {
@@ -29,7 +28,7 @@ class QuicCryptoServerConfig;
 namespace tools {
 
 class GoQuicServerPacketWriter;
-class GoQuicServerSession;
+class GoQuicServerSessionBase;
 
 class ProcessPacketInterface {
  public:
@@ -128,7 +127,7 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   void OnConnectionRemovedFromTimeWaitList(
       QuicConnectionId connection_id) override;
 
-  typedef base::hash_map<QuicConnectionId, GoQuicServerSession*> SessionMap;
+  typedef base::hash_map<QuicConnectionId, GoQuicServerSessionBase*> SessionMap;
 
   const SessionMap& session_map() const { return session_map_; }
 
@@ -151,7 +150,7 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   QuicConnectionHelperInterface* helper() { return helper_.get(); }
 
  protected:
-  virtual GoQuicServerSession* CreateQuicSession(
+  virtual GoQuicServerSessionBase* CreateQuicSession(
       QuicConnectionId connection_id,
       const IPEndPoint& client_address);
 
@@ -250,7 +249,7 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   scoped_ptr<GoQuicTimeWaitListManager> time_wait_list_manager_;
 
   // The list of closed but not-yet-deleted sessions.
-  std::vector<GoQuicServerSession*> closed_session_list_;
+  std::vector<GoQuicServerSessionBase*> closed_session_list_;
 
   // The helper used for all connections. Owned by the server.
   scoped_ptr<QuicConnectionHelperInterface> helper_;

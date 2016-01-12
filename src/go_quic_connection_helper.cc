@@ -8,25 +8,29 @@
 namespace net {
 namespace tools {
 
-// TODO(hodduc) Rename TestConnectionHelper
-const QuicClock* TestConnectionHelper::GetClock() const {
+GoQuicConnectionHelper::GoQuicConnectionHelper(void* task_runner,
+                                               QuicClock* clock,
+                                               QuicRandom* random_generator)
+    : task_runner_(task_runner), random_generator_(random_generator) {
+  clock_.reset(clock);
+}
+
+const QuicClock* GoQuicConnectionHelper::GetClock() const {
   return clock_.get();
 }
 
-QuicRandom* TestConnectionHelper::GetRandomGenerator() {
+QuicRandom* GoQuicConnectionHelper::GetRandomGenerator() {
   return random_generator_;
 }
 
-QuicAlarm* TestConnectionHelper::CreateAlarm(QuicAlarm::Delegate* delegate) {
+QuicAlarm* GoQuicConnectionHelper::CreateAlarm(
+    QuicAlarm::Delegate* delegate) {
   return new GoQuicAlarmGoWrapper(clock_.get(), task_runner_,
                                   delegate);  // Should be deleted by caller
 }
 
-TestConnectionHelper::TestConnectionHelper(void* task_runner,
-                                           QuicClock* clock,
-                                           QuicRandom* random_generator)
-    : task_runner_(task_runner), random_generator_(random_generator) {
-  clock_.reset(clock);
+QuicBufferAllocator* GoQuicConnectionHelper::GetBufferAllocator() {
+  return &buffer_allocator_;
 }
 
 }  // namespace tools

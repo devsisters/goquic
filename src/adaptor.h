@@ -7,10 +7,9 @@
 
 #ifdef __cplusplus
 #include "go_quic_dispatcher.h"
-#include "go_quic_spdy_server_stream.h"
+#include "go_quic_simple_server_stream.h"
 #include "go_quic_alarm_go_wrapper.h"
 #include "go_quic_server_packet_writer.h"
-#include "base/basictypes.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_protocol.h"
 #include "net/base/net_util.h"
@@ -26,7 +25,7 @@ typedef void QuicConnection;
 typedef void QuicEncryptedPacket;
 typedef void GoQuicDispatcher;
 typedef void GoQuicSimpleServerStream;
-typedef void GoQuicServerSession;
+typedef void GoQuicServerSessionBase;
 typedef void SpdyHeaderBlock;
 typedef void GoQuicAlarmGoWrapper;
 typedef void QuicClock;
@@ -67,10 +66,10 @@ void insert_header_block(SpdyHeaderBlock* map,
                          char* value,
                          size_t value_len);
 
-void quic_spdy_server_stream_write_headers(GoQuicSimpleServerStream* wrapper,
-                                           SpdyHeaderBlock* header,
-                                           int is_empty_body);
-void quic_spdy_server_stream_write_or_buffer_data(
+void quic_simple_server_stream_write_headers(GoQuicSimpleServerStream* wrapper,
+                                             SpdyHeaderBlock* header,
+                                             int is_empty_body);
+void quic_simple_server_stream_write_or_buffer_data(
     GoQuicSimpleServerStream* wrapper,
     char* buf,
     size_t bufsize,
@@ -78,7 +77,7 @@ void quic_spdy_server_stream_write_or_buffer_data(
 void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm);
 int64_t clock_now(QuicClock* clock);
 void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv);
-struct ConnStat quic_server_session_connection_stat(GoQuicServerSession* sess);
+struct ConnStat quic_server_session_connection_stat(GoQuicServerSessionBase* sess);
 #ifdef __cplusplus
 }
 #endif

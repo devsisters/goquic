@@ -31,7 +31,7 @@ QuicAsyncStatus GoProofVerifier::VerifyProof(
     *error_details = "Failed to create certificate chain. Certs are empty.";
     DLOG(WARNING) << *error_details;
     //    verify_details_->cert_verify_result.cert_status = CERT_STATUS_INVALID;
-    *details = verify_details_.Pass();
+    *details = std::move(verify_details_);
     return QUIC_FAILURE;
   }
 
@@ -51,12 +51,12 @@ QuicAsyncStatus GoProofVerifier::VerifyProof(
   int ret = ProofVerifyJobVerifyProof_C(job);
 
   if (ret == 1) {
-    *details = verify_details_.Pass();
+    *details = std::move(verify_details_);
     return QUIC_SUCCESS;
   } else {
     *error_details = "Failed to verify proof";
     DLOG(WARNING) << *error_details;
-    *details = verify_details_.Pass();
+    *details = std::move(verify_details_);
     return QUIC_FAILURE;
   }
 }

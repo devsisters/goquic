@@ -16,7 +16,6 @@
 #include "net/base/net_util.h"
 #include "net/base/ip_endpoint.h"
 #include "base/strings/string_piece.h"
-#include "base/basictypes.h"
 
 #include "base/command_line.h"
 #include "base/at_exit.h"
@@ -24,6 +23,7 @@
 
 #include <iostream>
 #include <vector>
+#include <stddef.h>
 
 #define EXPECT_TRUE(x) \
   {                    \
@@ -60,10 +60,10 @@ GoQuicDispatcher* create_quic_dispatcher(
   // is no clean way to do it now T.T
   // Deleted by ~GoQuicDispatcher()
   QuicClock* clock =
-      new QuicClock();  // Deleted by scoped ptr of TestConnectionHelper
+      new QuicClock();  // Deleted by scoped ptr of GoQuicConnectionHelper
   QuicRandom* random_generator = QuicRandom::GetInstance();
 
-  TestConnectionHelper* helper = new TestConnectionHelper(
+  GoQuicConnectionHelper* helper = new GoQuicConnectionHelper(
       go_task_runner, clock,
       random_generator);  // Deleted by delete_go_quic_dispatcher()
   QuicVersionVector versions(net::QuicSupportedVersions());
@@ -72,8 +72,8 @@ GoQuicDispatcher* create_quic_dispatcher(
 
   // If an initial flow control window has not explicitly been set, then use a
   // sensible value for a server: 1 MB for session, 64 KB for each stream.
-  const uint32 kInitialSessionFlowControlWindow = 1 * 1024 * 1024;  // 1 MB
-  const uint32 kInitialStreamFlowControlWindow = 64 * 1024;         // 64 KB
+  const uint32_t kInitialSessionFlowControlWindow = 1 * 1024 * 1024;  // 1 MB
+  const uint32_t kInitialStreamFlowControlWindow = 64 * 1024;         // 64 KB
   if (config->GetInitialStreamFlowControlWindowToSend() ==
       kMinimumFlowControlSendWindow) {
     config->SetInitialStreamFlowControlWindowToSend(
@@ -205,11 +205,11 @@ void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv) {
   cb->OnWriteComplete(rv);
 }
 
-struct ConnStat quic_server_session_connection_stat(GoQuicServerSession* sess) {
+struct ConnStat quic_server_session_connection_stat(GoQuicServerSessionBase* sess) {
   QuicConnection* conn = sess->connection();
   QuicConnectionStats stats = conn->GetStats();
 
-  struct ConnStat stat = {(uint64)(conn->connection_id()),
+  struct ConnStat stat = {(uint64_t)(conn->connection_id()),
 
                           stats.bytes_sent,
                           stats.packets_sent,

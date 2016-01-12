@@ -1,5 +1,5 @@
-#ifndef GO_QUIC_SPDY_SERVER_STREAM_H__
-#define GO_QUIC_SPDY_SERVER_STREAM_H__
+#ifndef GO_QUIC_SIMPLE_SERVER_STREAM_H__
+#define GO_QUIC_SIMPLE_SERVER_STREAM_H__
 
 #include <string>
 
@@ -16,7 +16,7 @@ class GoQuicSimpleServerStream : public QuicSpdyStream {
   GoQuicSimpleServerStream(QuicStreamId id, QuicSpdySession* session);
   ~GoQuicSimpleServerStream() override;
 
-  void SetGoQuicSimpleServerStream(void* go_quic_spdy_server_stream);
+  void SetGoQuicSimpleServerStream(void* go_quic_simple_server_stream);
 
   // QuicSpdyStream
   void OnInitialHeadersComplete(bool fin, size_t frame_len) override;
@@ -35,7 +35,7 @@ class GoQuicSimpleServerStream : public QuicSpdyStream {
                           net::QuicAckListenerInterface* ack_listener);
 
  private:
-  void* go_quic_spdy_server_stream_;
+  void* go_quic_simple_server_stream_;
 
   std::string body_;
 

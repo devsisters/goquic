@@ -5,7 +5,6 @@
 #ifndef GO_QUIC_SERVER_PACKET_WRITER_H_
 #define GO_QUIC_SERVER_PACKET_WRITER_H_
 
-#include "base/basictypes.h"
 #include "base/memory/weak_ptr.h"
 #include "base/callback.h"
 #include "net/base/ip_endpoint.h"

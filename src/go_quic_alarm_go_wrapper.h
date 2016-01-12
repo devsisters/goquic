@@ -3,7 +3,6 @@
 #include "go_functions.h"
 #include "net/quic/quic_clock.h"
 #include "net/quic/quic_alarm.h"
-#include "base/basictypes.h"
 #include "base/logging.h"
 #include <iostream>
 
