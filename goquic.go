@@ -1,5 +1,6 @@
 package goquic
 
+// #cgo CFLAGS: -Iboringssl/
 // #cgo CXXFLAGS: -DUSE_OPENSSL=1 -std=gnu++11
 // #cgo LDFLAGS: -pthread -lgoquic -lquic -lssl -lcrypto -lstdc++ -lm -lprotobuf
 // #cgo darwin LDFLAGS: -framework CoreFoundation -framework Cocoa -framework Security
