@@ -16,6 +16,7 @@ var port int
 var logLevel int
 var cert string
 var key string
+var quicOnly bool
 
 func init() {
 	flag.IntVar(&numOfServers, "n", 1, "Number of concurrent quic dispatchers")
@@ -23,6 +24,7 @@ func init() {
 	flag.IntVar(&logLevel, "loglevel", -1, "Log level")
 	flag.StringVar(&cert, "cert", "", "Certificate file (PEM), will use encrypted QUIC and SSL when provided")
 	flag.StringVar(&key, "key", "", "Private key file (PEM), will use encrypted QUIC and SSL when provided")
+	flag.BoolVar(&quicOnly, "quic_only", false, "Use Quic Only")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s backend_url\n", os.Args[0])
@@ -52,8 +54,15 @@ func main() {
 
 	log.Printf("Starting reverse proxy for backend URL: %v", parsedUrl)
 
-	err = goquic.ListenAndServe(portStr, cert, key, numOfServers, httputil.NewSingleHostReverseProxy(parsedUrl))
-	if err != nil {
-		log.Fatal(err)
+	if quicOnly {
+		err = goquic.ListenAndServeQuicSpdyOnly(portStr, cert, key, numOfServers, httputil.NewSingleHostReverseProxy(parsedUrl))
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		err = goquic.ListenAndServe(portStr, cert, key, numOfServers, httputil.NewSingleHostReverseProxy(parsedUrl))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
