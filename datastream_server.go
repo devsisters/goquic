@@ -89,6 +89,13 @@ func (stream *SimpleServerStream) ProcessRequest() {
 	// TODO(serialx): To buffered async read
 	req.Body = ioutil.NopCloser(stream.buffer)
 
+	// Remove SPDY headers
+	for k, _ := range header {
+		if len(k) > 0 && k[0] == ':' {
+			header.Del(k)
+		}
+	}
+
 	go func() {
 		w := &spdyResponseWriter{
 			serverStream:  stream.quicServerStream,
