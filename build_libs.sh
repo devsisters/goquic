@@ -25,8 +25,15 @@ else
     exit 1
 fi
 
+if [ "$GOQUIC_BUILD" = "Release" ]; then
+    OPT="-DCMAKE_BUILD_TYPE=Release"
+else
+    OPT=""
+fi
+
 echo "GOARCH: $GOARCH"
 echo "GOOS: $GOOS"
+echo "OPTION: $OPT"
 
 if [ ! -d libquic ]; then
     git clone https://github.com/devsisters/libquic.git
@@ -36,7 +43,8 @@ cd libquic
 rm -fr build
 mkdir -p build
 cd build
-cmake -GNinja ..
+
+cmake -GNinja $OPT ..
 ninja
 
 cd ../..

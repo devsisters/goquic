@@ -11,6 +11,13 @@ OBJ_FILES:=$(addprefix build/,$(CPP_BASE_FILES:.cc=.o))
 #OBJ_FILES:=$(addprefix build/,$(CPP_BASE_FILES:.cc=.o)) $(addprefix build/,$(C_BASE_FILES:.c=.o))
 LIB_FILE=libgoquic.a
 
+ifeq ($(GOQUIC_BUILD),Release)
+	OPTFLAGS=-O3
+else
+	OPTFLAGS=
+endif
+	
+
 all: $(OBJ_FILES) $(LIB_FILE)
 
 $(LIB_FILE): $(OBJ_FILES)
@@ -22,7 +29,7 @@ $(LIB_FILE): $(OBJ_FILES)
 
 build/%.o: src/%.cc
 	mkdir -p $(dir $@)
-	$(CXX) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	$(CXX) $(CFLAGS) $(OPTFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 clean:
 	rm -f build/*
