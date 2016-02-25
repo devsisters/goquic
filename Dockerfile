@@ -5,7 +5,7 @@ RUN apt-get -qq update && apt-get install -y build-essential cmake ninja-build
 ADD . /go/src/github.com/devsisters/goquic
 
 WORKDIR /go/src/github.com/devsisters/goquic
-RUN ./build_libs.sh
+RUN GOQUIC_BUILD=Release ./build_libs.sh
 RUN go get github.com/bradfitz/http2 github.com/oleiade/lane github.com/vanillahsu/go_reuseport
 RUN CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/linux_amd64" \
     go build $GOPATH/src/github.com/devsisters/goquic/example/reverse_proxy.go
