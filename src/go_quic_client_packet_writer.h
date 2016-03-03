@@ -3,6 +3,7 @@
 
 #include "net/base/ip_endpoint.h"
 #include "net/quic/quic_packet_writer.h"
+#include "go_structs.h"
 
 namespace net {
 
@@ -12,7 +13,7 @@ namespace tools {
 
 class GoQuicClientPacketWriter : public QuicPacketWriter {
  public:
-  GoQuicClientPacketWriter(void* go_writer);
+  GoQuicClientPacketWriter(GoPtr go_writer);
   ~GoQuicClientPacketWriter() override;
 
   // QuicPacketWriter implementation:
@@ -29,7 +30,7 @@ class GoQuicClientPacketWriter : public QuicPacketWriter {
   void set_write_blocked(bool is_blocked) { write_blocked_ = is_blocked; }
 
  private:
-  void* go_writer_;
+  GoPtr go_writer_;
 
   // Whether a write is currently in flight.
   bool write_blocked_;

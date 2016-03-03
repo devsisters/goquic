@@ -36,25 +36,22 @@ typedef void QuicCryptoServerConfig;
 void initialize();
 void set_log_level(int level);
 
-/*
-void *create_quic_connection(int connection_id, IPEndPoint *ip_endpoint);
-int quic_connection_version(QuicConnection *c);
-void quic_connection_process_udp_packet(QuicConnection *conn, IPEndPoint
-*self_address, IPEndPoint *peer_address, QuicEncryptedPacket *packet);
-*/
-
 QuicEncryptedPacket* create_quic_encrypted_packet(char* buffer, size_t length);
 void delete_quic_encrypted_packet(QuicEncryptedPacket* packet);
 
-GoQuicDispatcher* create_quic_dispatcher(void* go_writer_,
-                                         void* go_quic_dispatcher,
-                                         void* go_task_runner,
+GoQuicDispatcher* create_quic_dispatcher(GoPtr go_writer_,
+                                         GoPtr go_quic_dispatcher,
+                                         GoPtr go_task_runner,
                                          QuicCryptoServerConfig* crypto_config);
-QuicCryptoServerConfig* init_crypto_config(void* go_proof_source);
+QuicCryptoServerConfig* init_crypto_config(GoPtr go_proof_source);
 void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher);
 void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
-                                    struct GoIPEndPoint* go_self_address,
-                                    struct GoIPEndPoint* go_peer_address,
+                                    char* self_address_ip,
+                                    size_t self_address_len,
+                                    uint16_t self_address_port,
+                                    char* peer_address_ip,
+                                    size_t peer_address_len,
+                                    uint16_t peer_address_port,
                                     char* buffer,
                                     size_t length);
 

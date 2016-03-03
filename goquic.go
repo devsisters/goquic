@@ -8,6 +8,8 @@ package goquic
 // #include "src/adaptor.h"
 import "C"
 
+//go:generate python ptr_gen.py ProofSource ProofVerifier ProofVerifyJob TaskRunner ServerWriter ClientWriter QuicDispatcher QuicServerSession GoQuicAlarm QuicServerStream QuicClientStream
+
 func SetLogLevel(level int) {
 	C.set_log_level(C.int(level))
 }

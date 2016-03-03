@@ -49,9 +49,9 @@ void set_log_level(int level) {
 }
 
 GoQuicDispatcher* create_quic_dispatcher(
-    void* go_writer,
-    void* go_quic_dispatcher,
-    void* go_task_runner,
+    GoPtr go_writer,
+    GoPtr go_quic_dispatcher,
+    GoPtr go_task_runner,
     QuicCryptoServerConfig* crypto_config) {
   QuicConfig* config = new QuicConfig();
 
@@ -103,7 +103,7 @@ GoQuicDispatcher* create_quic_dispatcher(
   return dispatcher;
 }
 
-QuicCryptoServerConfig* init_crypto_config(void* go_proof_source) {
+QuicCryptoServerConfig* init_crypto_config(GoPtr go_proof_source) {
   GoProofSource* proof_source = new GoProofSource(
       go_proof_source);  // Deleted by scoped ptr of QuicCryptoServerConfig
   QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig(
@@ -132,18 +132,22 @@ void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher) {
 }
 
 void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
-                                    struct GoIPEndPoint* go_self_address,
-                                    struct GoIPEndPoint* go_peer_address,
+                                    char* self_address_ip,
+                                    size_t self_address_len,
+                                    uint16_t self_address_port,
+                                    char* peer_address_ip,
+                                    size_t peer_address_len,
+                                    uint16_t peer_address_port,
                                     char* buffer,
                                     size_t length) {
   IPAddressNumber self_ip_addr(
-      go_self_address->ip_buf,
-      go_self_address->ip_buf + go_self_address->ip_length);
-  IPEndPoint self_address(self_ip_addr, go_self_address->port);
+      self_address_ip,
+      self_address_ip + self_address_len);
+  IPEndPoint self_address(self_ip_addr, self_address_port);
   IPAddressNumber peer_ip_addr(
-      go_peer_address->ip_buf,
-      go_peer_address->ip_buf + go_peer_address->ip_length);
-  IPEndPoint peer_address(peer_ip_addr, go_peer_address->port);
+      peer_address_ip,
+      peer_address_ip + peer_address_len);
+  IPEndPoint peer_address(peer_ip_addr, peer_address_port);
 
   QuicEncryptedPacket packet(
       buffer, length,

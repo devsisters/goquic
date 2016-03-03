@@ -102,13 +102,13 @@ func (job *ProofVerifyJob) Verify() bool {
 }
 
 //export NewProofVerifyJob
-func NewProofVerifyJob(proof_verifier_c unsafe.Pointer,
+func NewProofVerifyJob(proof_verifier_key int64,
 	hostname_c unsafe.Pointer, hostname_sz C.size_t,
 	server_config_c unsafe.Pointer, server_config_sz C.size_t,
 	cert_sct_c unsafe.Pointer, cert_sct_sz C.size_t,
-	signature_c unsafe.Pointer, signature_sz C.size_t) unsafe.Pointer {
+	signature_c unsafe.Pointer, signature_sz C.size_t) int64 {
 
-	proofVerifier := (*ProofVerifier)(proof_verifier_c)
+	proofVerifier := proofVerifierPtr.Get(proof_verifier_key)
 
 	job := &ProofVerifyJob{
 		hostname:     C.GoBytes(hostname_c, C.int(hostname_sz)),
@@ -119,22 +119,31 @@ func NewProofVerifyJob(proof_verifier_c unsafe.Pointer,
 	}
 	proofVerifier.jobs = append(proofVerifier.jobs, job)
 
-	return unsafe.Pointer(job)
+	return proofVerifyJobPtr.Set(job)
 }
 
 //export ProofVerifyJobAddCert
-func ProofVerifyJobAddCert(job_c unsafe.Pointer, cert_c unsafe.Pointer, cert_sz C.size_t) {
-	job := (*ProofVerifyJob)(job_c)
+func ProofVerifyJobAddCert(job_key int64, cert_c unsafe.Pointer, cert_sz C.size_t) {
+	job := proofVerifyJobPtr.Get(job_key)
 	job.certs = append(job.certs, C.GoBytes(cert_c, C.int(cert_sz)))
 }
 
 //export ProofVerifyJobVerifyProof
-func ProofVerifyJobVerifyProof(job_c unsafe.Pointer) C.int {
-	job := (*ProofVerifyJob)(job_c)
+func ProofVerifyJobVerifyProof(job_key int64) C.int {
+	job := proofVerifyJobPtr.Get(job_key)
+
+	// XXX(hodduc): Job has ended, so I will release job here. Job should not be referenced again
+	defer proofVerifyJobPtr.Del(job_key)
 
 	if ret := job.Verify(); ret {
 		return C.int(1)
 	} else {
 		return C.int(0)
 	}
+
+}
+
+//export ReleaseProofVerifier
+func ReleaseProofVerifier(proof_verifier_key int64) {
+	proofVerifierPtr.Del(proof_verifier_key)
 }

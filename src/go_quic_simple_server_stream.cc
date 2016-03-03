@@ -16,7 +16,7 @@ GoQuicSimpleServerStream::~GoQuicSimpleServerStream() {
 }
 
 void GoQuicSimpleServerStream::SetGoQuicSimpleServerStream(
-    void* go_quic_simple_server_stream) {
+    GoPtr go_quic_simple_server_stream) {
   go_quic_simple_server_stream_ = go_quic_simple_server_stream;
 }
 

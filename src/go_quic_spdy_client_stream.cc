@@ -23,7 +23,7 @@ GoQuicSpdyClientStream::~GoQuicSpdyClientStream() {
 }
 
 void GoQuicSpdyClientStream::SetGoQuicClientStream(
-    void* go_quic_client_stream) {
+    GoPtr go_quic_client_stream) {
   go_quic_client_stream_ = go_quic_client_stream;
 }
 

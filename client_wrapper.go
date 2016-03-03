@@ -32,13 +32,13 @@ type QuicClient struct {
 }
 
 type QuicClientSession struct {
-	quicClientSession unsafe.Pointer
-	quicClientStreams map[*QuicClientStream]bool
-	streamCreator     OutgoingDataStreamCreator
+	quicClientSession_c unsafe.Pointer
+	quicClientStreams   map[*QuicClientStream]bool
+	streamCreator       OutgoingDataStreamCreator
 }
 
 func (s *QuicClientSession) NumActiveRequests() int {
-	return int(C.quic_client_session_num_active_requests(s.quicClientSession))
+	return int(C.quic_client_session_num_active_requests(s.quicClientSession_c))
 }
 
 func CreateQuicClient(addr *net.UDPAddr, conn QuicConn, createQuicClientSession func() OutgoingDataStreamCreator, taskRunner *TaskRunner, proofVerifier *ProofVerifier) (qc *QuicClient, err error) {
@@ -52,21 +52,27 @@ func CreateQuicClient(addr *net.UDPAddr, conn QuicConn, createQuicClientSession 
 }
 
 func (qc *QuicClient) StartConnect() {
-	addr := CreateIPEndPointPacked(qc.addr)
+	addr := CreateIPEndPoint(qc.addr)
 	qc.session = &QuicClientSession{
-		quicClientSession: C.create_go_quic_client_session_and_initialize(unsafe.Pointer(qc.conn.Writer()), unsafe.Pointer(qc.taskRunner), unsafe.Pointer(qc.proofVerifier), addr), // Deleted on QuicClient.Close(),
+		quicClientSession_c: C.create_go_quic_client_session_and_initialize(
+			C.GoPtr(clientWriterPtr.Set(qc.conn.Writer())),
+			C.GoPtr(taskRunnerPtr.Set(qc.taskRunner)),
+			C.GoPtr(proofVerifierPtr.Set(qc.proofVerifier)),
+			(*C.char)(unsafe.Pointer(&addr.packed[0])),
+			C.size_t(len(addr.packed)),
+			C.uint16_t(addr.port)), // Deleted on QuicClient.Close(),
 		quicClientStreams: make(map[*QuicClientStream]bool),
 		streamCreator:     qc.createQuicClientSession(),
 	}
 }
 
 func (qc *QuicClient) EncryptionBeingEstablished() bool {
-	v := C.go_quic_client_encryption_being_established(qc.session.quicClientSession)
+	v := C.go_quic_client_encryption_being_established(qc.session.quicClientSession_c)
 	return (v != 0)
 }
 
 func (qc *QuicClient) IsConnected() bool {
-	v := C.go_quic_client_session_is_connected(qc.session.quicClientSession)
+	v := C.go_quic_client_session_is_connected(qc.session.quicClientSession_c)
 	return (v != 0)
 }
 
@@ -75,28 +81,34 @@ func (qc *QuicClient) CreateReliableQuicStream() *QuicClientStream {
 		userStream: qc.session.streamCreator.CreateOutgoingDynamicStream(), // Deleted on qc.Close()
 		session:    qc.session,
 	}
-	stream.wrapper = C.quic_client_session_create_reliable_quic_stream(qc.session.quicClientSession, unsafe.Pointer(stream))
+	stream.wrapper = C.quic_client_session_create_reliable_quic_stream(qc.session.quicClientSession_c, C.GoPtr(quicClientStreamPtr.Set(stream)))
 
 	qc.session.quicClientStreams[stream] = true
 	return stream
 }
 
 func (qc *QuicClient) ProcessPacket(self_address *net.UDPAddr, peer_address *net.UDPAddr, buffer []byte) {
+	self_address_p := CreateIPEndPoint(self_address)
+	peer_address_p := CreateIPEndPoint(peer_address)
 	C.go_quic_client_session_process_packet(
-		qc.session.quicClientSession,
-		CreateIPEndPointPacked(self_address),
-		CreateIPEndPointPacked(peer_address),
+		qc.session.quicClientSession_c,
+		(*C.char)(unsafe.Pointer(&self_address_p.packed[0])),
+		C.size_t(len(self_address_p.packed)),
+		C.uint16_t(self_address_p.port),
+		(*C.char)(unsafe.Pointer(&peer_address_p.packed[0])),
+		C.size_t(len(peer_address_p.packed)),
+		C.uint16_t(peer_address_p.port),
 		(*C.char)(unsafe.Pointer(&buffer[0])), C.size_t(len(buffer)),
 	)
 }
 
 func (qc *QuicClient) SendConnectionClosePacket() {
-	C.go_quic_client_session_connection_send_connection_close_packet(qc.session.quicClientSession)
+	C.go_quic_client_session_connection_send_connection_close_packet(qc.session.quicClientSession_c)
 }
 
 func (qc *QuicClient) Close() (err error) {
 	if qc.session != nil {
-		C.delete_go_quic_client_session(unsafe.Pointer(qc.session.quicClientSession))
+		C.delete_go_quic_client_session(qc.session.quicClientSession_c)
 		qc.session = nil
 	}
 	return nil

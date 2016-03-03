@@ -93,13 +93,13 @@ func NewProofSource(impl ProofSourceImpl) *ProofSource {
 }
 
 func InitCryptoConfig(proofSource *ProofSource) *ServerCryptoConfig {
-	cryptoConfig_c := C.init_crypto_config(unsafe.Pointer(proofSource))
+	cryptoConfig_c := C.init_crypto_config(C.GoPtr(proofSourcePtr.Set(proofSource)))
 	return &ServerCryptoConfig{cryptoConfig_c}
 }
 
 //export GetProof
-func GetProof(proof_source_c unsafe.Pointer, server_ip_c unsafe.Pointer, server_ip_sz C.size_t, hostname_c unsafe.Pointer, hostname_sz_c C.size_t, server_config_c unsafe.Pointer, server_config_sz_c C.size_t, ecdsa_ok_c C.int, out_certs_c ***C.char, out_certs_sz_c *C.int, out_certs_item_sz_c **C.size_t, out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
-	proofSource := (*ProofSource)(proof_source_c)
+func GetProof(proof_source_key int64, server_ip_c unsafe.Pointer, server_ip_sz C.size_t, hostname_c unsafe.Pointer, hostname_sz_c C.size_t, server_config_c unsafe.Pointer, server_config_sz_c C.size_t, ecdsa_ok_c C.int, out_certs_c ***C.char, out_certs_sz_c *C.int, out_certs_item_sz_c **C.size_t, out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
+	proofSource := proofSourcePtr.Get(proof_source_key)
 	if !proofSource.impl.IsSecure() {
 		return C.int(0)
 	}
@@ -128,4 +128,9 @@ func GetProof(proof_source_c unsafe.Pointer, server_ip_c unsafe.Pointer, server_
 	*out_signature_sz_c = C.size_t(len(sig))
 
 	return C.int(1)
+}
+
+//export ReleaseProofSource
+func ReleaseProofSource(proof_source_key int64) {
+	proofSourcePtr.Del(proof_source_key)
 }

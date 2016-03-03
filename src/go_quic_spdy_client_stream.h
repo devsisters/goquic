@@ -10,6 +10,7 @@
 #include <string>
 
 #include "net/quic/quic_spdy_stream.h"
+#include "go_structs.h"
 
 namespace net {
 namespace tools {
@@ -23,7 +24,7 @@ class NET_EXPORT_PRIVATE GoQuicSpdyClientStream : public QuicSpdyStream {
   GoQuicSpdyClientStream(QuicStreamId id, GoQuicClientSession* session);
   ~GoQuicSpdyClientStream() override;
 
-  void SetGoQuicClientStream(void* go_quic_client_stream);
+  void SetGoQuicClientStream(GoPtr go_quic_client_stream);
 
   // Override the base class to close the write side as soon as we get a
   // response.
@@ -60,7 +61,7 @@ class NET_EXPORT_PRIVATE GoQuicSpdyClientStream : public QuicSpdyStream {
   // XXX: Currently not supported in goquic
   bool allow_bidirectional_data_;
 
-  void* go_quic_client_stream_;
+  GoPtr go_quic_client_stream_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicSpdyClientStream);
 };

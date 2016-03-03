@@ -3,20 +3,21 @@ package goquic
 // #include <stddef.h>
 // #include "src/adaptor.h"
 import "C"
-import (
-	"net"
-	"unsafe"
-)
+import "net"
 
-func CreateIPEndPointPacked(udpAddr *net.UDPAddr) *C.struct_GoIPEndPoint {
+type GoIPEndPoint struct {
+	packed []byte
+	port   int
+}
+
+func CreateIPEndPoint(udpAddr *net.UDPAddr) *GoIPEndPoint {
+	// Note: string(ip) != ip.String()
+	//       4 byte     vs human-readable repr
+
 	ip := udpAddr.IP.To4()
 	if ip == nil {
 		ip = udpAddr.IP
 	}
 
-	return &C.struct_GoIPEndPoint{
-		ip_buf:    (*C.uchar)(unsafe.Pointer(&ip[0])),
-		ip_length: C.size_t(len(ip)),
-		port:      C.uint16_t(udpAddr.Port),
-	}
+	return &GoIPEndPoint{packed: []byte(ip), port: udpAddr.Port}
 }

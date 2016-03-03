@@ -172,7 +172,7 @@ GoQuicDispatcher::GoQuicDispatcher(const QuicConfig& config,
                                    const QuicVersionVector& supported_versions,
                                    PacketWriterFactory* packet_writer_factory,
                                    QuicConnectionHelperInterface* helper,
-                                   void* go_quic_dispatcher)
+                                   GoPtr go_quic_dispatcher)
     : config_(config),
       crypto_config_(crypto_config),
       helper_(helper),
@@ -194,6 +194,7 @@ GoQuicDispatcher::GoQuicDispatcher(const QuicConfig& config,
 GoQuicDispatcher::~GoQuicDispatcher() {
   STLDeleteValues(&session_map_);
   STLDeleteElements(&closed_session_list_);
+  ReleaseQuicDispatcher_C(go_quic_dispatcher_);
 }
 
 void GoQuicDispatcher::InitializeWithWriter(QuicPacketWriter* writer) {
@@ -465,7 +466,7 @@ GoQuicServerSessionBase* GoQuicDispatcher::CreateQuicSession(
       new GoQuicSimpleServerSession(config_, connection, this, crypto_config_);
 
   session->SetGoSession(go_quic_dispatcher_,
-                        CreateGoSession_C(go_quic_dispatcher_, session));
+                        GoPtr(CreateGoSession_C(go_quic_dispatcher_, session)));
   session->Initialize();
   return session;
 }

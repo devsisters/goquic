@@ -18,14 +18,17 @@ namespace net {
 namespace tools {
 
 GoQuicServerPacketWriter::GoQuicServerPacketWriter(
-    void* go_writer,
+    GoPtr go_writer,
     QuicBlockedWriterInterface* blocked_writer)
     : go_writer_(go_writer),
       blocked_writer_(blocked_writer),
       write_blocked_(false),
       weak_factory_(this) {}
 
-GoQuicServerPacketWriter::~GoQuicServerPacketWriter() {}
+GoQuicServerPacketWriter::~GoQuicServerPacketWriter() {
+  ReleaseServerWriter_C(go_writer_);
+	// TODO(hodduc): release go_writer
+}
 
 WriteResult GoQuicServerPacketWriter::WritePacketWithCallback(
     const char* buffer,

@@ -11,6 +11,7 @@
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_packet_writer.h"
 #include "net/quic/quic_protocol.h"
+#include "go_structs.h"
 
 namespace net {
 
@@ -23,7 +24,7 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
  public:
   typedef base::Callback<void(WriteResult)> WriteCallback;
 
-  GoQuicServerPacketWriter(void* go_writer,
+  GoQuicServerPacketWriter(GoPtr go_writer,
                            QuicBlockedWriterInterface* blocked_writer);
   ~GoQuicServerPacketWriter() override;
 
@@ -54,7 +55,7 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
                           const IPEndPoint& peer_address) override;
 
  private:
-  void* go_writer_;
+  GoPtr go_writer_;
 
   // To be notified after every successful asynchronous write.
   QuicBlockedWriterInterface* blocked_writer_;

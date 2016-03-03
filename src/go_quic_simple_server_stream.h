@@ -4,6 +4,7 @@
 #include <string>
 
 #include "net/quic/quic_spdy_stream.h"
+#include "go_structs.h"
 
 namespace net {
 
@@ -16,7 +17,7 @@ class GoQuicSimpleServerStream : public QuicSpdyStream {
   GoQuicSimpleServerStream(QuicStreamId id, QuicSpdySession* session);
   ~GoQuicSimpleServerStream() override;
 
-  void SetGoQuicSimpleServerStream(void* go_quic_simple_server_stream);
+  void SetGoQuicSimpleServerStream(GoPtr go_quic_simple_server_stream);
 
   // QuicSpdyStream
   void OnInitialHeadersComplete(bool fin, size_t frame_len) override;
@@ -35,7 +36,7 @@ class GoQuicSimpleServerStream : public QuicSpdyStream {
                           net::QuicAckListenerInterface* ack_listener);
 
  private:
-  void* go_quic_simple_server_stream_;
+  GoPtr go_quic_simple_server_stream_;
 
   std::string body_;
 

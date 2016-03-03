@@ -42,8 +42,8 @@ type QuicStream interface {
 */
 
 //export CreateIncomingDynamicStream
-func CreateIncomingDynamicStream(session_c unsafe.Pointer, stream_id uint32, wrapper_c unsafe.Pointer) unsafe.Pointer {
-	session := (*QuicServerSession)(session_c)
+func CreateIncomingDynamicStream(session_key int64, stream_id uint32, wrapper_c unsafe.Pointer) int64 {
+	session := quicServerSessionPtr.Get(session_key)
 	stream := &QuicServerStream{
 		session: session,
 		wrapper: wrapper_c,
@@ -54,71 +54,73 @@ func CreateIncomingDynamicStream(session_c unsafe.Pointer, stream_id uint32, wra
 	// This is to prevent garbage collection. This is cleaned up on QuicServerStream.OnClose()
 	session.quicServerStreams[stream] = true
 
-	return unsafe.Pointer(stream)
+	return quicServerStreamPtr.Set(stream)
 }
 
 //export GoQuicSimpleServerStreamOnInitialHeadersComplete
-func GoQuicSimpleServerStreamOnInitialHeadersComplete(go_quic_simple_server_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
-	stream := (*QuicServerStream)(go_quic_simple_server_stream)
+func GoQuicSimpleServerStreamOnInitialHeadersComplete(quic_server_stream_key int64, data unsafe.Pointer, data_len uint32) {
+	stream := quicServerStreamPtr.Get(quic_server_stream_key)
 	buf := C.GoBytes(data, C.int(data_len))
 	stream.UserStream().OnInitialHeadersComplete(buf)
 }
 
 //export GoQuicSimpleServerStreamOnTrailingHeadersComplete
-func GoQuicSimpleServerStreamOnTrailingHeadersComplete(go_quic_simple_server_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
-	stream := (*QuicServerStream)(go_quic_simple_server_stream)
+func GoQuicSimpleServerStreamOnTrailingHeadersComplete(quic_server_stream_key int64, data unsafe.Pointer, data_len uint32) {
+	stream := quicServerStreamPtr.Get(quic_server_stream_key)
 	buf := C.GoBytes(data, C.int(data_len))
 	stream.UserStream().OnTrailingHeadersComplete(buf)
 }
 
 //export GoQuicSimpleServerStreamOnDataAvailable
-func GoQuicSimpleServerStreamOnDataAvailable(go_quic_simple_server_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32, is_closed C.int) {
-	stream := (*QuicServerStream)(go_quic_simple_server_stream)
+func GoQuicSimpleServerStreamOnDataAvailable(quic_server_stream_key int64, data unsafe.Pointer, data_len uint32, is_closed C.int) {
+	stream := quicServerStreamPtr.Get(quic_server_stream_key)
 	buf := C.GoBytes(data, C.int(data_len))
 	stream.UserStream().OnDataAvailable(buf, (is_closed > 0))
 }
 
 //export GoQuicSimpleServerStreamOnClose
-func GoQuicSimpleServerStreamOnClose(go_quic_simple_server_stream unsafe.Pointer) {
-	stream := (*QuicServerStream)(go_quic_simple_server_stream)
+func GoQuicSimpleServerStreamOnClose(quic_server_stream_key int64) {
+	stream := quicServerStreamPtr.Get(quic_server_stream_key)
 	stream.UserStream().OnClose()
 }
 
 //export GoQuicSpdyClientStreamOnInitialHeadersComplete
-func GoQuicSpdyClientStreamOnInitialHeadersComplete(go_quic_spdy_client_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
-	stream := (*QuicClientStream)(go_quic_spdy_client_stream)
+func GoQuicSpdyClientStreamOnInitialHeadersComplete(quic_client_stream_key int64, data unsafe.Pointer, data_len uint32) {
+	stream := quicClientStreamPtr.Get(quic_client_stream_key)
 	buf := C.GoBytes(data, C.int(data_len))
 	stream.UserStream().OnInitialHeadersComplete(buf)
 }
 
 //export GoQuicSpdyClientStreamOnTrailingHeadersComplete
-func GoQuicSpdyClientStreamOnTrailingHeadersComplete(go_quic_spdy_client_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32) {
-	stream := (*QuicClientStream)(go_quic_spdy_client_stream)
+func GoQuicSpdyClientStreamOnTrailingHeadersComplete(quic_client_stream_key int64, data unsafe.Pointer, data_len uint32) {
+	stream := quicClientStreamPtr.Get(quic_client_stream_key)
 	buf := C.GoBytes(data, C.int(data_len))
 	stream.UserStream().OnTrailingHeadersComplete(buf)
 }
 
 //export GoQuicSpdyClientStreamOnDataAvailable
-func GoQuicSpdyClientStreamOnDataAvailable(go_quic_spdy_client_stream unsafe.Pointer, data unsafe.Pointer, data_len uint32, is_closed C.int) {
-	stream := (*QuicClientStream)(go_quic_spdy_client_stream)
+func GoQuicSpdyClientStreamOnDataAvailable(quic_client_stream_key int64, data unsafe.Pointer, data_len uint32, is_closed C.int) {
+	stream := quicClientStreamPtr.Get(quic_client_stream_key)
 	buf := C.GoBytes(data, C.int(data_len))
 	stream.UserStream().OnDataAvailable(buf, (is_closed > 0))
 }
 
 //export GoQuicSpdyClientStreamOnClose
-func GoQuicSpdyClientStreamOnClose(go_quic_spdy_client_stream unsafe.Pointer) {
-	stream := (*QuicClientStream)(go_quic_spdy_client_stream)
+func GoQuicSpdyClientStreamOnClose(quic_client_stream_key int64) {
+	stream := quicClientStreamPtr.Get(quic_client_stream_key)
 	stream.UserStream().OnClose()
 }
 
 //export UnregisterQuicServerStreamFromSession
-func UnregisterQuicServerStreamFromSession(go_stream_c unsafe.Pointer) {
-	stream := (*QuicServerStream)(go_stream_c)
+func UnregisterQuicServerStreamFromSession(quic_server_stream_key int64) {
+	stream := quicServerStreamPtr.Get(quic_server_stream_key)
 	delete(stream.session.quicServerStreams, stream)
+	quicServerStreamPtr.Del(quic_server_stream_key)
 }
 
 //export UnregisterQuicClientStreamFromSession
-func UnregisterQuicClientStreamFromSession(go_stream_c unsafe.Pointer) {
-	stream := (*QuicClientStream)(go_stream_c)
+func UnregisterQuicClientStreamFromSession(quic_client_stream_key int64) {
+	stream := quicClientStreamPtr.Get(quic_client_stream_key)
 	delete(stream.session.quicClientStreams, stream)
+	quicClientStreamPtr.Del(quic_client_stream_key)
 }

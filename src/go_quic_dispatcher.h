@@ -19,6 +19,7 @@
 #include "net/quic/quic_protocol.h"
 #include "go_quic_server_session_base.h"
 #include "go_quic_time_wait_list_manager.h"
+#include "go_structs.h"
 
 namespace net {
 
@@ -88,7 +89,7 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
                    const QuicVersionVector& supported_versions,
                    PacketWriterFactory* packet_writer_factory,
                    QuicConnectionHelperInterface* helper,
-                   void* go_quic_dispatcher);
+                   GoPtr go_quic_dispatcher);
 
   ~GoQuicDispatcher() override;
 
@@ -287,7 +288,7 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   // framer_visitor_->OnError().
   QuicErrorCode last_error_;
 
-  void* go_quic_dispatcher_;
+  GoPtr go_quic_dispatcher_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicDispatcher);
 };

@@ -29,7 +29,7 @@ func NewClientWriter(ch chan UdpData) *ClientWriter {
 	return &ClientWriter{ch}
 }
 
-func writeToUDP(writer_c unsafe.Pointer, peer_ip unsafe.Pointer, peer_ip_sz C.size_t, peer_port uint16, buffer_c unsafe.Pointer, length_c C.size_t, isServer bool) {
+func writeToUDP(go_writer_key int64, peer_ip unsafe.Pointer, peer_ip_sz C.size_t, peer_port uint16, buffer_c unsafe.Pointer, length_c C.size_t, isServer bool) {
 	buf := C.GoBytes(buffer_c, C.int(length_c))
 
 	if isServer {
@@ -38,18 +38,28 @@ func writeToUDP(writer_c unsafe.Pointer, peer_ip unsafe.Pointer, peer_ip_sz C.si
 			Port: int(peer_port),
 		}
 
-		((*ServerWriter)(writer_c)).Ch <- UdpData{Buf: buf, Addr: peer_addr}
+		serverWriterPtr.Get(go_writer_key).Ch <- UdpData{Buf: buf, Addr: peer_addr}
 	} else {
-		((*ClientWriter)(writer_c)).Ch <- UdpData{Buf: buf}
+		clientWriterPtr.Get(go_writer_key).Ch <- UdpData{Buf: buf}
 	}
 }
 
 //export WriteToUDP
-func WriteToUDP(writer_c unsafe.Pointer, peer_ip unsafe.Pointer, peer_ip_sz C.size_t, peer_port uint16, buffer_c unsafe.Pointer, length_c C.size_t) {
-	writeToUDP(writer_c, peer_ip, peer_ip_sz, peer_port, buffer_c, length_c, true)
+func WriteToUDP(go_writer_key int64, peer_ip unsafe.Pointer, peer_ip_sz C.size_t, peer_port uint16, buffer_c unsafe.Pointer, length_c C.size_t) {
+	writeToUDP(go_writer_key, peer_ip, peer_ip_sz, peer_port, buffer_c, length_c, true)
 }
 
 //export WriteToUDPClient
-func WriteToUDPClient(writer_c unsafe.Pointer, peer_ip unsafe.Pointer, peer_ip_sz C.size_t, peer_port uint16, buffer_c unsafe.Pointer, length_c C.size_t) {
-	writeToUDP(writer_c, peer_ip, peer_ip_sz, peer_port, buffer_c, length_c, false)
+func WriteToUDPClient(go_writer_key int64, peer_ip unsafe.Pointer, peer_ip_sz C.size_t, peer_port uint16, buffer_c unsafe.Pointer, length_c C.size_t) {
+	writeToUDP(go_writer_key, peer_ip, peer_ip_sz, peer_port, buffer_c, length_c, false)
+}
+
+//export ReleaseClientWriter
+func ReleaseClientWriter(go_client_writer_key int64) {
+	clientWriterPtr.Del(go_client_writer_key)
+}
+
+//export ReleaseServerWriter
+func ReleaseServerWriter(go_server_writer_key int64) {
+	serverWriterPtr.Del(go_server_writer_key)
 }

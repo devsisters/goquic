@@ -60,33 +60,34 @@ func (alarm *GoQuicAlarm) Now() int64 {
 }
 
 //export CreateGoQuicAlarm
-func CreateGoQuicAlarm(go_quic_alarm_go_wrapper_c unsafe.Pointer, clock_c unsafe.Pointer, task_runner_c unsafe.Pointer) unsafe.Pointer {
+func CreateGoQuicAlarm(go_quic_alarm_go_wrapper_c unsafe.Pointer, clock_c unsafe.Pointer, go_task_runner_key int64) int64 {
 	alarm := &GoQuicAlarm{
 		wrapper:    go_quic_alarm_go_wrapper_c,
-		taskRunner: (*TaskRunner)(task_runner_c),
+		taskRunner: taskRunnerPtr.Get(go_task_runner_key),
 		clock:      clock_c,
 		isCanceled: false,
 	}
 	alarm.taskRunner.RegisterAlarm(alarm)
 
-	return unsafe.Pointer(alarm)
+	return goQuicAlarmPtr.Set(alarm)
 }
 
 //export GoQuicAlarmSetImpl
-func GoQuicAlarmSetImpl(alarm_c unsafe.Pointer, deadline int64) {
-	alarm := (*GoQuicAlarm)(alarm_c)
+func GoQuicAlarmSetImpl(go_quic_alarm_key int64, deadline int64) {
+	alarm := goQuicAlarmPtr.Get(go_quic_alarm_key)
 	alarm.deadline = deadline
 	alarm.SetImpl()
 }
 
 //export GoQuicAlarmCancelImpl
-func GoQuicAlarmCancelImpl(alarm_c unsafe.Pointer) {
-	alarm := (*GoQuicAlarm)(alarm_c)
+func GoQuicAlarmCancelImpl(go_quic_alarm_key int64) {
+	alarm := goQuicAlarmPtr.Get(go_quic_alarm_key)
 	alarm.CancelImpl()
 }
 
 //export GoQuicAlarmDestroy
-func GoQuicAlarmDestroy(alarm_c unsafe.Pointer) {
-	alarm := (*GoQuicAlarm)(alarm_c)
+func GoQuicAlarmDestroy(go_quic_alarm_key int64) {
+	alarm := goQuicAlarmPtr.Get(go_quic_alarm_key)
 	alarm.Destroy()
+	goQuicAlarmPtr.Del(go_quic_alarm_key)
 }

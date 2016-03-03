@@ -11,7 +11,7 @@ namespace net {
 class GoQuicAlarmGoWrapper : public QuicAlarm {
  public:
   GoQuicAlarmGoWrapper(QuicClock* clock,
-                       void* task_runner,
+                       GoPtr task_runner,
                        QuicAlarm::Delegate* delegate)
       : QuicAlarm(delegate),
         go_quic_alarm_(CreateGoQuicAlarm_C(this, clock, task_runner)) {}
@@ -24,7 +24,7 @@ class GoQuicAlarmGoWrapper : public QuicAlarm {
   // Should be called by gowrapper only
   void Fire_() { Fire(); }
 
-  void SetGoQuicAlarm(void* go_quic_alarm) { go_quic_alarm_ = go_quic_alarm; }
+  void SetGoQuicAlarm(GoPtr go_quic_alarm) { go_quic_alarm_ = go_quic_alarm; }
 
  protected:
   void SetImpl() override {
@@ -33,7 +33,7 @@ class GoQuicAlarmGoWrapper : public QuicAlarm {
   void CancelImpl() override { GoQuicAlarmCancelImpl_C(go_quic_alarm_); }
 
  private:
-  void* go_quic_alarm_;
+  GoPtr go_quic_alarm_;
 
   int64_t quic_clock_to_int64(QuicTime time) {
     return time.Subtract(QuicTime::Zero()).ToMicroseconds();

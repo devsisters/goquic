@@ -35,14 +35,16 @@ class GoQuicPacketWriterFactory : public QuicConnection::PacketWriterFactory {
 };
 
 GoQuicClientSession* create_go_quic_client_session_and_initialize(
-    void* go_writer,
-    void* task_runner,
-    void* go_proof_verifier,
-    struct GoIPEndPoint* go_server_address) {
+    GoPtr go_writer,
+    GoPtr task_runner,
+    GoPtr go_proof_verifier,
+    char* server_address_ip,
+    size_t server_address_len,
+    uint16_t server_address_port) {
   IPAddressNumber server_ip_addr(
-      go_server_address->ip_buf,
-      go_server_address->ip_buf + go_server_address->ip_length);
-  IPEndPoint server_address(server_ip_addr, go_server_address->port);
+      server_address_ip,
+      server_address_ip + server_address_len);
+  IPEndPoint server_address(server_ip_addr, server_address_port);
 
   QuicConfig config = QuicConfig();
   QuicClock* clock =
@@ -108,10 +110,10 @@ int go_quic_client_session_is_connected(GoQuicClientSession* session) {
 
 GoQuicSpdyClientStream* quic_client_session_create_reliable_quic_stream(
     GoQuicClientSession* session,
-    void* go_client_stream_) {
+    GoPtr go_quic_client_stream) {
   GoQuicSpdyClientStream* stream =
       session->CreateOutgoingDynamicStream(kDefaultPriority);
-  stream->SetGoQuicClientStream(go_client_stream_);
+  stream->SetGoQuicClientStream(go_quic_client_stream);
   return stream;
 }
 
@@ -134,18 +136,22 @@ void quic_spdy_client_stream_write_or_buffer_data(
 }
 
 void go_quic_client_session_process_packet(GoQuicClientSession* session,
-                                           struct GoIPEndPoint* go_self_address,
-                                           struct GoIPEndPoint* go_peer_address,
+                                           char* self_address_ip,
+                                           size_t self_address_len,
+                                           uint16_t self_address_port,
+                                           char* peer_address_ip,
+                                           size_t peer_address_len,
+                                           uint16_t peer_address_port,
                                            char* buffer,
                                            size_t length) {
   IPAddressNumber self_ip_addr(
-      go_self_address->ip_buf,
-      go_self_address->ip_buf + go_self_address->ip_length);
-  IPEndPoint self_address(self_ip_addr, go_self_address->port);
+      self_address_ip,
+      self_address_ip + self_address_len);
+  IPEndPoint self_address(self_ip_addr, self_address_port);
   IPAddressNumber peer_ip_addr(
-      go_peer_address->ip_buf,
-      go_peer_address->ip_buf + go_peer_address->ip_length);
-  IPEndPoint peer_address(peer_ip_addr, go_peer_address->port);
+      peer_address_ip,
+      peer_address_ip + peer_address_len);
+  IPEndPoint peer_address(peer_ip_addr, peer_address_port);
 
   QuicEncryptedPacket packet(
       buffer, length,

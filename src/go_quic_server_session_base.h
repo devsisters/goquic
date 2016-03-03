@@ -18,6 +18,7 @@
 #include "net/quic/quic_crypto_server_stream.h"
 #include "net/quic/quic_protocol.h"
 #include "net/quic/quic_spdy_session.h"
+#include "go_structs.h"
 
 namespace net {
 
@@ -78,12 +79,10 @@ class GoQuicServerSessionBase : public QuicSpdySession {
     serving_region_ = serving_region;
   }
 
-  void SetGoSession(void* go_quic_dispatcher, void* go_session) {
+  void SetGoSession(GoPtr go_quic_dispatcher, GoPtr go_session) {
     go_quic_dispatcher_ = go_quic_dispatcher;
     go_session_ = go_session;
   }
-
-  void* GetGoSession() { return go_session_; }
 
  protected:
   // QuicSession methods(override them with return type of QuicSpdyStream*):
@@ -105,8 +104,8 @@ class GoQuicServerSessionBase : public QuicSpdySession {
 
   const QuicCryptoServerConfig* crypto_config() { return crypto_config_; }
 
-  void* go_session_;
-  void* go_quic_dispatcher_;
+  GoPtr go_session_;
+  GoPtr go_quic_dispatcher_;
 
  private:
   const QuicCryptoServerConfig* crypto_config_;

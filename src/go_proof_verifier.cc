@@ -5,11 +5,11 @@
 
 namespace net {
 
-GoProofVerifier::GoProofVerifier(void* go_proof_verifier)
+GoProofVerifier::GoProofVerifier(GoPtr go_proof_verifier)
     : go_proof_verifier_(go_proof_verifier) {}
 
 GoProofVerifier::~GoProofVerifier() {
-  // TODO(hodduc) free go_proof_verifier
+  ReleaseProofVerifier_C(go_proof_verifier_);
 }
 
 QuicAsyncStatus GoProofVerifier::VerifyProof(
@@ -36,7 +36,7 @@ QuicAsyncStatus GoProofVerifier::VerifyProof(
   }
 
   // Convery certs to X509Certificate.
-  void* job = NewProofVerifyJob_C(
+  GoPtr job = NewProofVerifyJob_C(
       go_proof_verifier_, (char*)(hostname.c_str()),
       (size_t)(hostname.length()), (char*)(server_config.c_str()),
       (size_t)(server_config.length()), (char*)(cert_sct.c_str()),

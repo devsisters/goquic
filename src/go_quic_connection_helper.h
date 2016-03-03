@@ -3,6 +3,7 @@
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_clock.h"
 #include "net/quic/quic_simple_buffer_allocator.h"
+#include "go_structs.h"
 
 namespace net {
 
@@ -12,9 +13,10 @@ namespace tools {
 
 class GoQuicConnectionHelper : public QuicConnectionHelperInterface {
  public:
-  GoQuicConnectionHelper(void* task_runner,
+  GoQuicConnectionHelper(GoPtr task_runner,
                          QuicClock* clock,
                          QuicRandom* random_generator);
+  ~GoQuicConnectionHelper() override;
 
   // QuicConnectionHelperInterface
   const QuicClock* GetClock() const override;
@@ -23,7 +25,7 @@ class GoQuicConnectionHelper : public QuicConnectionHelperInterface {
   QuicBufferAllocator* GetBufferAllocator() override;
 
  private:
-  void* task_runner_;
+  GoPtr task_runner_;
 
   scoped_ptr<QuicClock> clock_;
   QuicRandom* random_generator_;

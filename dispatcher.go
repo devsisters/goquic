@@ -33,15 +33,22 @@ func CreateQuicDispatcher(writer *ServerWriter, createQuicServerSession func() I
 		createQuicServerSession: createQuicServerSession,
 	}
 
-	dispatcher.quicDispatcher = C.create_quic_dispatcher(unsafe.Pointer(writer), unsafe.Pointer(dispatcher), unsafe.Pointer(taskRunner), cryptoConfig.serverCryptoConfig)
+	dispatcher.quicDispatcher = C.create_quic_dispatcher(
+		C.GoPtr(serverWriterPtr.Set(writer)), C.GoPtr(quicDispatcherPtr.Set(dispatcher)), C.GoPtr(taskRunnerPtr.Set(taskRunner)), cryptoConfig.serverCryptoConfig)
 	return dispatcher
 }
 
 func (d *QuicDispatcher) ProcessPacket(self_address *net.UDPAddr, peer_address *net.UDPAddr, buffer []byte) {
+	self_address_p := CreateIPEndPoint(self_address)
+	peer_address_p := CreateIPEndPoint(peer_address)
 	C.quic_dispatcher_process_packet(
 		d.quicDispatcher,
-		CreateIPEndPointPacked(self_address),
-		CreateIPEndPointPacked(peer_address),
+		(*C.char)(unsafe.Pointer(&self_address_p.packed[0])),
+		C.size_t(len(self_address_p.packed)),
+		C.uint16_t(self_address_p.port),
+		(*C.char)(unsafe.Pointer(&peer_address_p.packed[0])),
+		C.size_t(len(peer_address_p.packed)),
+		C.uint16_t(peer_address_p.port),
 		(*C.char)(unsafe.Pointer(&buffer[0])), C.size_t(len(buffer)),
 	)
 }
@@ -55,8 +62,8 @@ func (d *QuicDispatcher) Statistics() DispatcherStatistics {
 }
 
 //export CreateGoSession
-func CreateGoSession(dispatcher_c unsafe.Pointer, session_c unsafe.Pointer) unsafe.Pointer {
-	dispatcher := (*QuicDispatcher)(dispatcher_c)
+func CreateGoSession(dispatcher_key int64, session_c unsafe.Pointer) int64 {
+	dispatcher := quicDispatcherPtr.Get(dispatcher_key)
 	userSession := dispatcher.createQuicServerSession()
 	session := &QuicServerSession{
 		quicServerSession: session_c,
@@ -68,14 +75,15 @@ func CreateGoSession(dispatcher_c unsafe.Pointer, session_c unsafe.Pointer) unsa
 	// This is to prevent garbage collection. This is cleaned up on DeleteGoSession()
 	dispatcher.quicServerSessions[session] = true
 
-	return unsafe.Pointer(session)
+	return quicServerSessionPtr.Set(session)
 }
 
 //export DeleteGoSession
-func DeleteGoSession(dispatcher_c unsafe.Pointer, go_session_c unsafe.Pointer) {
-	dispatcher := (*QuicDispatcher)(dispatcher_c)
-	go_session := (*QuicServerSession)(go_session_c)
+func DeleteGoSession(dispatcher_key int64, go_session_key int64) {
+	dispatcher := quicDispatcherPtr.Get(dispatcher_key)
+	go_session := quicServerSessionPtr.Get(go_session_key)
 	delete(dispatcher.quicServerSessions, go_session)
+	quicServerSessionPtr.Del(go_session_key)
 }
 
 // Note that the buffer is NOT copied. So it is the callers responsibility to retain the buffer until it is processed by QuicConnection
@@ -87,4 +95,14 @@ func CreateQuicEncryptedPacket(buffer []byte) QuicEncryptedPacket {
 
 func DeleteQuicEncryptedPacket(packet QuicEncryptedPacket) {
 	C.delete_quic_encrypted_packet(packet.encryptedPacket)
+}
+
+//export ReleaseQuicDispatcher
+func ReleaseQuicDispatcher(task_runner_key int64) {
+	quicDispatcherPtr.Del(task_runner_key)
+}
+
+//export ReleaseTaskRunner
+func ReleaseTaskRunner(task_runner_key int64) {
+	taskRunnerPtr.Del(task_runner_key)
 }

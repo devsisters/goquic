@@ -12,10 +12,12 @@
 namespace net {
 namespace tools {
 
-GoQuicClientPacketWriter::GoQuicClientPacketWriter(void* go_writer)
+GoQuicClientPacketWriter::GoQuicClientPacketWriter(GoPtr go_writer)
     : go_writer_(go_writer), write_blocked_(false) {}
 
-GoQuicClientPacketWriter::~GoQuicClientPacketWriter() {}
+GoQuicClientPacketWriter::~GoQuicClientPacketWriter() {
+  ReleaseClientWriter_C(go_writer_);
+}
 
 WriteResult GoQuicClientPacketWriter::WritePacket(
     const char* buffer,

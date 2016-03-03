@@ -4,6 +4,7 @@
 #include <string>
 
 #include "net/quic/crypto/proof_verifier.h"
+#include "go_structs.h"
 
 namespace net {
 
@@ -19,7 +20,7 @@ class NET_EXPORT_PRIVATE GoProofVerifyDetails : public ProofVerifyDetails {
 
 class NET_EXPORT_PRIVATE GoProofVerifier : public ProofVerifier {
  public:
-  GoProofVerifier(void* go_proof_verifier);
+  GoProofVerifier(GoPtr go_proof_verifier);
   ~GoProofVerifier() override;
 
   // ProofVerifier interface
@@ -34,7 +35,7 @@ class NET_EXPORT_PRIVATE GoProofVerifier : public ProofVerifier {
                               ProofVerifierCallback* callback) override;
 
  private:
-  void* go_proof_verifier_;
+  GoPtr go_proof_verifier_;
 
   DISALLOW_COPY_AND_ASSIGN(GoProofVerifier);
 };

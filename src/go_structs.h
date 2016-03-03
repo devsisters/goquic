@@ -2,12 +2,7 @@
 #define __GO_STRUCTS_H__
 
 #include <stdint.h>
-
-struct GoIPEndPoint {
-  unsigned char* ip_buf;
-  size_t ip_length;
-  uint16_t port;
-};
+#include <stddef.h>
 
 struct ConnStat {
   uint64_t Conn_id;
@@ -70,5 +65,7 @@ struct ConnStat {
   // one or more lost packets.
   uint32_t Tcp_loss_events;
 };
+
+typedef int64_t GoPtr;
 
 #endif  // __GO_STRUCTS_H__

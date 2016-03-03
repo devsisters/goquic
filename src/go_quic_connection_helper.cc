@@ -8,11 +8,15 @@
 namespace net {
 namespace tools {
 
-GoQuicConnectionHelper::GoQuicConnectionHelper(void* task_runner,
+GoQuicConnectionHelper::GoQuicConnectionHelper(GoPtr task_runner,
                                                QuicClock* clock,
                                                QuicRandom* random_generator)
     : task_runner_(task_runner), random_generator_(random_generator) {
   clock_.reset(clock);
+}
+
+GoQuicConnectionHelper::~GoQuicConnectionHelper() {
+  ReleaseTaskRunner_C(task_runner_);
 }
 
 const QuicClock* GoQuicConnectionHelper::GetClock() const {

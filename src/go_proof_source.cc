@@ -5,12 +5,14 @@
 #include "go_functions.h"
 #include "net/base/ip_address_number.h"
 
-GoProofSource::GoProofSource(void* go_proof_source)
+GoProofSource::GoProofSource(GoPtr go_proof_source)
     : go_proof_source_(go_proof_source), certs_(2) {
   certs_[0] = "0";
   certs_[1] = "1";
 }
-GoProofSource::~GoProofSource() {}
+GoProofSource::~GoProofSource() {
+  ReleaseProofSource_C(go_proof_source_);
+}
 
 // ProofSource interface
 bool GoProofSource::GetProof(const net::IPAddressNumber& server_ip,
