@@ -73,6 +73,15 @@ per request. The benchmark results are `2905.58 CPS`.
 Getting Started
 ===============
 
+## Get source files
+
+```bash
+go get -u -d github.com/devsisters/goquic
+```
+
+-u option is needed, because building (or downloading) static libraries is
+necessary for building and installing goquic library.
+
 ## Build static library files
 
 Although prebuilt static library files already exists in the repository for
@@ -88,23 +97,20 @@ To build the library files for your architecture and OS:
 This will fetch `libquic` master and build all the binaries from source. The
 C/C++ files for Go bindings will be all built too.
 
-Currently Linux and Mac OS X is supprted.
+Currently Linux and Mac OS X and FreeBSD is supported.
 
 ## How to build
 
-Due to Go 1.4's cgo restrictions, use an environment variable like below to
-build your projects. This restriction will be removed from Go 1.5.
+If you are using Go >= 1.5, you can build goquic binaries without any extra work.
 
 ```bash
-CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/$GOOS_$GOARCH"
-```
-
-For example, building goquic example server in Mac:
-
-```bash
-CGO_LDFLAGS="-L$GOPATH/src/github.com/devsisters/goquic/lib/darwin_amd64" \
 go build $GOPATH/src/github.com/devsisters/goquic/example/server.go
 ```
+
+If you are using Go 1.4, you should open goquic.go and manually edit ${SRCDIR}
+with your real path (maybe /YOUR/GOPATH/src/github.com/devsisters/goquic).
+
+
 
 SPDY/QUIC support
 =================
