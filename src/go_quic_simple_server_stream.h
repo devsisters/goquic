@@ -10,8 +10,6 @@ namespace net {
 
 class QuicSpdySession;
 
-namespace tools {
-
 class GoQuicSimpleServerStream : public QuicSpdyStream {
  public:
   GoQuicSimpleServerStream(QuicStreamId id, QuicSpdySession* session);
@@ -43,7 +41,6 @@ class GoQuicSimpleServerStream : public QuicSpdyStream {
   DISALLOW_COPY_AND_ASSIGN(GoQuicSimpleServerStream);
 };
 
-}  // namespace tools
 }  // namespace net
 
 #endif

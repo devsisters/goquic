@@ -6,7 +6,6 @@
 #include "net/quic/crypto/quic_random.h"
 
 namespace net {
-namespace tools {
 
 GoQuicConnectionHelper::GoQuicConnectionHelper(GoPtr task_runner,
                                                QuicClock* clock,
@@ -30,12 +29,22 @@ QuicRandom* GoQuicConnectionHelper::GetRandomGenerator() {
 QuicAlarm* GoQuicConnectionHelper::CreateAlarm(
     QuicAlarm::Delegate* delegate) {
   return new GoQuicAlarmGoWrapper(clock_.get(), task_runner_,
-                                  delegate);  // Should be deleted by caller
+                                  QuicArenaScopedPtr<QuicAlarm::Delegate>(delegate));  // Should be deleted by caller
+}
+
+QuicArenaScopedPtr<QuicAlarm> GoQuicConnectionHelper::CreateAlarm(
+    QuicArenaScopedPtr<QuicAlarm::Delegate> delegate,
+    QuicConnectionArena* arena) {
+  if (arena != nullptr) {
+    return arena->New<GoQuicAlarmGoWrapper>(clock_.get(), task_runner_, std::move(delegate));
+  } else {
+    return QuicArenaScopedPtr<QuicAlarm>(
+        new GoQuicAlarmGoWrapper(clock_.get(), task_runner_, std::move(delegate)));
+  }
 }
 
 QuicBufferAllocator* GoQuicConnectionHelper::GetBufferAllocator() {
   return &buffer_allocator_;
 }
 
-}  // namespace tools
 }  // namespace net

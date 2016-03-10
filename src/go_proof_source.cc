@@ -3,23 +3,23 @@
 #include "base/logging.h"
 
 #include "go_functions.h"
-#include "net/base/ip_address_number.h"
+#include "net/base/ip_address.h"
+
+namespace net {
 
 GoProofSource::GoProofSource(GoPtr go_proof_source)
-    : go_proof_source_(go_proof_source), certs_(2) {
-  certs_[0] = "0";
-  certs_[1] = "1";
-}
+    : go_proof_source_(go_proof_source) {}
+
 GoProofSource::~GoProofSource() {
   ReleaseProofSource_C(go_proof_source_);
 }
 
 // ProofSource interface
-bool GoProofSource::GetProof(const net::IPAddressNumber& server_ip,
+bool GoProofSource::GetProof(const net::IPAddress& server_ip,
                              const std::string& hostname,
                              const std::string& server_config,
                              bool ecdsa_ok,
-                             const std::vector<std::string>** out_certs,
+                             scoped_refptr<ProofSource::Chain>* out_chain,
                              std::string* out_signature,
                              std::string* out_leaf_cert_sct) {
   char** c_certs;
@@ -28,10 +28,10 @@ bool GoProofSource::GetProof(const net::IPAddressNumber& server_ip,
   size_t* c_certs_item_sz;
   size_t c_out_signature_sz;
 
-  std::string server_ip_str = net::IPAddressToPackedString(server_ip);
+  auto server_ip_bytes = server_ip.bytes();
 
-  int ret = GetProof_C(go_proof_source_, (char*)server_ip_str.c_str(),
-                       (size_t)server_ip_str.length(), (char*)hostname.c_str(),
+  int ret = GetProof_C(go_proof_source_, reinterpret_cast<char*>(server_ip_bytes.data()),
+                       server_ip_bytes.size(), (char*)hostname.c_str(),
                        (size_t)hostname.length(), (char*)server_config.c_str(),
                        (size_t)server_config.length(), ecdsa_ok, &c_certs,
                        &c_certs_sz, &c_certs_item_sz, &c_out_signature,
@@ -40,9 +40,9 @@ bool GoProofSource::GetProof(const net::IPAddressNumber& server_ip,
     return false;
   }
 
-  std::vector<std::string>* certs = new std::vector<std::string>;
+  std::vector<std::string> certs;
   for (int i = 0; i < c_certs_sz; i++) {
-    certs->push_back(std::string(c_certs[i], c_certs_item_sz[i]));
+    certs.push_back(std::string(c_certs[i], c_certs_item_sz[i]));
     free(c_certs[i]);  // Created from go side
   }
 
@@ -63,7 +63,12 @@ bool GoProofSource::GetProof(const net::IPAddressNumber& server_ip,
   std::string signature(c_out_signature, c_out_signature_sz);
   free(c_out_signature);  // Created from go side
 
-  *out_certs = certs;
+  chain_ = new ProofSource::Chain(certs);
+
+
+  *out_chain = chain_;
   *out_signature = signature;
   return true;
 }
+
+}    // namespace net

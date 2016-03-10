@@ -12,8 +12,8 @@ class GoQuicAlarmGoWrapper : public QuicAlarm {
  public:
   GoQuicAlarmGoWrapper(QuicClock* clock,
                        GoPtr task_runner,
-                       QuicAlarm::Delegate* delegate)
-      : QuicAlarm(delegate),
+                       QuicArenaScopedPtr<Delegate> delegate)
+      : QuicAlarm(std::move(delegate)),
         go_quic_alarm_(CreateGoQuicAlarm_C(this, clock, task_runner)) {}
 
   virtual ~GoQuicAlarmGoWrapper() {

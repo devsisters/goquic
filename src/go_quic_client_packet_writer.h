@@ -1,6 +1,7 @@
 #ifndef GO_QUIC_CLIENT_PACKET_WRITER_H_
 #define GO_QUIC_CLIENT_PACKET_WRITER_H_
 
+#include "net/base/ip_address.h"
 #include "net/base/ip_endpoint.h"
 #include "net/quic/quic_packet_writer.h"
 #include "go_structs.h"
@@ -8,8 +9,6 @@
 namespace net {
 
 struct WriteResult;
-
-namespace tools {
 
 class GoQuicClientPacketWriter : public QuicPacketWriter {
  public:
@@ -19,8 +18,9 @@ class GoQuicClientPacketWriter : public QuicPacketWriter {
   // QuicPacketWriter implementation:
   WriteResult WritePacket(const char* buffer,
                           size_t buf_len,
-                          const IPAddressNumber& self_address,
-                          const IPEndPoint& peer_address) override;
+                          const IPAddress& self_address,
+                          const IPEndPoint& peer_address,
+                          PerPacketOptions* options) override;
   bool IsWriteBlockedDataBuffered() const override;
   bool IsWriteBlocked() const override;
   void SetWritable() override;
@@ -38,7 +38,6 @@ class GoQuicClientPacketWriter : public QuicPacketWriter {
   DISALLOW_COPY_AND_ASSIGN(GoQuicClientPacketWriter);
 };
 
-}  // namespace tools
 }  // namespace net
 
 #endif  // GO_QUIC_CLIENT_PACKET_WRITER_H_

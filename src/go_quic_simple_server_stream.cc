@@ -1,11 +1,10 @@
 #include "go_quic_simple_server_stream.h"
+#include "go_functions.h"
+
 #include "net/quic/quic_session.h"
 #include "base/strings/string_piece.h"
 
-#include "go_functions.h"
-
 namespace net {
-namespace tools {
 
 GoQuicSimpleServerStream::GoQuicSimpleServerStream(QuicStreamId id,
                                                    QuicSpdySession* session)
@@ -32,7 +31,7 @@ void GoQuicSimpleServerStream::OnInitialHeadersComplete(bool fin,
 
 void GoQuicSimpleServerStream::OnTrailingHeadersComplete(bool fin,
                                                          size_t frame_len) {
-  LOG(DFATAL) << "Server does not support receiving Trailers.";
+  QUIC_BUG << "Server does not support receiving Trailers.";
   // TODO(hodduc): Should Send error response
 }
 
@@ -79,5 +78,4 @@ void GoQuicSimpleServerStream::OnClose() {
   GoQuicSimpleServerStreamOnClose_C(go_quic_simple_server_stream_);
 }
 
-}  // namespace tools
 }  // namespace net

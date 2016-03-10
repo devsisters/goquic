@@ -12,11 +12,10 @@
 #include "go_quic_client_session.h"
 
 namespace net {
-namespace tools {
 
 GoQuicSpdyClientStream::GoQuicSpdyClientStream(QuicStreamId id,
                                                GoQuicClientSession* session)
-    : QuicSpdyStream(id, session), allow_bidirectional_data_(false) {}
+    : QuicSpdyStream(id, session), allow_bidirectional_data_(false) , session_(session){}
 
 GoQuicSpdyClientStream::~GoQuicSpdyClientStream() {
   UnregisterQuicClientStreamFromSession_C(go_quic_client_stream_);
@@ -45,11 +44,12 @@ void GoQuicSpdyClientStream::OnInitialHeadersComplete(bool fin,
       go_quic_client_stream_, decompressed_headers().data(),
       decompressed_headers().length());
   MarkHeadersConsumed(decompressed_headers().length());
+
+  // session_->OnInitialHeadersComplete(id(), response_headers_);  XXX needed for server push
 }
 
 void GoQuicSpdyClientStream::OnTrailingHeadersComplete(bool fin,
                                                        size_t frame_len) {
-  QuicSpdyStream::OnTrailingHeadersComplete(fin, frame_len);
   GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(
       go_quic_client_stream_, decompressed_trailers().data(),
       decompressed_trailers().length());
@@ -96,5 +96,4 @@ void GoQuicSpdyClientStream::WriteOrBufferData_(
   WriteOrBufferData(data, fin, ack_listener);
 }
 
-}  // namespace tools
 }  // namespace net

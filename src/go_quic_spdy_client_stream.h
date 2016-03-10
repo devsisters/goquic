@@ -13,7 +13,6 @@
 #include "go_structs.h"
 
 namespace net {
-namespace tools {
 
 class GoQuicClientSession;
 
@@ -61,12 +60,13 @@ class NET_EXPORT_PRIVATE GoQuicSpdyClientStream : public QuicSpdyStream {
   // XXX: Currently not supported in goquic
   bool allow_bidirectional_data_;
 
+  GoQuicClientSession* session_;
+
   GoPtr go_quic_client_stream_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicSpdyClientStream);
 };
 
-}  // namespace tools
 }  // namespace net
 
 #endif  // GO_QUIC_SPDY_CLIENT_STREAM_H_

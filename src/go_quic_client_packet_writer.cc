@@ -10,7 +10,6 @@
 #include "go_functions.h"
 
 namespace net {
-namespace tools {
 
 GoQuicClientPacketWriter::GoQuicClientPacketWriter(GoPtr go_writer)
     : go_writer_(go_writer), write_blocked_(false) {}
@@ -22,13 +21,14 @@ GoQuicClientPacketWriter::~GoQuicClientPacketWriter() {
 WriteResult GoQuicClientPacketWriter::WritePacket(
     const char* buffer,
     size_t buf_len,
-    const IPAddressNumber& self_address,
-    const IPEndPoint& peer_address) {
+    const IPAddress& self_address,
+    const IPEndPoint& peer_address,
+    PerPacketOptions* /*options*/) {
   DCHECK(!IsWriteBlocked());
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
-    std::string peer_ip = net::IPAddressToPackedString(peer_address.address());
-    WriteToUDPClient_C(go_writer_, (char*)peer_ip.c_str(), peer_ip.size(),
+    auto peer_ip = peer_address.address().bytes();
+    WriteToUDPClient_C(go_writer_, reinterpret_cast<char*>(peer_ip.data()), peer_ip.size(),
                        peer_address.port(), (void*)buffer, buf_len);
 
     rv = buf_len;
@@ -64,5 +64,4 @@ QuicByteCount GoQuicClientPacketWriter::GetMaxPacketSize(
   return kMaxPacketSize;
 }
 
-}  // namespace tools
 }  // namespace net

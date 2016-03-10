@@ -19,7 +19,6 @@
 #include "net/quic/quic_protocol.h"
 
 namespace net {
-namespace tools {
 
 class GoQuicServerSessionVisitor;
 
@@ -145,6 +144,8 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
                      QuicTime time_added_,
                      bool connection_rejected_statelessly);
 
+    ConnectionIdData(const ConnectionIdData& other);
+
     ~ConnectionIdData();
 
     int num_packets;
@@ -182,7 +183,6 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
   DISALLOW_COPY_AND_ASSIGN(GoQuicTimeWaitListManager);
 };
 
-}  // namespace tools
 }  // namespace net
 
 #endif  // GO_QUIC_TIME_WAIT_LIST_MANAGER_H_

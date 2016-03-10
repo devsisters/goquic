@@ -12,12 +12,10 @@
 #include "go_quic_server_packet_writer.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_protocol.h"
-#include "net/base/net_util.h"
 #include "net/base/ip_endpoint.h"
 #include "net/spdy/spdy_header_block.h"
 
 using namespace net;
-using namespace net::tools;
 
 extern "C" {
 #else
@@ -46,10 +44,10 @@ GoQuicDispatcher* create_quic_dispatcher(GoPtr go_writer_,
 QuicCryptoServerConfig* init_crypto_config(GoPtr go_proof_source);
 void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher);
 void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
-                                    char* self_address_ip,
+                                    uint8_t* self_address_ip,
                                     size_t self_address_len,
                                     uint16_t self_address_port,
-                                    char* peer_address_ip,
+                                    uint8_t* peer_address_ip,
                                     size_t peer_address_len,
                                     uint16_t peer_address_port,
                                     char* buffer,

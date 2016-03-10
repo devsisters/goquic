@@ -31,8 +31,6 @@ class QuicConnection;
 class QuicCryptoServerConfig;
 class ReliableQuicStream;
 
-namespace tools {
-
 class GoQuicSimpleServerSession : public GoQuicServerSessionBase {
  public:
   GoQuicSimpleServerSession(const QuicConfig& config,
@@ -55,7 +53,6 @@ class GoQuicSimpleServerSession : public GoQuicServerSessionBase {
   DISALLOW_COPY_AND_ASSIGN(GoQuicSimpleServerSession);
 };
 
-}  // namespace tools
 }  // namespace net
 
-#endif  // NET_TOOLS_QUIC_QUIC_SERVER_SESSION_H_
+#endif  // GO_QUIC_SIMPLE_SERVER_SESSION_H_

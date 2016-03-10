@@ -15,8 +15,6 @@
 
 namespace net {
 
-namespace tools {
-
 GoQuicServerPacketWriter::GoQuicServerPacketWriter(
     GoPtr go_writer,
     QuicBlockedWriterInterface* blocked_writer)
@@ -33,12 +31,14 @@ GoQuicServerPacketWriter::~GoQuicServerPacketWriter() {
 WriteResult GoQuicServerPacketWriter::WritePacketWithCallback(
     const char* buffer,
     size_t buf_len,
-    const IPAddressNumber& self_address,
+    const IPAddress& self_address,
     const IPEndPoint& peer_address,
+    PerPacketOptions* options,
     WriteCallback callback) {
   DCHECK(callback_.is_null());
   callback_ = callback;
-  WriteResult result = WritePacket(buffer, buf_len, self_address, peer_address);
+  WriteResult result =
+      WritePacket(buffer, buf_len, self_address, peer_address, options);
   if (result.status != WRITE_STATUS_BLOCKED) {
     callback_.Reset();
   }
@@ -69,16 +69,18 @@ void GoQuicServerPacketWriter::SetWritable() {
 WriteResult GoQuicServerPacketWriter::WritePacket(
     const char* buffer,
     size_t buf_len,
-    const IPAddressNumber& self_address,
-    const IPEndPoint& peer_address) {
+    const IPAddress& self_address,
+    const IPEndPoint& peer_address,
+    PerPacketOptions* options) {
   //  scoped_refptr<StringIOBuffer> buf(
   //      new StringIOBuffer(std::string(buffer, buf_len)));
   DCHECK(!IsWriteBlocked());
   DCHECK(!callback_.is_null());
   int rv;
   if (buf_len <= static_cast<size_t>(std::numeric_limits<int>::max())) {
-    std::string peer_ip = net::IPAddressToPackedString(peer_address.address());
-    WriteToUDP_C(go_writer_, (char*)peer_ip.c_str(), peer_ip.size(),
+    auto peer_ip = peer_address.address().bytes();
+
+    WriteToUDP_C(go_writer_, reinterpret_cast<char*>(peer_ip.data()), peer_ip.size(),
                  peer_address.port(), (void*)buffer, buf_len);
     rv = buf_len;
   } else {
@@ -102,5 +104,4 @@ QuicByteCount GoQuicServerPacketWriter::GetMaxPacketSize(
   return kMaxPacketSize;
 }
 
-}  // namespace tools
 }  // namespace net

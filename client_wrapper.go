@@ -58,7 +58,7 @@ func (qc *QuicClient) StartConnect() {
 			C.GoPtr(clientWriterPtr.Set(qc.conn.Writer())),
 			C.GoPtr(taskRunnerPtr.Set(qc.taskRunner)),
 			C.GoPtr(proofVerifierPtr.Set(qc.proofVerifier)),
-			(*C.char)(unsafe.Pointer(&addr.packed[0])),
+			(*C.uint8_t)(unsafe.Pointer(&addr.packed[0])),
 			C.size_t(len(addr.packed)),
 			C.uint16_t(addr.port)), // Deleted on QuicClient.Close(),
 		quicClientStreams: make(map[*QuicClientStream]bool),
@@ -92,10 +92,10 @@ func (qc *QuicClient) ProcessPacket(self_address *net.UDPAddr, peer_address *net
 	peer_address_p := CreateIPEndPoint(peer_address)
 	C.go_quic_client_session_process_packet(
 		qc.session.quicClientSession_c,
-		(*C.char)(unsafe.Pointer(&self_address_p.packed[0])),
+		(*C.uint8_t)(unsafe.Pointer(&self_address_p.packed[0])),
 		C.size_t(len(self_address_p.packed)),
 		C.uint16_t(self_address_p.port),
-		(*C.char)(unsafe.Pointer(&peer_address_p.packed[0])),
+		(*C.uint8_t)(unsafe.Pointer(&peer_address_p.packed[0])),
 		C.size_t(len(peer_address_p.packed)),
 		C.uint16_t(peer_address_p.port),
 		(*C.char)(unsafe.Pointer(&buffer[0])), C.size_t(len(buffer)),

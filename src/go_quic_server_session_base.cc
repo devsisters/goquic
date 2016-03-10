@@ -7,13 +7,14 @@
 #include "go_functions.h"
 
 #include "base/logging.h"
+#include "net/quic/proto/cached_network_parameters.pb.h"
+#include "net/quic/quic_bug_tracker.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_flags.h"
 #include "net/quic/quic_spdy_session.h"
 #include "net/quic/reliable_quic_stream.h"
 
 namespace net {
-namespace tools {
 
 GoQuicServerSessionBase::GoQuicServerSessionBase(
     const QuicConfig& config,
@@ -44,27 +45,34 @@ void GoQuicServerSessionBase::OnConfigNegotiated() {
     return;
   }
 
-  // If the client has provided a bandwidth estimate from the same serving
-  // region, then pass it to the sent packet manager in preparation for possible
-  // bandwidth resumption.
-  const CachedNetworkParameters* cached_network_params =
-      crypto_stream_->PreviousCachedNetworkParams();
+  // Enable bandwidth resumption if peer sent correct connection options.<Paste>
   const bool last_bandwidth_resumption =
       ContainsQuicTag(config()->ReceivedConnectionOptions(), kBWRE);
   const bool max_bandwidth_resumption =
       ContainsQuicTag(config()->ReceivedConnectionOptions(), kBWMX);
   bandwidth_resumption_enabled_ =
       last_bandwidth_resumption || max_bandwidth_resumption;
-  if (cached_network_params != nullptr && bandwidth_resumption_enabled_ &&
+
+  // If the client has provided a bandwidth estimate from the same serving
+  // region as this server, then decide whether to use the data for bandwidth
+  // resumption.
+  const CachedNetworkParameters* cached_network_params =
+      crypto_stream_->PreviousCachedNetworkParams();
+  if (cached_network_params != nullptr &&
       cached_network_params->serving_region() == serving_region_) {
-    int64_t seconds_since_estimate =
-        connection()->clock()->WallNow().ToUNIXSeconds() -
-        cached_network_params->timestamp();
-    bool estimate_within_last_hour =
-        seconds_since_estimate <= kNumSecondsPerHour;
-    if (estimate_within_last_hour) {
-      connection()->ResumeConnectionState(*cached_network_params,
-                                          max_bandwidth_resumption);
+    if (FLAGS_quic_log_received_parameters) {
+      connection()->OnReceiveConnectionState(*cached_network_params);
+    }
+
+    if (bandwidth_resumption_enabled_) {
+      // Only do bandwidth resumption if estimate is recent enough.
+      const int64_t seconds_since_estimate =
+          connection()->clock()->WallNow().ToUNIXSeconds() -
+          cached_network_params->timestamp();
+      if (seconds_since_estimate <= kNumSecondsPerHour) {
+        connection()->ResumeConnectionState(*cached_network_params,
+                                            max_bandwidth_resumption);
+      }
     }
   }
 
@@ -77,8 +85,8 @@ void GoQuicServerSessionBase::OnConfigNegotiated() {
 }
 
 void GoQuicServerSessionBase::OnConnectionClosed(QuicErrorCode error,
-                                             bool from_peer) {
-  QuicSession::OnConnectionClosed(error, from_peer);
+                                                 ConnectionCloseSource source) {
+  QuicSession::OnConnectionClosed(error, source);
   // In the unlikely event we get a connection close while doing an asynchronous
   // crypto event, make sure we cancel the callback.
   if (crypto_stream_.get() != nullptr) {
@@ -181,7 +189,7 @@ void GoQuicServerSessionBase::OnCongestionWindowChange(QuicTime now) {
 
 bool GoQuicServerSessionBase::ShouldCreateIncomingDynamicStream(QuicStreamId id) {
   if (!connection()->connected()) {
-    LOG(DFATAL) << "ShouldCreateIncomingDynamicStream called when disconnected";
+    QUIC_BUG << "ShouldCreateIncomingDynamicStream called when disconnected";
     return false;
   }
 
@@ -196,14 +204,14 @@ bool GoQuicServerSessionBase::ShouldCreateIncomingDynamicStream(QuicStreamId id)
 
 bool GoQuicServerSessionBase::ShouldCreateOutgoingDynamicStream() {
   if (!connection()->connected()) {
-    LOG(DFATAL) << "ShouldCreateOutgoingDynamicStream called when disconnected";
+    QUIC_BUG << "ShouldCreateOutgoingDynamicStream called when disconnected";
     return false;
   }
   if (!crypto_stream_->encryption_established()) {
-    LOG(DFATAL) << "Encryption not established so no outgoing stream created.";
+    QUIC_BUG << "Encryption not established so no outgoing stream created.";
     return false;
   }
-  if (GetNumOpenOutgoingStreams() >= get_max_open_streams()) {
+  if (GetNumOpenOutgoingStreams() >= max_open_outgoing_streams()) {
     VLOG(1) << "No more streams should be created. "
             << "Already " << GetNumOpenOutgoingStreams() << " open.";
     return false;
@@ -215,5 +223,4 @@ QuicCryptoServerStreamBase* GoQuicServerSessionBase::GetCryptoStream() {
   return crypto_stream_.get();
 }
 
-}  // namespace tools
 }  // namespace net

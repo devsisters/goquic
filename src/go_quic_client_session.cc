@@ -5,13 +5,14 @@
 #include "go_quic_spdy_client_stream.h"
 
 namespace net {
-namespace tools {
 
-GoQuicClientSession::GoQuicClientSession(const QuicConfig& config,
-                                         QuicConnection* connection,
-                                         const QuicServerId& server_id,
-                                         QuicCryptoClientConfig* crypto_config)
-    : QuicClientSessionBase(connection, config),
+GoQuicClientSession::GoQuicClientSession(
+    const QuicConfig& config,
+    QuicConnection* connection,
+    const QuicServerId& server_id,
+    QuicCryptoClientConfig* crypto_config,
+    QuicClientPushPromiseIndex* push_promise_index)
+    : QuicClientSessionBase(connection, push_promise_index, config),
       server_id_(server_id),
       crypto_config_(crypto_config),
       respect_goaway_(true) {}
@@ -29,20 +30,27 @@ void GoQuicClientSession::OnProofValid(
 void GoQuicClientSession::OnProofVerifyDetailsAvailable(
     const ProofVerifyDetails& /*verify_details*/) {}
 
-GoQuicSpdyClientStream* GoQuicClientSession::CreateOutgoingDynamicStream(
-    SpdyPriority priority) {
+bool GoQuicClientSession::ShouldCreateOutgoingDynamicStream() {
   if (!crypto_stream_->encryption_established()) {
     DVLOG(1) << "Encryption not active so no outgoing stream created.";
-    return nullptr;
+    return false;
   }
-  if (GetNumOpenOutgoingStreams() >= get_max_open_streams()) {
+  if (GetNumOpenOutgoingStreams() >=max_open_outgoing_streams()) {
     DVLOG(1) << "Failed to create a new outgoing stream. "
              << "Already " << GetNumOpenOutgoingStreams() << " open.";
-    return nullptr;
+    return false;
   }
   if (goaway_received() && respect_goaway_) {
     DVLOG(1) << "Failed to create a new outgoing stream. "
              << "Already received goaway.";
+    return false;
+  }
+  return true;
+}
+
+GoQuicSpdyClientStream* GoQuicClientSession::CreateOutgoingDynamicStream(
+    SpdyPriority priority) {
+  if (!ShouldCreateOutgoingDynamicStream()) {
     return nullptr;
   }
   GoQuicSpdyClientStream* stream = CreateClientStream();
@@ -76,11 +84,15 @@ QuicSpdyStream* GoQuicClientSession::CreateIncomingDynamicStream(
 }
 
 QuicCryptoClientStreamBase* GoQuicClientSession::CreateQuicCryptoStream() {
-  return new QuicCryptoClientStream(server_id_, this, nullptr, crypto_config_);
+  return new QuicCryptoClientStream(
+      server_id_, this, nullptr,
+      crypto_config_, this);
   // XXX(hodduc) third parameter is for implementation-specific context, which
   // is nullable.
 }
 
-}  // namespace tools
+bool GoQuicClientSession::IsAuthorized(const string& authority) {
+  return true;
+}
 
 }  // namespace net

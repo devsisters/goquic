@@ -28,8 +28,6 @@ class QuicConnection;
 class QuicCryptoServerConfig;
 class ReliableQuicStream;
 
-namespace tools {
-
 // An interface from the session to the entity owning the session.
 // This lets the session notify its owner (the Dispatcher) when the connection
 // is closed, blocked, or added/removed from the time-wait list.
@@ -57,7 +55,8 @@ class GoQuicServerSessionBase : public QuicSpdySession {
                           const QuicCryptoServerConfig* crypto_config);
 
   // Override the base class to notify the owner of the connection close.
-  void OnConnectionClosed(QuicErrorCode error, bool from_peer) override;
+  void OnConnectionClosed(QuicErrorCode error,
+                          ConnectionCloseSource source) override;
   void OnWriteBlocked() override;
 
   // Sends a server config update to the client, containing new bandwidth
@@ -131,7 +130,6 @@ class GoQuicServerSessionBase : public QuicSpdySession {
   DISALLOW_COPY_AND_ASSIGN(GoQuicServerSessionBase);
 };
 
-}  // namespace tools
 }  // namespace net
 
 #endif  // GO_QUIC_SERVER_SESSION_H_

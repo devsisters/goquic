@@ -1,5 +1,7 @@
 #include "go_ephemeral_key_source.h"
 
+namespace net {
+
 GoEphemeralKeySource::GoEphemeralKeySource()
     : forward_secure_key_exchange_(nullptr),
       key_created_time_(net::QuicTime::Zero()) {}
@@ -23,3 +25,5 @@ std::string GoEphemeralKeySource::CalculateForwardSecureKey(
       peer_public_value, &forward_secure_premaster_secret);
   return forward_secure_premaster_secret;
 }
+
+}   // namespace net

@@ -14,7 +14,6 @@
 #include "net/quic/reliable_quic_stream.h"
 
 namespace net {
-namespace tools {
 
 GoQuicSimpleServerSession::GoQuicSimpleServerSession(
     const QuicConfig& config,
@@ -59,5 +58,4 @@ GoQuicSimpleServerStream* GoQuicSimpleServerSession::CreateOutgoingDynamicStream
   return stream;
 }
 
-}  // namespace tools
 }  // namespace net

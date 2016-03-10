@@ -13,7 +13,7 @@
 #include "net/quic/quic_time.h"
 #include "net/quic/quic_protocol.h"
 #include "net/quic/crypto/quic_random.h"
-#include "net/base/net_util.h"
+#include "net/base/ip_address.h"
 #include "net/base/ip_endpoint.h"
 #include "base/strings/string_piece.h"
 
@@ -32,9 +32,7 @@
   }
 
 using namespace net;
-using namespace net::tools;
 using namespace std;
-using base::StringPiece;
 
 static base::AtExitManager* exit_manager;
 void initialize() {
@@ -87,17 +85,12 @@ GoQuicDispatcher* create_quic_dispatcher(
   /* Initialize Configs Ends ----------------------------------------*/
 
   // Deleted by delete_go_quic_dispatcher()
-  GoQuicDispatcher::CustomPacketWriterFactory* factory =
-      new GoQuicDispatcher::CustomPacketWriterFactory();
   GoQuicDispatcher* dispatcher =
-      new GoQuicDispatcher(*config, crypto_config, versions,
-                           factory,  // Delete by scoped ptr of GoQuicDispatcher
-                           helper, go_quic_dispatcher);
+      new GoQuicDispatcher(*config, crypto_config, versions, helper, go_quic_dispatcher);
 
   GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(
       go_writer, dispatcher);  // Deleted by scoped ptr of GoQuicDispatcher
 
-  factory->set_shared_writer(writer);
   dispatcher->InitializeWithWriter(writer);
 
   return dispatcher;
@@ -132,21 +125,17 @@ void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher) {
 }
 
 void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
-                                    char* self_address_ip,
+                                    uint8_t* self_address_ip,
                                     size_t self_address_len,
                                     uint16_t self_address_port,
-                                    char* peer_address_ip,
+                                    uint8_t* peer_address_ip,
                                     size_t peer_address_len,
                                     uint16_t peer_address_port,
                                     char* buffer,
                                     size_t length) {
-  IPAddressNumber self_ip_addr(
-      self_address_ip,
-      self_address_ip + self_address_len);
+  IPAddress self_ip_addr(self_address_ip, self_address_len);
   IPEndPoint self_address(self_ip_addr, self_address_port);
-  IPAddressNumber peer_ip_addr(
-      peer_address_ip,
-      peer_address_ip + peer_address_len);
+  IPAddress peer_ip_addr(peer_address_ip, peer_address_len);
   IPEndPoint peer_address(peer_ip_addr, peer_address_port);
 
   QuicEncryptedPacket packet(

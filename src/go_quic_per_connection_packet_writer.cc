@@ -8,13 +8,11 @@
 #include "go_quic_server_packet_writer.h"
 
 namespace net {
-namespace tools {
 
 GoQuicPerConnectionPacketWriter::GoQuicPerConnectionPacketWriter(
-    GoQuicServerPacketWriter* shared_writer,
-    QuicConnection* connection)
+    GoQuicServerPacketWriter* shared_writer)
     : shared_writer_(shared_writer),
-      connection_(connection),
+      connection_(nullptr),
       weak_factory_(this) {}
 
 GoQuicPerConnectionPacketWriter::~GoQuicPerConnectionPacketWriter() {}
@@ -26,10 +24,11 @@ QuicPacketWriter* GoQuicPerConnectionPacketWriter::shared_writer() const {
 WriteResult GoQuicPerConnectionPacketWriter::WritePacket(
     const char* buffer,
     size_t buf_len,
-    const IPAddressNumber& self_address,
-    const IPEndPoint& peer_address) {
+    const IPAddress& self_address,
+    const IPEndPoint& peer_address,
+    PerPacketOptions* options) {
   return shared_writer_->WritePacketWithCallback(
-      buffer, buf_len, self_address, peer_address,
+      buffer, buf_len, self_address, peer_address, options,
       base::Bind(&GoQuicPerConnectionPacketWriter::OnWriteComplete,
                  weak_factory_.GetWeakPtr()));
 }
@@ -57,5 +56,4 @@ QuicByteCount GoQuicPerConnectionPacketWriter::GetMaxPacketSize(
   return shared_writer_->GetMaxPacketSize(peer_address);
 }
 
-}  // namespace tools
 }  // namespace net

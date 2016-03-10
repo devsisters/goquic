@@ -43,10 +43,10 @@ func (d *QuicDispatcher) ProcessPacket(self_address *net.UDPAddr, peer_address *
 	peer_address_p := CreateIPEndPoint(peer_address)
 	C.quic_dispatcher_process_packet(
 		d.quicDispatcher,
-		(*C.char)(unsafe.Pointer(&self_address_p.packed[0])),
+		(*C.uint8_t)(unsafe.Pointer(&self_address_p.packed[0])),
 		C.size_t(len(self_address_p.packed)),
 		C.uint16_t(self_address_p.port),
-		(*C.char)(unsafe.Pointer(&peer_address_p.packed[0])),
+		(*C.uint8_t)(unsafe.Pointer(&peer_address_p.packed[0])),
 		C.size_t(len(peer_address_p.packed)),
 		C.uint16_t(peer_address_p.port),
 		(*C.char)(unsafe.Pointer(&buffer[0])), C.size_t(len(buffer)),

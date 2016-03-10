@@ -6,6 +6,7 @@
 #include "go_quic_connection_helper.h"
 #include "go_proof_verifier.h"
 
+#include "net/base/ip_address.h"
 #include "net/base/ip_endpoint.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_clock.h"
@@ -14,36 +15,17 @@
 #include "base/strings/string_piece.h"
 
 using namespace net;
-using namespace net::tools;
 using namespace std;
 using base::StringPiece;
-
-class GoQuicPacketWriterFactory : public QuicConnection::PacketWriterFactory {
- public:
-  explicit GoQuicPacketWriterFactory(QuicPacketWriter* writer) {
-    //    ON_CALL(*this, Create(_)).WillByDefault(Return(writer));
-    writer_ = writer;
-  }
-  virtual ~GoQuicPacketWriterFactory() override {}
-
-  virtual QuicPacketWriter* Create(QuicConnection* connection) const override {
-    return writer_;
-  }
-
- private:
-  QuicPacketWriter* writer_;
-};
 
 GoQuicClientSession* create_go_quic_client_session_and_initialize(
     GoPtr go_writer,
     GoPtr task_runner,
     GoPtr go_proof_verifier,
-    char* server_address_ip,
+    uint8_t* server_address_ip,
     size_t server_address_len,
     uint16_t server_address_port) {
-  IPAddressNumber server_ip_addr(
-      server_address_ip,
-      server_address_ip + server_address_len);
+  IPAddress server_ip_addr(server_address_ip, server_address_len);
   IPEndPoint server_address(server_ip_addr, server_address_port);
 
   QuicConfig config = QuicConfig();
@@ -66,7 +48,7 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(
   // Deleted automatically by scoped ptr of GoQuicClientSession
   QuicConnection* conn = new QuicConnection(
       QuicRandom::GetInstance()->RandUint64(),  // Connection ID
-      server_address, helper, GoQuicPacketWriterFactory(writer),
+      server_address, helper, writer,
       /* owns_writer= */ true,
       /* is_server= */ Perspective::IS_CLIENT, supported_versions);
 
@@ -83,8 +65,7 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(
   // TODO(hodduc): crypto_config proofverifier?
 
   GoQuicClientSession* session = new GoQuicClientSession(
-      config, conn, server_id,
-      crypto_config);  // Deleted by delete_go_quic_client_session()
+      config, conn, server_id, crypto_config, nullptr);  // Deleted by delete_go_quic_client_session()
 
   session->Initialize();
   session->CryptoConnect();
@@ -136,28 +117,24 @@ void quic_spdy_client_stream_write_or_buffer_data(
 }
 
 void go_quic_client_session_process_packet(GoQuicClientSession* session,
-                                           char* self_address_ip,
+                                           uint8_t* self_address_ip,
                                            size_t self_address_len,
                                            uint16_t self_address_port,
-                                           char* peer_address_ip,
+                                           uint8_t* peer_address_ip,
                                            size_t peer_address_len,
                                            uint16_t peer_address_port,
                                            char* buffer,
                                            size_t length) {
-  IPAddressNumber self_ip_addr(
-      self_address_ip,
-      self_address_ip + self_address_len);
+  IPAddress self_ip_addr(self_address_ip, self_address_len);
   IPEndPoint self_address(self_ip_addr, self_address_port);
-  IPAddressNumber peer_ip_addr(
-      peer_address_ip,
-      peer_address_ip + peer_address_len);
+  IPAddress peer_ip_addr(peer_address_ip, peer_address_len);
   IPEndPoint peer_address(peer_ip_addr, peer_address_port);
 
   QuicEncryptedPacket packet(
       buffer, length,
       false /* Do not own the buffer, so will not free buffer in the destructor */);
 
-  session->connection()->ProcessUdpPacket(self_address, peer_address, packet);
+  session->ProcessUdpPacket(self_address, peer_address, packet);
 }
 
 void go_quic_client_session_connection_send_connection_close_packet(

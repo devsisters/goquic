@@ -9,7 +9,7 @@ namespace net {
 
 class QuicRandom;
 
-namespace tools {
+using QuicStreamBufferAllocator = SimpleBufferAllocator;
 
 class GoQuicConnectionHelper : public QuicConnectionHelperInterface {
  public:
@@ -22,6 +22,10 @@ class GoQuicConnectionHelper : public QuicConnectionHelperInterface {
   const QuicClock* GetClock() const override;
   QuicRandom* GetRandomGenerator() override;
   QuicAlarm* CreateAlarm(QuicAlarm::Delegate* delegate) override;
+  QuicArenaScopedPtr<QuicAlarm> CreateAlarm(
+    QuicArenaScopedPtr<QuicAlarm::Delegate> delegate,
+    QuicConnectionArena* arena) override;
+
   QuicBufferAllocator* GetBufferAllocator() override;
 
  private:
@@ -29,12 +33,11 @@ class GoQuicConnectionHelper : public QuicConnectionHelperInterface {
 
   scoped_ptr<QuicClock> clock_;
   QuicRandom* random_generator_;
-  SimpleBufferAllocator buffer_allocator_;
+  QuicStreamBufferAllocator buffer_allocator_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicConnectionHelper);
 };
 
-}  // namespace tools
 }  // namespace net
 
 #endif  // GO_QUIC_CONNECTION_HELPER_H_

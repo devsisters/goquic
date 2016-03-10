@@ -23,7 +23,6 @@
 using base::StringPiece;
 
 namespace net {
-namespace tools {
 
 // A very simple alarm that just informs the GoQuicTimeWaitListManager to clean
 // up old connection_ids. This alarm should be unregistered and deleted before
@@ -243,7 +242,7 @@ bool GoQuicTimeWaitListManager::WriteToWire(QueuedPacket* queued_packet) {
   WriteResult result = writer_->WritePacket(
       queued_packet->packet()->data(), queued_packet->packet()->length(),
       queued_packet->server_address().address(),
-      queued_packet->client_address());
+      queued_packet->client_address(), nullptr);
   if (result.status == WRITE_STATUS_BLOCKED) {
     // If blocked and unbuffered, return false to retry sending.
     DCHECK(writer_->IsWriteBlocked());
@@ -328,7 +327,9 @@ GoQuicTimeWaitListManager::ConnectionIdData::ConnectionIdData(
       time_added(time_added_),
       connection_rejected_statelessly(connection_rejected_statelessly) {}
 
+GoQuicTimeWaitListManager::ConnectionIdData::ConnectionIdData(
+    const ConnectionIdData& other) = default;
+
 GoQuicTimeWaitListManager::ConnectionIdData::~ConnectionIdData() {}
 
-}  // namespace tools
 }  // namespace net

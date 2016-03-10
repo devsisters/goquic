@@ -11,7 +11,6 @@
 #include "net/base/ip_endpoint.h"
 #include "net/quic/quic_protocol.h"
 using namespace net;
-using namespace net::tools;
 
 typedef std::map<std::string, std::string> MapStrStr;
 extern "C" {
@@ -27,7 +26,7 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(
     GoPtr go_writer,
     GoPtr task_runner,
     GoPtr go_proof_verifier,
-    char* server_address_ip,
+    uint8_t* server_address_ip,
     size_t server_address_len,
     uint16_t server_address_port);
 void delete_go_quic_client_session(GoQuicClientSession* go_quic_client_session);
@@ -46,10 +45,10 @@ void quic_spdy_client_stream_write_or_buffer_data(
     size_t bufsize,
     int fin);
 void go_quic_client_session_process_packet(GoQuicClientSession* session,
-                                           char* self_address_ip,
+                                           uint8_t* self_address_ip,
                                            size_t self_address_len,
                                            uint16_t self_address_port,
-                                           char* peer_address_ip,
+                                           uint8_t* peer_address_ip,
                                            size_t peer_address_len,
                                            uint16_t peer_address_port,
                                            char* buffer,

@@ -6,11 +6,11 @@
 #define GO_QUIC_PER_CONNECTION_PACKET_WRITER_H_
 
 #include "base/memory/weak_ptr.h"
+#include "net/base/ip_address.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_packet_writer.h"
 
 namespace net {
-namespace tools {
 
 class GoQuicServerPacketWriter;
 
@@ -22,19 +22,20 @@ class GoQuicServerPacketWriter;
 class GoQuicPerConnectionPacketWriter : public QuicPacketWriter {
  public:
   // Does not take ownership of |shared_writer| or |connection|.
-  GoQuicPerConnectionPacketWriter(GoQuicServerPacketWriter* shared_writer,
-                                  QuicConnection* connection);
+  GoQuicPerConnectionPacketWriter(GoQuicServerPacketWriter* shared_writer);
   ~GoQuicPerConnectionPacketWriter() override;
 
   QuicPacketWriter* shared_writer() const;
+  void set_connection(QuicConnection* connection) { connection_ = connection; }
   QuicConnection* connection() const { return connection_; }
 
   // Default implementation of the QuicPacketWriter interface: Passes everything
   // to |shared_writer_|.
   WriteResult WritePacket(const char* buffer,
                           size_t buf_len,
-                          const IPAddressNumber& self_address,
-                          const IPEndPoint& peer_address) override;
+                          const IPAddress& self_address,
+                          const IPEndPoint& peer_address,
+                          PerPacketOptions* options) override;
   bool IsWriteBlockedDataBuffered() const override;
   bool IsWriteBlocked() const override;
   void SetWritable() override;
@@ -51,7 +52,6 @@ class GoQuicPerConnectionPacketWriter : public QuicPacketWriter {
   DISALLOW_COPY_AND_ASSIGN(GoQuicPerConnectionPacketWriter);
 };
 
-}  // namespace tools
 }  // namespace net
 
 #endif  // GO_QUIC_PER_CONNECTION_PACKET_WRITER_H_

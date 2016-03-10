@@ -7,6 +7,7 @@
 
 #include "base/memory/weak_ptr.h"
 #include "base/callback.h"
+#include "net/base/ip_address.h"
 #include "net/base/ip_endpoint.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_packet_writer.h"
@@ -18,8 +19,6 @@ namespace net {
 class QuicBlockedWriterInterface;
 struct WriteResult;
 
-namespace tools {
-
 class GoQuicServerPacketWriter : public QuicPacketWriter {
  public:
   typedef base::Callback<void(WriteResult)> WriteCallback;
@@ -29,15 +28,14 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
   ~GoQuicServerPacketWriter() override;
 
   // Use this method to write packets rather than WritePacket:
-  // GoQuicServerPacketWriter requires a callback to exist for every write,
-  // which
-  // will be called once the write completes.
-  virtual WriteResult WritePacketWithCallback(
-      const char* buffer,
-      size_t buf_len,
-      const IPAddressNumber& self_address,
-      const IPEndPoint& peer_address,
-      WriteCallback callback);
+  // GoQuicServerPacketWriter requires a callback to exist for every
+  // write, which will be called once the write completes.
+  virtual WriteResult WritePacketWithCallback(const char* buffer,
+                                              size_t buf_len,
+                                              const IPAddress& self_address,
+                                              const IPEndPoint& peer_address,
+                                              PerPacketOptions* options,
+                                              WriteCallback callback);
 
   void OnWriteComplete(int rv);
 
@@ -51,8 +49,9 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
   // Do not call WritePacket on its own -- use WritePacketWithCallback
   WriteResult WritePacket(const char* buffer,
                           size_t buf_len,
-                          const IPAddressNumber& self_address,
-                          const IPEndPoint& peer_address) override;
+                          const IPAddress& self_address,
+                          const IPEndPoint& peer_address,
+                          PerPacketOptions* options) override;
 
  private:
   GoPtr go_writer_;
@@ -71,7 +70,6 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
   DISALLOW_COPY_AND_ASSIGN(GoQuicServerPacketWriter);
 };
 
-}  // namespace tools
 }  // namespace net
 
 #endif  // GO_QUIC_SERVER_PACKET_WRITER_H_
