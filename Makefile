@@ -12,7 +12,7 @@ OBJ_FILES:=$(addprefix build/,$(CPP_BASE_FILES:.cc=.o))
 LIB_FILE=libgoquic.a
 
 ifeq ($(GOQUIC_BUILD),Release)
-	OPTFLAGS=-O3
+	OPTFLAGS=-O3 -DNDEBUG
 else
 	OPTFLAGS=
 endif

@@ -63,8 +63,9 @@ bool GoProofSource::GetProof(const net::IPAddress& server_ip,
   std::string signature(c_out_signature, c_out_signature_sz);
   free(c_out_signature);  // Created from go side
 
-  chain_ = new ProofSource::Chain(certs);
-
+  if (chain_.get() == nullptr) {
+    chain_ = new ProofSource::Chain(certs);
+  }
 
   *out_chain = chain_;
   *out_signature = signature;

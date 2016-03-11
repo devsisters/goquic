@@ -441,6 +441,11 @@ GoQuicServerSessionBase* GoQuicDispatcher::CreateQuicSession(
   session->SetGoSession(go_quic_dispatcher_,
                         GoPtr(CreateGoSession_C(go_quic_dispatcher_, session)));
   session->Initialize();
+
+  // SimpleQuicDispatcher behaviour
+  static_cast<GoQuicPerConnectionPacketWriter*>(
+      session->connection()->writer())
+      ->set_connection(session->connection());
   return session;
 }
 
