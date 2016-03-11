@@ -32,6 +32,15 @@ func NewRoundTripper(keepConnection bool) *QuicRoundTripper {
 
 func (e *badStringError) Error() string { return fmt.Sprintf("%s %q", e.what, e.str) }
 
+// from golang: net/http/client.go
+func hasPort(s string) bool { return strings.LastIndex(s, ":") > strings.LastIndex(s, "]") }
+
+// from golang: net/http/transport.go
+var portMap = map[string]string{
+	"http":  "80",
+	"https": "443",
+}
+
 func (q *QuicRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
 	if request.Method != "GET" && request.Method != "POST" {
 		return nil, errors.New("non-GET/POST request is not supported yet. Sorry.")
@@ -41,17 +50,23 @@ func (q *QuicRoundTripper) RoundTrip(request *http.Request) (*http.Response, err
 	var conn *Conn
 	var exists bool
 
+	hostname := request.URL.Host
+	if !hasPort(hostname) {
+		hostname = hostname + ":" + portMap[request.URL.Scheme]
+	}
+
 	q.connsLock.RLock()
-	conn, exists = q.conns[request.URL.Host]
+	conn, exists = q.conns[hostname]
 	q.connsLock.RUnlock()
 	if !q.keepConnection || !exists {
-		conn_new, err := Dial("udp4", request.URL.Host)
+		conn_new, err := Dial("udp4", hostname)
 		if err != nil {
+			fmt.Println("error occured!", err)
 			return nil, err
 		}
 
 		q.connsLock.Lock()
-		q.conns[request.URL.Host] = conn_new
+		q.conns[hostname] = conn_new
 		q.connsLock.Unlock()
 
 		conn = conn_new
@@ -67,8 +82,7 @@ func (q *QuicRoundTripper) RoundTrip(request *http.Request) (*http.Response, err
 			header.Add(k, vv)
 		}
 	}
-	header.Set(":host", request.URL.Host)
-	header.Set(":version", request.Proto)
+	header.Set(":authority", hostname)
 	header.Set(":method", request.Method)
 	header.Set(":path", request.URL.RequestURI())
 	header.Set(":scheme", request.URL.Scheme)
