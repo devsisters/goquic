@@ -108,17 +108,35 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 				panic(err)
 			}
 
-			var connId uint64
+			var connId uint64 = 0
+			var parsed bool = false
 
-			switch buf[0] & 0xC {
-			case 0xC:
-				connId = binary.LittleEndian.Uint64(buf[1:9])
-			case 0x8:
-				connId = uint64(binary.LittleEndian.Uint32(buf[1:5]))
-			case 0x4:
-				connId = uint64(binary.LittleEndian.Uint16(buf[1:2]))
-			default:
-				connId = 0
+			if len(buf) > 0 {
+				switch buf[0] & 0xC {
+				case 0xC:
+					if n >= 9 { // 8-byte connection id
+						connId = binary.LittleEndian.Uint64(buf[1:9])
+						parsed = true
+					}
+				case 0x8:
+					if n >= 5 { // 4-byte
+						connId = uint64(binary.LittleEndian.Uint32(buf[1:5]))
+						parsed = true
+					}
+				case 0x4:
+					if n >= 2 { // 1-byte
+						connId = uint64(buf[1])
+						parsed = true
+					}
+				default: // connection id is omitted
+					connId = 0
+					parsed = true
+				}
+			}
+
+			if !parsed {
+				// Ignore strange packet
+				continue
 			}
 
 			buf_new := make([]byte, n)
