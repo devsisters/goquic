@@ -3,12 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 
 	"github.com/devsisters/goquic"
+	"github.com/gorilla/handlers"
 )
 
 var numOfServers int
@@ -35,6 +38,19 @@ func init() {
 	}
 }
 
+type PrefixedLogWriter struct {
+	prefix []byte
+	writer io.Writer
+}
+
+func (w PrefixedLogWriter) Write(p []byte) (int, error) {
+	if _, err := w.writer.Write(w.prefix); err != nil {
+		return 0, err
+	}
+
+	return w.writer.Write(p)
+}
+
 func main() {
 	flag.Parse()
 	goquic.SetLogLevel(logLevel)
@@ -46,7 +62,7 @@ func main() {
 
 	proxyUrl := flag.Arg(0)
 
-	log.Printf("About to listen on %d. Go to https://:%d/", addr, port)
+	log.Printf("About to listen on %s. Go to https://%s:%d/", addr, addr, port)
 	addrStr := fmt.Sprintf("%s:%d", addr, port)
 
 	parsedUrl, err := url.Parse(proxyUrl)
@@ -56,14 +72,18 @@ func main() {
 
 	log.Printf("Starting reverse proxy for backend URL: %v", parsedUrl)
 
-	if quicOnly {
-		err = goquic.ListenAndServeQuicSpdyOnly(addrStr, cert, key, numOfServers, httputil.NewSingleHostReverseProxy(parsedUrl))
-		if err != nil {
-			log.Fatal(err)
-		}
+	var quicHdr, nonQuicHdr http.Handler
+
+	if !quicOnly {
+		nonQuicHdr = handlers.CombinedLoggingHandler(PrefixedLogWriter{[]byte("H2 | "), os.Stdout}, httputil.NewSingleHostReverseProxy(parsedUrl))
+	}
+
+	quicHdr = handlers.CombinedLoggingHandler(PrefixedLogWriter{[]byte("Q  | "), os.Stdout}, httputil.NewSingleHostReverseProxy(parsedUrl))
+
+	if server, err := goquic.NewServer(addrStr, cert, key, numOfServers, quicHdr, nonQuicHdr); err != nil {
+		log.Fatal(err)
 	} else {
-		err = goquic.ListenAndServe(addrStr, cert, key, numOfServers, httputil.NewSingleHostReverseProxy(parsedUrl))
-		if err != nil {
+		if err := server.ListenAndServe(); err != nil {
 			log.Fatal(err)
 		}
 	}
