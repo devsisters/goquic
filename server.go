@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/bradfitz/http2"
 	"github.com/vanillahsu/go_reuseport"
+	"golang.org/x/net/http2"
 )
 
 type QuicSpdyServer struct {
