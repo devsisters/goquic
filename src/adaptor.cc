@@ -145,16 +145,6 @@ void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
   dispatcher->ProcessPacket(self_address, peer_address, packet);
 }
 
-QuicEncryptedPacket* create_quic_encrypted_packet(char* buffer, size_t length) {
-  return new QuicEncryptedPacket(
-      buffer, length,
-      false /* Do not own the buffer, so will not free buffer in the destructor */);  // Deleted by delete_quic_encrypted_packet()
-}
-
-void delete_quic_encrypted_packet(QuicEncryptedPacket* packet) {
-  delete packet;
-}
-
 SpdyHeaderBlock* initialize_header_block() {
   return new SpdyHeaderBlock;  // Delete by delete_header_block
 }

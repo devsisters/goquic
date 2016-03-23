@@ -34,9 +34,6 @@ typedef void QuicCryptoServerConfig;
 void initialize();
 void set_log_level(int level);
 
-QuicEncryptedPacket* create_quic_encrypted_packet(char* buffer, size_t length);
-void delete_quic_encrypted_packet(QuicEncryptedPacket* packet);
-
 GoQuicDispatcher* create_quic_dispatcher(GoPtr go_writer_,
                                          GoPtr go_quic_dispatcher,
                                          GoPtr go_task_runner,

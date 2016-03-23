@@ -86,17 +86,6 @@ func DeleteGoSession(dispatcher_key int64, go_session_key int64) {
 	quicServerSessionPtr.Del(go_session_key)
 }
 
-// Note that the buffer is NOT copied. So it is the callers responsibility to retain the buffer until it is processed by QuicConnection
-func CreateQuicEncryptedPacket(buffer []byte) QuicEncryptedPacket {
-	return QuicEncryptedPacket{
-		encryptedPacket: C.create_quic_encrypted_packet((*C.char)(unsafe.Pointer(&buffer[0])), C.size_t(len(buffer))),
-	}
-}
-
-func DeleteQuicEncryptedPacket(packet QuicEncryptedPacket) {
-	C.delete_quic_encrypted_packet(packet.encryptedPacket)
-}
-
 //export ReleaseQuicDispatcher
 func ReleaseQuicDispatcher(task_runner_key int64) {
 	quicDispatcherPtr.Del(task_runner_key)
