@@ -134,18 +134,25 @@ func (t *TaskRunner) DoTasks() {
 		return
 	}
 	now := t.alarmHeap.items[0].alarm.Now()
+
+	taskItems := make([]*HeapItem, 0)
+
 	for t.alarmHeap.Len() > 0 {
 		duration_i64 := t.alarmHeap.items[0].deadline - now
 		if duration_i64 < 0 {
 			item := heap.Pop(t.alarmHeap).(*HeapItem)
-			item.alarm.OnAlarm()
+			taskItems = append(taskItems, item)
 		} else {
 			//			fmt.Println(unsafe.Pointer(t), "next alarm will be called after", duration_i64)
 			break
 		}
 	}
-	t.resetTimer()
 
+	for _, item := range taskItems {
+		item.alarm.OnAlarm()
+	}
+
+	t.resetTimer()
 }
 
 func (t *TaskRunner) WaitTimer() <-chan time.Time {
