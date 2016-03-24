@@ -62,8 +62,7 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 	readChanArray := make([](chan UdpData), srv.numOfServers)
 	writerArray := make([](*ServerWriter), srv.numOfServers)
 	connArray := make([](*net.UDPConn), srv.numOfServers)
-	serverProofSource := &ServerProofSource{server: srv}
-	proofSource := NewProofSource(serverProofSource)
+	proofSource := NewProofSource(srv)
 	cryptoConfig := InitCryptoConfig(proofSource)
 	srv.proofSource = proofSource
 	srv.statisticsReq = make([](chan statCallback), srv.numOfServers)

@@ -22,8 +22,8 @@ void DeleteGoSession_C(int64_t go_quic_dispatcher, int64_t go_quic_server_sessio
     DeleteGoSession(go_quic_dispatcher, go_quic_server_session);
 }
 
-int GetProof_C(int64_t go_proof_source, void* server_ip, size_t server_ip_sz, char* hostname, size_t hostname_sz, char* server_config, size_t server_config_sz, int ecdsa_ok, char ***out_certs, int *out_certs_sz, size_t **out_certs_item_sz, char **out_signature, size_t *out_signature_sz) {
-    return GetProof(go_proof_source, server_ip, server_ip_sz, hostname, hostname_sz, server_config, server_config_sz, ecdsa_ok, out_certs, out_certs_sz, out_certs_item_sz, out_signature, out_signature_sz);
+int GetProof_C(int64_t go_proof_source, void* server_ip, size_t server_ip_sz, char* hostname, size_t hostname_sz, char* server_config, size_t server_config_sz, int ecdsa_ok, char **out_signature, size_t *out_signature_sz) {
+    return GetProof(go_proof_source, server_ip, server_ip_sz, hostname, hostname_sz, server_config, server_config_sz, ecdsa_ok, out_signature, out_signature_sz);
 }
 
 int64_t CreateIncomingDynamicStream_C(int64_t go_quic_server_session, uint32_t id, void* go_quic_simple_server_stream_go_wrapper) {

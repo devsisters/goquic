@@ -5,7 +5,7 @@
 #include "go_quic_server_packet_writer.h"
 #include "go_quic_simple_server_stream.h"
 #include "go_quic_alarm_go_wrapper.h"
-#include "go_proof_source.h"
+#include "proof_source_goquic.h"
 #include "go_ephemeral_key_source.h"
 
 #include "net/quic/quic_connection.h"
@@ -96,11 +96,11 @@ GoQuicDispatcher* create_quic_dispatcher(
   return dispatcher;
 }
 
-QuicCryptoServerConfig* init_crypto_config(GoPtr go_proof_source) {
-  GoProofSource* proof_source = new GoProofSource(
-      go_proof_source);  // Deleted by scoped ptr of QuicCryptoServerConfig
+QuicCryptoServerConfig* init_crypto_config(ProofSourceGoquic* proof_source) {
+  // Takes ownership of proof_source
   QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig(
       "secret", QuicRandom::GetInstance(), proof_source);
+
   crypto_config->set_strike_register_no_startup_period();
   net::EphemeralKeySource* keySource = new GoEphemeralKeySource();
   crypto_config->SetEphemeralKeySource(keySource);
@@ -234,4 +234,16 @@ struct ConnStat quic_server_session_connection_stat(GoQuicServerSessionBase* ses
                           stats.tcp_loss_events};
 
   return stat;
+}
+
+ProofSourceGoquic* init_proof_source_goquic(GoPtr go_proof_source) {
+  return new ProofSourceGoquic(go_proof_source);
+}
+
+void proof_source_goquic_add_cert(ProofSourceGoquic* proof_source, char* cert_c, size_t cert_sz) {
+  proof_source->AddCert(cert_c, cert_sz);
+}
+
+void proof_source_goquic_build_cert_chain(ProofSourceGoquic* proof_source) {
+  proof_source->BuildCertChain();
 }

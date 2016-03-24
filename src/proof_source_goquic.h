@@ -1,5 +1,5 @@
-#ifndef __GO_PROOF_SOURCE__H__
-#define __GO_PROOF_SOURCE__H__
+#ifndef __PROOF_SOURCE_GOQUIC__H__
+#define __PROOF_SOURCE_GOQUIC__H__
 
 #include <map>
 
@@ -13,10 +13,15 @@ class IPAddress;
 
 // This should be thread-safe, because multiple dispatcher may concurrently call
 // GetProof()
-class GoProofSource : public ProofSource {
+class ProofSourceGoquic : public ProofSource {
  public:
-  GoProofSource(GoPtr go_proof_source);
-  ~GoProofSource() override;
+  ProofSourceGoquic(GoPtr go_proof_source);
+  ~ProofSourceGoquic() override;
+
+  // Initialize functions.
+  // BuildCertChain should be called after all certs be added.
+  void AddCert(char* cert_c, size_t cert_sz);
+  void BuildCertChain();
 
   // ProofSource interface
   bool GetProof(const IPAddress& server_ip,
@@ -30,10 +35,11 @@ class GoProofSource : public ProofSource {
  private:
   GoPtr go_proof_source_;
   //std::map<std::string, std::vector<std::string>*> certs_cache_;
+  std::vector<std::string> certs_;
   scoped_refptr<ProofSource::Chain> chain_;
-  DISALLOW_COPY_AND_ASSIGN(GoProofSource);
+  DISALLOW_COPY_AND_ASSIGN(ProofSourceGoquic);
 };
 
 }    // namespace net
 
-#endif  // __GO_PROOF_SOURCE__H__
+#endif  // __PROOF_SOURCE_GOQUIC__H__

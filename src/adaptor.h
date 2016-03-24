@@ -10,6 +10,7 @@
 #include "go_quic_simple_server_stream.h"
 #include "go_quic_alarm_go_wrapper.h"
 #include "go_quic_server_packet_writer.h"
+#include "proof_source_goquic.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_protocol.h"
 #include "net/base/ip_endpoint.h"
@@ -29,6 +30,7 @@ typedef void GoQuicAlarmGoWrapper;
 typedef void QuicClock;
 typedef void GoQuicServerPacketWriter;
 typedef void QuicCryptoServerConfig;
+typedef void ProofSourceGoquic;
 #endif
 
 void initialize();
@@ -38,7 +40,7 @@ GoQuicDispatcher* create_quic_dispatcher(GoPtr go_writer_,
                                          GoPtr go_quic_dispatcher,
                                          GoPtr go_task_runner,
                                          QuicCryptoServerConfig* crypto_config);
-QuicCryptoServerConfig* init_crypto_config(GoPtr go_proof_source);
+QuicCryptoServerConfig* init_crypto_config(ProofSourceGoquic* proof_source);
 void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher);
 void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
                                     uint8_t* self_address_ip,
@@ -70,6 +72,11 @@ void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm);
 int64_t clock_now(QuicClock* clock);
 void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv);
 struct ConnStat quic_server_session_connection_stat(GoQuicServerSessionBase* sess);
+
+ProofSourceGoquic* init_proof_source_goquic(GoPtr go_proof_source);
+void proof_source_goquic_add_cert(ProofSourceGoquic* proof_source, char* cert_c, size_t cert_sz);
+void proof_source_goquic_build_cert_chain(ProofSourceGoquic* proof_source);
+
 #ifdef __cplusplus
 }
 #endif
