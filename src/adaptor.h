@@ -40,8 +40,9 @@ GoQuicDispatcher* create_quic_dispatcher(GoPtr go_writer_,
                                          GoPtr go_quic_dispatcher,
                                          GoPtr go_task_runner,
                                          QuicCryptoServerConfig* crypto_config);
-QuicCryptoServerConfig* init_crypto_config(ProofSourceGoquic* proof_source);
 void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher);
+QuicCryptoServerConfig* init_crypto_config(ProofSourceGoquic* proof_source);
+void delete_crypto_config(QuicCryptoServerConfig* config);
 void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
                                     uint8_t* self_address_ip,
                                     size_t self_address_len,

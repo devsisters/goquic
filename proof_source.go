@@ -9,24 +9,25 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"net"
 	"unsafe"
 )
 
+// Generate "proof of authenticity" (See "Quic Crypto" docs for details)
+// Length of the prefix used to calculate the signature: length of label + 0x00 byte
+const kPrefixStr = "QUIC server config signature"
+const kPrefixLen = len(kPrefixStr) + 1
+
 type ProofSource struct {
-	server        *QuicSpdyServer
+	Certificate   tls.Certificate
 	proofSource_c unsafe.Pointer
 }
 
 func (ps *ProofSource) GetProof(addr net.IP, hostname []byte, serverConfig []byte, ecdsaOk bool) (outSignature []byte) {
 	var err error = nil
 
-	// Generate "proof of authenticity" (See "Quic Crypto" docs for details)
-	// Length of the prefix used to calculate the signature: length of label + 0x00 byte
-	const kPrefixStr = "QUIC server config signature"
-	const kPrefixLen = len(kPrefixStr) + 1
-	//bufferToSign := make([]byte, 0, len(serverConfig)+kPrefixLen)
 	bufferToSign := bytes.NewBuffer(make([]byte, 0, len(serverConfig)+kPrefixLen))
 	bufferToSign.Write([]byte(kPrefixStr))
 	bufferToSign.Write([]byte("\x00"))
@@ -39,7 +40,7 @@ func (ps *ProofSource) GetProof(addr net.IP, hostname []byte, serverConfig []byt
 	}
 	hashSum := hasher.Sum(nil)
 
-	switch priv := ps.server.Certificate.PrivateKey.(type) {
+	switch priv := ps.Certificate.PrivateKey.(type) {
 	case *rsa.PrivateKey:
 		outSignature, err = priv.Sign(rand.Reader, hashSum, &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256})
 		if err != nil {
@@ -67,13 +68,13 @@ type ServerCryptoConfig struct {
 	serverCryptoConfig unsafe.Pointer
 }
 
-func NewProofSource(server *QuicSpdyServer) *ProofSource {
-	ps := &ProofSource{server: server}
+func NewProofSource(cert tls.Certificate) *ProofSource {
+	ps := &ProofSource{Certificate: cert}
 
 	// Initialize Proof Source
 	proofSource_c := C.init_proof_source_goquic(C.GoPtr(proofSourcePtr.Set(ps)))
 
-	for _, cert := range server.Certificate.Certificate {
+	for _, cert := range cert.Certificate {
 		x509cert, err := x509.ParseCertificate(cert)
 		if err != nil {
 			panic(err)
@@ -91,6 +92,10 @@ func NewProofSource(server *QuicSpdyServer) *ProofSource {
 func InitCryptoConfig(proofSource *ProofSource) *ServerCryptoConfig {
 	cryptoConfig_c := C.init_crypto_config(proofSource.proofSource_c)
 	return &ServerCryptoConfig{cryptoConfig_c}
+}
+
+func DeleteCryptoConfig(config *ServerCryptoConfig) {
+	C.delete_crypto_config(config.serverCryptoConfig)
 }
 
 //export GetProof

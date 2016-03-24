@@ -24,7 +24,6 @@ type QuicSpdyServer struct {
 
 	numOfServers  int
 	isSecure      bool
-	proofSource   *ProofSource // to prevent garbage collecting
 	statisticsReq [](chan statCallback)
 }
 
@@ -62,9 +61,6 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 	readChanArray := make([](chan UdpData), srv.numOfServers)
 	writerArray := make([](*ServerWriter), srv.numOfServers)
 	connArray := make([](*net.UDPConn), srv.numOfServers)
-	proofSource := NewProofSource(srv)
-	cryptoConfig := InitCryptoConfig(proofSource)
-	srv.proofSource = proofSource
 	srv.statisticsReq = make([](chan statCallback), srv.numOfServers)
 
 	// N consumers
@@ -93,7 +89,7 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 		readChanArray[i] = rch
 		writerArray[i] = NewServerWriter(wch)
 		srv.statisticsReq[i] = statch
-		go srv.Serve(listen_addr, writerArray[i], readChanArray[i], srv.statisticsReq[i], cryptoConfig)
+		go srv.Serve(listen_addr, writerArray[i], readChanArray[i], srv.statisticsReq[i])
 	}
 
 	// N producers
@@ -163,8 +159,12 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 	return nil
 }
 
-func (srv *QuicSpdyServer) Serve(listen_addr *net.UDPAddr, writer *ServerWriter, readChan chan UdpData, statChan chan statCallback, cryptoConfig *ServerCryptoConfig) error {
+func (srv *QuicSpdyServer) Serve(listen_addr *net.UDPAddr, writer *ServerWriter, readChan chan UdpData, statChan chan statCallback) error {
 	runtime.LockOSThread()
+
+	proofSource := NewProofSource(srv.Certificate)
+	cryptoConfig := InitCryptoConfig(proofSource)
+	defer DeleteCryptoConfig(cryptoConfig)
 
 	sessionFnChan := make(chan func())
 

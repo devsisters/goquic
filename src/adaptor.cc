@@ -96,6 +96,12 @@ GoQuicDispatcher* create_quic_dispatcher(
   return dispatcher;
 }
 
+void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher) {
+  QuicConnectionHelperInterface* helper = dispatcher->helper();
+  delete dispatcher;
+  delete helper;
+}
+
 QuicCryptoServerConfig* init_crypto_config(ProofSourceGoquic* proof_source) {
   // Takes ownership of proof_source
   QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig(
@@ -118,10 +124,8 @@ QuicCryptoServerConfig* init_crypto_config(ProofSourceGoquic* proof_source) {
   return crypto_config;
 }
 
-void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher) {
-  QuicConnectionHelperInterface* helper = dispatcher->helper();
-  delete dispatcher;
-  delete helper;
+void delete_crypto_config(QuicCryptoServerConfig* crypto_config) {
+  delete crypto_config;
 }
 
 void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
