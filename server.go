@@ -227,7 +227,7 @@ func ListenAndServe(addr string, certFile string, keyFile string, numOfServers i
 		return errors.New("cert / key should be provided")
 	}
 
-	if server, err := NewServer(addr, certFile, keyFile, numOfServers, handler, handler); err != nil {
+	if server, err := NewServer(addr, certFile, keyFile, numOfServers, handler, handler, nil); err != nil {
 		return err
 	} else {
 		return server.ListenAndServe()
@@ -242,14 +242,14 @@ func ListenAndServeQuicSpdyOnly(addr string, certFile string, keyFile string, nu
 		return errors.New("cert / key should be provided")
 	}
 
-	if server, err := NewServer(addr, certFile, keyFile, numOfServers, handler, nil); err != nil {
+	if server, err := NewServer(addr, certFile, keyFile, numOfServers, handler, nil, nil); err != nil {
 		return err
 	} else {
 		return server.ListenAndServe()
 	}
 }
 
-func NewServer(addr string, certFile string, keyFile string, numOfServers int, quicHandler http.Handler, nonQuicHandler http.Handler) (*QuicSpdyServer, error) {
+func NewServer(addr string, certFile string, keyFile string, numOfServers int, quicHandler http.Handler, nonQuicHandler http.Handler, tlsConfig *tls.Config) (*QuicSpdyServer, error) {
 	port, err := parsePort(addr)
 	if err != nil {
 		return nil, err
@@ -262,6 +262,7 @@ func NewServer(addr string, certFile string, keyFile string, numOfServers int, q
 	if nonQuicHandler != nil {
 		go func() {
 			httpServer := &http.Server{Addr: addr, Handler: AltProtoMiddleware(nonQuicHandler, port)}
+			httpServer.TLSConfig = tlsConfig
 			http2.ConfigureServer(httpServer, nil)
 
 			if certFile != "" && keyFile != "" {

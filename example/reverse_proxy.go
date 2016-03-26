@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io"
@@ -21,6 +22,7 @@ var logLevel int
 var cert string
 var key string
 var quicOnly bool
+var usesslv3 bool
 
 func init() {
 	flag.IntVar(&numOfServers, "n", 1, "Number of concurrent quic dispatchers")
@@ -30,6 +32,7 @@ func init() {
 	flag.StringVar(&cert, "cert", "", "Certificate file (PEM), will use encrypted QUIC and SSL when provided")
 	flag.StringVar(&key, "key", "", "Private key file (PEM), will use encrypted QUIC and SSL when provided")
 	flag.BoolVar(&quicOnly, "quic_only", false, "Use Quic Only")
+	flag.BoolVar(&usesslv3, "use_sslv3", false, "Use sslv3 on HTTP 1.1. HTTP2 and QUIC does not be affected.")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s backend_url\n", os.Args[0])
@@ -80,7 +83,12 @@ func main() {
 
 	quicHdr = handlers.CombinedLoggingHandler(PrefixedLogWriter{[]byte("Q  | "), os.Stdout}, httputil.NewSingleHostReverseProxy(parsedUrl))
 
-	if server, err := goquic.NewServer(addrStr, cert, key, numOfServers, quicHdr, nonQuicHdr); err != nil {
+	var tlsConfig *tls.Config
+	if usesslv3 {
+		tlsConfig = &tls.Config{MinVersion: tls.VersionSSL30}
+	}
+
+	if server, err := goquic.NewServer(addrStr, cert, key, numOfServers, quicHdr, nonQuicHdr, tlsConfig); err != nil {
 		log.Fatal(err)
 	} else {
 		if err := server.ListenAndServe(); err != nil {
