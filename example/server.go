@@ -73,7 +73,7 @@ func main() {
 	http.HandleFunc("/", httpHandler)
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir(serveRoot))))
 
-	server, err := goquic.NewServer(portStr, cert, key, numOfServers, http.DefaultServeMux, http.DefaultServeMux)
+	server, err := goquic.NewServer(portStr, cert, key, numOfServers, http.DefaultServeMux, http.DefaultServeMux, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
