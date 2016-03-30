@@ -27,12 +27,12 @@ var usesslv3 bool
 func init() {
 	flag.IntVar(&numOfServers, "n", 1, "Number of concurrent quic dispatchers")
 	flag.IntVar(&port, "port", 8080, "TCP/UDP port number to listen")
-	flag.StringVar(&addr, "addr", "0.0.0.0", "UDP listen address")
+	flag.StringVar(&addr, "addr", "0.0.0.0", "TCP/UDP listen address")
 	flag.IntVar(&logLevel, "loglevel", -1, "Log level")
-	flag.StringVar(&cert, "cert", "", "Certificate file (PEM), will use encrypted QUIC and SSL when provided")
-	flag.StringVar(&key, "key", "", "Private key file (PEM), will use encrypted QUIC and SSL when provided")
-	flag.BoolVar(&quicOnly, "quic_only", false, "Use Quic Only")
-	flag.BoolVar(&usesslv3, "use_sslv3", false, "Use sslv3 on HTTP 1.1. HTTP2 and QUIC does not be affected.")
+	flag.StringVar(&cert, "cert", "", "Certificate file (PEM), will use encrypted QUIC and TLS when provided")
+	flag.StringVar(&key, "key", "", "Private key file (PEM), will use encrypted QUIC and TLS when provided")
+	flag.BoolVar(&quicOnly, "quic_only", false, "Use QUIC Only")
+	flag.BoolVar(&usesslv3, "use_sslv3", false, "Use SSLv3 on HTTP 1.1. HTTP2 and QUIC are not affected.")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s backend_url\n", os.Args[0])
