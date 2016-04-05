@@ -64,10 +64,6 @@ func (ps *ProofSource) GetProof(addr net.IP, hostname []byte, serverConfig []byt
 	return outSignature
 }
 
-type ServerCryptoConfig struct {
-	serverCryptoConfig unsafe.Pointer
-}
-
 func NewProofSource(cert tls.Certificate) *ProofSource {
 	ps := &ProofSource{Certificate: cert}
 
@@ -87,15 +83,6 @@ func NewProofSource(cert tls.Certificate) *ProofSource {
 	ps.proofSource_c = proofSource_c
 
 	return ps
-}
-
-func InitCryptoConfig(proofSource *ProofSource) *ServerCryptoConfig {
-	cryptoConfig_c := C.init_crypto_config(proofSource.proofSource_c)
-	return &ServerCryptoConfig{cryptoConfig_c}
-}
-
-func DeleteCryptoConfig(config *ServerCryptoConfig) {
-	C.delete_crypto_config(config.serverCryptoConfig)
 }
 
 //export GetProof

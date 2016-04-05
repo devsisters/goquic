@@ -13,6 +13,7 @@
 #include "net/quic/quic_time.h"
 #include "net/quic/quic_protocol.h"
 #include "net/quic/crypto/quic_random.h"
+#include "net/quic/crypto/crypto_server_config_protobuf.h"
 #include "net/base/ip_address.h"
 #include "net/base/ip_endpoint.h"
 #include "base/strings/string_piece.h"
@@ -46,6 +47,117 @@ void initialize() {
 
 void set_log_level(int level) {
   logging::SetMinLogLevel(level);
+}
+
+// crypto config export/import for synchronizing servers (dispatchers)
+// to allow 0-rtt connection establishment
+struct GoQuicServerConfig* generate_goquic_crypto_config() {
+  QuicClock clock;
+  QuicRandom* random_generator = QuicRandom::GetInstance();
+
+  scoped_ptr<QuicServerConfigProtobuf> scfg(
+    net::QuicCryptoServerConfig::GenerateConfig(
+      random_generator, &clock, QuicCryptoServerConfig::ConfigOptions()));
+
+  GoQuicServerConfig* gocfg = new GoQuicServerConfig;
+
+  string::size_type server_config_len = scfg->config().size();
+  gocfg->Server_config_len = server_config_len;
+  gocfg->Server_config = new char[server_config_len];
+  memcpy(gocfg->Server_config, scfg->config().data(), server_config_len);
+
+  size_t key_size = scfg->key_size();
+  gocfg->Num_of_keys = key_size;
+  gocfg->Private_keys = new char*[key_size];
+  gocfg->Private_keys_len = new int[key_size];
+  gocfg->Private_keys_tag = new uint32_t[key_size];
+
+  for(int i = 0; i < key_size; i++) {
+    auto key = scfg->key(i);
+    gocfg->Private_keys_tag[i] = uint32_t(key.tag());
+    string::size_type private_key_len = key.private_key().size();
+    gocfg->Private_keys_len[i] = private_key_len;
+    gocfg->Private_keys[i] = new char[private_key_len];
+    memcpy(gocfg->Private_keys[i], key.private_key().data(), private_key_len);
+  }
+
+  return gocfg;
+}
+
+struct GoQuicServerConfig* create_goquic_crypto_config(char* server_config, size_t server_config_len, int key_size) {
+  GoQuicServerConfig* gocfg = new GoQuicServerConfig;
+  gocfg->Server_config_len = server_config_len;
+  gocfg->Server_config = new char[server_config_len];
+  memcpy(gocfg->Server_config, server_config, server_config_len);
+
+  gocfg->Num_of_keys = key_size;
+  gocfg->Private_keys = new char*[key_size];
+  gocfg->Private_keys_len = new int[key_size];
+  gocfg->Private_keys_tag = new uint32_t[key_size];
+  return gocfg;
+}
+
+void goquic_crypto_config_set_key(GoQuicServerConfig* gocfg, int index, uint32_t tag, char* key, size_t key_len) {
+  if (index >= gocfg->Num_of_keys) return;
+
+  gocfg->Private_keys_tag[index] = tag;
+  gocfg->Private_keys_len[index] = key_len;
+  gocfg->Private_keys[index] = new char[key_len];
+  memcpy(gocfg->Private_keys[index], key, key_len);
+}
+
+void delete_goquic_crypto_config(GoQuicServerConfig* gocfg) {
+  delete gocfg->Server_config;
+  delete gocfg->Private_keys_len;
+  delete gocfg->Private_keys_tag;
+
+  for(int i = 0; i < gocfg->Num_of_keys; i++) {
+    delete gocfg->Private_keys[i];
+  }
+  delete gocfg->Private_keys;
+
+  delete gocfg;
+}
+
+static QuicServerConfigProtobuf* parse_goquic_crypto_config(GoQuicServerConfig* go_config) {
+  QuicServerConfigProtobuf* config = new QuicServerConfigProtobuf;
+  config->set_config(string(go_config->Server_config, go_config->Server_config_len));
+  for(int i = 0; i < go_config->Num_of_keys; i++) {
+    auto key = config->add_key();
+    key->set_tag(go_config->Private_keys_tag[i]);
+    key->set_private_key(string(go_config->Private_keys[i], go_config->Private_keys_len[i]));
+  }
+  return config;
+}
+
+// Takes ownership of proof_source
+QuicCryptoServerConfig* init_crypto_config(
+    GoQuicServerConfig* go_config,
+    ProofSourceGoquic* proof_source,
+    char* source_address_token_secret,
+    size_t source_address_token_secret_len) {
+
+  scoped_ptr<QuicServerConfigProtobuf> config(
+      parse_goquic_crypto_config(go_config));
+
+  auto secret = string(source_address_token_secret, source_address_token_secret_len);
+  QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig(
+      secret, QuicRandom::GetInstance(), proof_source);
+
+  crypto_config->set_strike_register_no_startup_period();
+  net::EphemeralKeySource* keySource = new GoEphemeralKeySource();
+  crypto_config->SetEphemeralKeySource(keySource);
+
+  QuicClock* clock = new QuicClock();  // XXX: Not deleted.
+
+  scoped_ptr<CryptoHandshakeMessage> scfg(
+      crypto_config->AddConfig(config.get(), clock->WallNow()));
+
+  return crypto_config;
+}
+
+void delete_crypto_config(QuicCryptoServerConfig* crypto_config) {
+  delete crypto_config;
 }
 
 GoQuicDispatcher* create_quic_dispatcher(
@@ -102,32 +214,6 @@ void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher) {
   QuicConnectionHelperInterface* helper = dispatcher->helper();
   delete dispatcher;
   delete helper;
-}
-
-QuicCryptoServerConfig* init_crypto_config(ProofSourceGoquic* proof_source) {
-  // Takes ownership of proof_source
-  QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig(
-      "secret", QuicRandom::GetInstance(), proof_source);
-
-  crypto_config->set_strike_register_no_startup_period();
-  net::EphemeralKeySource* keySource = new GoEphemeralKeySource();
-  crypto_config->SetEphemeralKeySource(keySource);
-
-  QuicClock* clock = new QuicClock();  // XXX: Not deleted. This should be
-                                       // initialized EXACTLY ONCE
-  QuicRandom* random_generator =
-      QuicRandom::GetInstance();  // XXX: Not deleted. This should be
-                                  // initialized EXACTLY ONCE
-
-  // TODO(jaeman, hodduc): What is scfg?
-  scoped_ptr<CryptoHandshakeMessage> scfg(crypto_config->AddDefaultConfig(
-      random_generator, clock, QuicCryptoServerConfig::ConfigOptions()));
-
-  return crypto_config;
-}
-
-void delete_crypto_config(QuicCryptoServerConfig* crypto_config) {
-  delete crypto_config;
 }
 
 void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,

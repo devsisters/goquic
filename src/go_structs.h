@@ -66,6 +66,16 @@ struct ConnStat {
   uint32_t Tcp_loss_events;
 };
 
+struct GoQuicServerConfig {
+  char* Server_config;
+  int Server_config_len;
+
+  char** Private_keys;
+  int* Private_keys_len;
+  uint32_t* Private_keys_tag;  // QuicTag == uint32_t
+  int Num_of_keys;
+};
+
 typedef int64_t GoPtr;
 
 #endif  // __GO_STRUCTS_H__

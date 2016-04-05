@@ -21,10 +21,12 @@ type QuicSpdyServer struct {
 	WriteTimeout   time.Duration
 	MaxHeaderBytes int
 	Certificate    tls.Certificate
+	Secret         string
 
 	numOfServers  int
 	isSecure      bool
 	statisticsReq [](chan statCallback)
+	serverConfig  *SerializedServerConfig
 }
 
 func (srv *QuicSpdyServer) Statistics() (*ServerStatistics, error) {
@@ -62,6 +64,14 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 	writerArray := make([](*ServerWriter), srv.numOfServers)
 	connArray := make([](*net.UDPConn), srv.numOfServers)
 	srv.statisticsReq = make([](chan statCallback), srv.numOfServers)
+
+	if srv.serverConfig == nil {
+		srv.serverConfig = GenerateSerializedServerConfig()
+	}
+
+	if srv.Secret == "" {
+		srv.Secret = "secret"
+	}
 
 	// N consumers
 	for i := 0; i < srv.numOfServers; i++ {
@@ -163,8 +173,8 @@ func (srv *QuicSpdyServer) Serve(listen_addr *net.UDPAddr, writer *ServerWriter,
 	runtime.LockOSThread()
 
 	proofSource := NewProofSource(srv.Certificate)
-	cryptoConfig := InitCryptoConfig(proofSource)
-	defer DeleteCryptoConfig(cryptoConfig)
+	cryptoConfig := NewCryptoServerConfig(proofSource, srv.Secret, srv.serverConfig)
+	defer DeleteCryptoServerConfig(cryptoConfig)
 
 	sessionFnChan := make(chan func())
 

@@ -36,13 +36,24 @@ typedef void ProofSourceGoquic;
 void initialize();
 void set_log_level(int level);
 
+struct GoQuicServerConfig* generate_goquic_crypto_config();
+struct GoQuicServerConfig* create_goquic_crypto_config(char* server_config, size_t server_config_len, int key_size);
+void goquic_crypto_config_set_key(struct GoQuicServerConfig* gocfg, int index, uint32_t tag, char* key, size_t key_len);
+void delete_goquic_crypto_config(struct GoQuicServerConfig* gocfg);
+
+QuicCryptoServerConfig* init_crypto_config(
+    struct GoQuicServerConfig* go_config,
+    ProofSourceGoquic* proof_source,
+    char* source_address_token_secret,
+    size_t source_address_token_secret_len);
+
+void delete_crypto_config(QuicCryptoServerConfig* config);
+
 GoQuicDispatcher* create_quic_dispatcher(GoPtr go_writer_,
                                          GoPtr go_quic_dispatcher,
                                          GoPtr go_task_runner,
                                          QuicCryptoServerConfig* crypto_config);
 void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher);
-QuicCryptoServerConfig* init_crypto_config(ProofSourceGoquic* proof_source);
-void delete_crypto_config(QuicCryptoServerConfig* config);
 void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
                                     uint8_t* self_address_ip,
                                     size_t self_address_len,

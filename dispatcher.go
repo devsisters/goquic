@@ -26,7 +26,7 @@ type QuicEncryptedPacket struct {
 	encryptedPacket unsafe.Pointer
 }
 
-func CreateQuicDispatcher(writer *ServerWriter, createQuicServerSession func() IncomingDataStreamCreator, taskRunner *TaskRunner, cryptoConfig *ServerCryptoConfig) *QuicDispatcher {
+func CreateQuicDispatcher(writer *ServerWriter, createQuicServerSession func() IncomingDataStreamCreator, taskRunner *TaskRunner, cryptoConfig *QuicCryptoServerConfig) *QuicDispatcher {
 	dispatcher := &QuicDispatcher{
 		quicServerSessions:      make(map[*QuicServerSession]bool),
 		TaskRunner:              taskRunner,
@@ -34,7 +34,7 @@ func CreateQuicDispatcher(writer *ServerWriter, createQuicServerSession func() I
 	}
 
 	dispatcher.quicDispatcher = C.create_quic_dispatcher(
-		C.GoPtr(serverWriterPtr.Set(writer)), C.GoPtr(quicDispatcherPtr.Set(dispatcher)), C.GoPtr(taskRunnerPtr.Set(taskRunner)), cryptoConfig.serverCryptoConfig)
+		C.GoPtr(serverWriterPtr.Set(writer)), C.GoPtr(quicDispatcherPtr.Set(dispatcher)), C.GoPtr(taskRunnerPtr.Set(taskRunner)), cryptoConfig.cryptoServerConfig)
 	return dispatcher
 }
 
