@@ -40,6 +40,8 @@ void initialize() {
   const char* argv[] = {"test", nullptr};
   base::CommandLine::Init(argc, argv);
   exit_manager = new base::AtExitManager;  // Deleted at the end
+
+  FLAGS_require_strike_register_or_server_nonce = false;
 }
 
 void set_log_level(int level) {
