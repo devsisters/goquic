@@ -1,10 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -13,10 +15,14 @@ import (
 
 var numOfServers int
 var port int
-var serveRoot string
+var addr string
 var logLevel int
 var cert string
 var key string
+var quicOnly bool
+var usesslv3 bool
+var serverConfig string
+var serveRoot string
 
 func httpHandler(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Trailer", "AtEnd1, AtEnd2")
@@ -53,10 +59,15 @@ func statisticsHandler(server *goquic.QuicSpdyServer) http.HandlerFunc {
 func init() {
 	flag.IntVar(&numOfServers, "n", 1, "Number of concurrent quic dispatchers")
 	flag.IntVar(&port, "port", 8080, "TCP/UDP port number to listen")
-	flag.StringVar(&serveRoot, "root", "/tmp", "Root of path to serve under https://127.0.0.1/files/")
+	flag.StringVar(&addr, "addr", "0.0.0.0", "TCP/UDP listen address")
 	flag.IntVar(&logLevel, "loglevel", -1, "Log level")
 	flag.StringVar(&cert, "cert", "", "Certificate file (PEM), will use encrypted QUIC and SSL when provided")
 	flag.StringVar(&key, "key", "", "Private key file (PEM), will use encrypted QUIC and SSL when provided")
+	flag.BoolVar(&quicOnly, "quic_only", false, "Use QUIC Only")
+	flag.BoolVar(&usesslv3, "use_sslv3", false, "Use SSLv3 on HTTP 1.1. HTTP2 and QUIC are not affected.")
+	flag.StringVar(&serverConfig, "scfg", "", "Server config JSON file. If not provided, new one will be generated")
+
+	flag.StringVar(&serveRoot, "root", "/tmp", "Root of path to serve under https://127.0.0.1/files/")
 }
 
 func main() {
@@ -67,18 +78,39 @@ func main() {
 		log.Fatal("QUIC doesn't support non-encrypted mode anymore. Please provide -cert and -key option!")
 	}
 
-	log.Printf("About to listen on %d. Go to https://127.0.0.1:%d/", port, port)
-	portStr := fmt.Sprintf(":%d", port)
+	log.Printf("About to listen on %s. Go to https://%s:%d/", addr, addr, port)
+	addrStr := fmt.Sprintf("%s:%d", addr, port)
 
 	http.HandleFunc("/", httpHandler)
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir(serveRoot))))
 
-	server, err := goquic.NewServer(portStr, cert, key, numOfServers, http.DefaultServeMux, http.DefaultServeMux, nil)
+	var tlsConfig *tls.Config
+	if usesslv3 {
+		tlsConfig = &tls.Config{MinVersion: tls.VersionSSL30}
+	}
+
+	server, err := goquic.NewServer(addrStr, cert, key, numOfServers, http.DefaultServeMux, http.DefaultServeMux, tlsConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	if len(serverConfig) != 0 {
+		if b, err := ioutil.ReadFile(serverConfig); err == nil {
+			var cfg *goquic.SerializedServerConfig
+			if err := json.Unmarshal(b, &cfg); err != nil {
+				log.Printf("Cannot parse %s, new serverConfig will be generated", serverConfig)
+			} else {
+				server.ServerConfig = cfg
+				log.Printf("Successfully parsed %s", serverConfig)
+			}
+		} else {
+			log.Printf("Cannot open %s, new serverConfig will be generated", serverConfig)
+		}
+	}
+
 	http.Handle("/statistics/json", statisticsHandler(server))
 
-	log.Fatal(server.ListenAndServe())
+	if err := server.ListenAndServe(); err != nil {
+		log.Fatal(err)
+	}
 }

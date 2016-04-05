@@ -22,11 +22,11 @@ type QuicSpdyServer struct {
 	MaxHeaderBytes int
 	Certificate    tls.Certificate
 	Secret         string
+	ServerConfig   *SerializedServerConfig
 
 	numOfServers  int
 	isSecure      bool
 	statisticsReq [](chan statCallback)
-	serverConfig  *SerializedServerConfig
 }
 
 func (srv *QuicSpdyServer) Statistics() (*ServerStatistics, error) {
@@ -65,8 +65,8 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 	connArray := make([](*net.UDPConn), srv.numOfServers)
 	srv.statisticsReq = make([](chan statCallback), srv.numOfServers)
 
-	if srv.serverConfig == nil {
-		srv.serverConfig = GenerateSerializedServerConfig()
+	if srv.ServerConfig == nil {
+		srv.ServerConfig = GenerateSerializedServerConfig()
 	}
 
 	if srv.Secret == "" {
@@ -173,7 +173,7 @@ func (srv *QuicSpdyServer) Serve(listen_addr *net.UDPAddr, writer *ServerWriter,
 	runtime.LockOSThread()
 
 	proofSource := NewProofSource(srv.Certificate)
-	cryptoConfig := NewCryptoServerConfig(proofSource, srv.Secret, srv.serverConfig)
+	cryptoConfig := NewCryptoServerConfig(proofSource, srv.Secret, srv.ServerConfig)
 	defer DeleteCryptoServerConfig(cryptoConfig)
 
 	sessionFnChan := make(chan func())
