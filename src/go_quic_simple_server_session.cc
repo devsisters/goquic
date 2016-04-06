@@ -13,21 +13,27 @@
 #include "net/quic/quic_spdy_session.h"
 #include "net/quic/reliable_quic_stream.h"
 
+using std::string;
+
 namespace net {
 
 GoQuicSimpleServerSession::GoQuicSimpleServerSession(
     const QuicConfig& config,
     QuicConnection* connection,
     GoQuicServerSessionVisitor* visitor,
-    const QuicCryptoServerConfig* crypto_config)
-    : GoQuicServerSessionBase(config, connection, visitor, crypto_config) {}
+    const QuicCryptoServerConfig* crypto_config,
+    QuicCompressedCertsCache* compressed_certs_cache)
+    : GoQuicServerSessionBase(config, connection, visitor, crypto_config, compressed_certs_cache) {}
 
 GoQuicSimpleServerSession::~GoQuicSimpleServerSession() {}
 
 QuicCryptoServerStreamBase*
 GoQuicSimpleServerSession::CreateQuicCryptoServerStream(
-    const QuicCryptoServerConfig* crypto_config) {
-  return new QuicCryptoServerStream(crypto_config, this);
+    const QuicCryptoServerConfig* crypto_config,
+    QuicCompressedCertsCache* compressed_certs_cache) {
+  return new QuicCryptoServerStream(crypto_config, compressed_certs_cache,
+                                    FLAGS_enable_quic_stateless_reject_support,
+                                    this);
 }
 
 QuicSpdyStream* GoQuicSimpleServerSession::CreateIncomingDynamicStream(
@@ -41,6 +47,7 @@ QuicSpdyStream* GoQuicSimpleServerSession::CreateIncomingDynamicStream(
                   // STLDeleteElements function call in QuicSession
   stream->SetGoQuicSimpleServerStream(
       CreateIncomingDynamicStream_C(go_session_, id, stream));
+  ActivateStream(stream);
 
   return stream;
 }

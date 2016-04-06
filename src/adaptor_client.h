@@ -19,7 +19,6 @@ typedef void IPEndPoint;
 typedef void GoQuicClientSession;
 typedef void GoQuicSpdyClientStream;
 typedef void MapStrStr;
-typedef void QuicEncryptedPacket;
 #endif
 
 GoQuicClientSession* create_go_quic_client_session_and_initialize(

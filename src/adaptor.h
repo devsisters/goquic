@@ -21,7 +21,6 @@ using namespace net;
 extern "C" {
 #else
 typedef void QuicConnection;
-typedef void QuicEncryptedPacket;
 typedef void GoQuicDispatcher;
 typedef void GoQuicSimpleServerStream;
 typedef void GoQuicServerSessionBase;

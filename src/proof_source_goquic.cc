@@ -26,12 +26,19 @@ void ProofSourceGoquic::BuildCertChain() {
 bool ProofSourceGoquic::GetProof(const net::IPAddress& server_ip,
                              const std::string& hostname,
                              const std::string& server_config,
+                             QuicVersion quic_version,
+                             base::StringPiece chlo_hash,
                              bool ecdsa_ok,
                              scoped_refptr<ProofSource::Chain>* out_chain,
                              std::string* out_signature,
                              std::string* out_leaf_cert_sct) {
   char* c_out_signature;
   size_t c_out_signature_sz;
+
+  if (quic_version > QUIC_VERSION_30) {
+    //TODO(hodduc): QUIC_VERSION_31 support
+    return false;
+  }
 
   auto server_ip_bytes = server_ip.bytes();
   int ret = GetProof_C(go_proof_source_,

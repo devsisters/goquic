@@ -17,7 +17,7 @@ class ProcessPacketInterface {
   virtual ~ProcessPacketInterface() {}
   virtual void ProcessPacket(const IPEndPoint& server_address,
                              const IPEndPoint& client_address,
-                             const QuicEncryptedPacket& packet) = 0;
+                             const QuicReceivedPacket& packet) = 0;
 };
 
 }  // namespace net

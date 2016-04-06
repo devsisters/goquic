@@ -130,8 +130,9 @@ void go_quic_client_session_process_packet(GoQuicClientSession* session,
   IPAddress peer_ip_addr(peer_address_ip, peer_address_len);
   IPEndPoint peer_address(peer_ip_addr, peer_address_port);
 
-  QuicEncryptedPacket packet(
-      buffer, length,
+  // TODO(hodduc): what is `socket timestamping`?
+  QuicReceivedPacket packet(
+      buffer, length, session->connection()->helper()->GetClock()->Now(),
       false /* Do not own the buffer, so will not free buffer in the destructor */);
 
   session->ProcessUdpPacket(self_address, peer_address, packet);
@@ -139,5 +140,7 @@ void go_quic_client_session_process_packet(GoQuicClientSession* session,
 
 void go_quic_client_session_connection_send_connection_close_packet(
     GoQuicClientSession* session) {
-  session->connection()->SendConnectionCloseWithDetails(QUIC_PEER_GOING_AWAY, "Client disconnectiong");
+  session->connection()->CloseConnection(
+      QUIC_PEER_GOING_AWAY, "Client disconnectiong",
+      ConnectionCloseBehavior::SEND_CONNECTION_CLOSE_PACKET);
 }

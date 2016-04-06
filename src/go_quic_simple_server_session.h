@@ -36,7 +36,8 @@ class GoQuicSimpleServerSession : public GoQuicServerSessionBase {
   GoQuicSimpleServerSession(const QuicConfig& config,
                             QuicConnection* connection,
                             GoQuicServerSessionVisitor* visitor,
-                            const QuicCryptoServerConfig* crypto_config);
+                            const QuicCryptoServerConfig* crypto_config,
+                            QuicCompressedCertsCache* compressed_certs_cache);
 
   ~GoQuicSimpleServerSession() override;
 
@@ -47,7 +48,8 @@ class GoQuicSimpleServerSession : public GoQuicServerSessionBase {
       SpdyPriority priority) override;
 
   QuicCryptoServerStreamBase* CreateQuicCryptoServerStream(
-      const QuicCryptoServerConfig* crypto_config) override;
+      const QuicCryptoServerConfig* crypto_config,
+      QuicCompressedCertsCache* compressed_certs_cache) override;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(GoQuicSimpleServerSession);

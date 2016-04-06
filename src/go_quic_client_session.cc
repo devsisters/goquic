@@ -4,6 +4,8 @@
 #include "net/quic/quic_server_id.h"
 #include "go_quic_spdy_client_stream.h"
 
+using std::string;
+
 namespace net {
 
 GoQuicClientSession::GoQuicClientSession(
@@ -74,6 +76,10 @@ void GoQuicClientSession::CryptoConnect() {
 
 int GoQuicClientSession::GetNumSentClientHellos() const {
   return crypto_stream_->num_sent_client_hellos();
+}
+
+int GoQuicClientSession::GetNumReceivedServerConfigUpdates() const {
+  return crypto_stream_->num_scup_messages_received();
 }
 
 QuicSpdyStream* GoQuicClientSession::CreateIncomingDynamicStream(

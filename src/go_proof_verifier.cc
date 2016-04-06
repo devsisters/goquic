@@ -14,7 +14,10 @@ GoProofVerifier::~GoProofVerifier() {
 
 QuicAsyncStatus GoProofVerifier::VerifyProof(
     const std::string& hostname,
+    const uint16_t port,
     const std::string& server_config,
+    QuicVersion quic_version,
+    base::StringPiece chlo_hash,
     const std::vector<std::string>& certs,
     const std::string& cert_sct,
     const std::string& signature,
@@ -23,6 +26,7 @@ QuicAsyncStatus GoProofVerifier::VerifyProof(
     scoped_ptr<ProofVerifyDetails>* details,
     ProofVerifierCallback* callback) {
   // XXX(hodduc): Should we implement verifying on go-side asynchronously?
+  // XXX(hodduc): QUIC_VERSION_31 support
 
   scoped_ptr<GoProofVerifyDetails> verify_details_;
   verify_details_.reset(new GoProofVerifyDetails);

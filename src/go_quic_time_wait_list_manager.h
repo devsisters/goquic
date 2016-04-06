@@ -93,6 +93,14 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
   // The number of connections on the time-wait list.
   size_t num_connections() const { return connection_id_map_.size(); }
 
+  // Sends a version negotiation packet for |connection_id| announcing support
+  // for |supported_versions| to |client_address| from |server_address|.
+  virtual void SendVersionNegotiationPacket(
+      QuicConnectionId connection_id,
+      const QuicVersionVector& supported_versions,
+      const IPEndPoint& server_address,
+      const IPEndPoint& client_address);
+
  protected:
   virtual QuicEncryptedPacket* BuildPublicReset(
       const QuicPublicResetPacket& packet);

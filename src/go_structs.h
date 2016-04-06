@@ -36,7 +36,6 @@ struct ConnStat {
   // Number of packets lost exiting slow start.
   uint64_t Slowstart_packets_lost;
 
-  uint64_t Packets_revived;
   uint64_t Packets_dropped;  // Duplicate or less than least unacked.
   size_t Crypto_retransmit_count;
   // Count of times the loss detection alarm fired.  At least one packet should

@@ -15,6 +15,7 @@
 #include "base/memory/scoped_ptr.h"
 #include "net/base/ip_endpoint.h"
 #include "net/base/linked_hash_map.h"
+#include "net/quic/crypto/quic_compressed_certs_cache.h"
 #include "net/quic/quic_blocked_writer_interface.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_protocol.h"
@@ -62,7 +63,7 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   // an existing session, or passing it to the time wait list.
   void ProcessPacket(const IPEndPoint& server_address,
                      const IPEndPoint& client_address,
-                     const QuicEncryptedPacket& packet) override;
+                     const QuicReceivedPacket& packet) override;
 
   // Called when the socket becomes writable to allow queued writes to happen.
   void OnCanWrite() override;
@@ -76,7 +77,8 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   // GoQuicServerSessionVisitor interface implementation:
   // Ensure that the closed connection is cleaned up asynchronously.
   void OnConnectionClosed(QuicConnectionId connection_id,
-                          QuicErrorCode error) override;
+                          QuicErrorCode error,
+                          const std::string& error_details) override;
 
   // Queues the blocked writer for later resumption.
   void OnWriteBlocked(QuicBlockedWriterInterface* blocked_writer) override;
@@ -131,8 +133,6 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
       const QuicVersionNegotiationPacket& packet) override;
   void OnDecryptedPacket(EncryptionLevel level) override;
   bool OnPacketHeader(const QuicPacketHeader& header) override;
-  void OnRevivedPacket() override;
-  void OnFecProtectedPayload(base::StringPiece payload) override;
   bool OnStreamFrame(const QuicStreamFrame& frame) override;
   bool OnAckFrame(const QuicAckFrame& frame) override;
   bool OnStopWaitingFrame(const QuicStopWaitingFrame& frame) override;
@@ -143,7 +143,6 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   bool OnWindowUpdateFrame(const QuicWindowUpdateFrame& frame) override;
   bool OnBlockedFrame(const QuicBlockedFrame& frame) override;
   bool OnPathCloseFrame(const QuicPathCloseFrame& frame) override;
-  void OnFecData(base::StringPiece redundancy) override;
   void OnPacketComplete() override;
 
   // XXX(hodduc): Originally this helper is protected, but we need helper() on
@@ -188,11 +187,15 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
 
   const IPEndPoint& current_server_address() { return current_server_address_; }
   const IPEndPoint& current_client_address() { return current_client_address_; }
-  const QuicEncryptedPacket& current_packet() { return *current_packet_; }
+  const QuicReceivedPacket& current_packet() { return *current_packet_; }
 
   const QuicConfig& config() const { return config_; }
 
   const QuicCryptoServerConfig* crypto_config() const { return crypto_config_; }
+
+  QuicCompressedCertsCache* compressed_certs_cache() {
+    return &compressed_certs_cache_;
+  }
 
   QuicFramer* framer() { return &framer_; }
 
@@ -204,6 +207,10 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   // QuicDispatcher::OnCanWrite logic will not work. (This will hopefully be
   // cleaned up for bug 16950226.)
   virtual QuicPacketWriter* CreatePerConnectionWriter();
+
+  // Returns true if a session should be created for a connection with an
+  // unknown version identified by |version_tag|.
+  virtual bool ShouldCreateSessionForUnknownVersion(QuicTag version_tag);
 
   void SetLastError(QuicErrorCode error);
 
@@ -219,6 +226,9 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   const QuicConfig& config_;
 
   const QuicCryptoServerConfig* crypto_config_;
+
+  // The cache for most recently compressed certs.
+  QuicCompressedCertsCache compressed_certs_cache_;
 
   // The list of connections waiting to write.
   WriteBlockedList write_blocked_list_;
@@ -249,7 +259,8 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   // Information about the packet currently being handled.
   IPEndPoint current_client_address_;
   IPEndPoint current_server_address_;
-  const QuicEncryptedPacket* current_packet_;
+  const QuicReceivedPacket* current_packet_;
+  QuicConnectionId current_connection_id_;
 
   QuicFramer framer_;
 

@@ -33,10 +33,8 @@ class ConnectionIdCleanUpAlarm : public QuicAlarm::Delegate {
       GoQuicTimeWaitListManager* time_wait_list_manager)
       : time_wait_list_manager_(time_wait_list_manager) {}
 
-  QuicTime OnAlarm() override {
+  void OnAlarm() override {
     time_wait_list_manager_->CleanUpOldConnectionIds();
-    // Let the time wait manager register the alarm at appropriate time.
-    return QuicTime::Zero();
   }
 
  private:
@@ -188,6 +186,17 @@ void GoQuicTimeWaitListManager::ProcessPacket(
   }
 
   SendPublicReset(server_address, client_address, connection_id, packet_number);
+}
+
+void GoQuicTimeWaitListManager::SendVersionNegotiationPacket(
+    QuicConnectionId connection_id,
+    const QuicVersionVector& supported_versions,
+    const IPEndPoint& server_address,
+    const IPEndPoint& client_address) {
+  QueuedPacket* packet = new QueuedPacket(
+      server_address, client_address, QuicFramer::BuildVersionNegotiationPacket(
+                                          connection_id, supported_versions));
+  SendOrQueuePacket(packet);
 }
 
 // Returns true if the number of packets received for this connection_id is a

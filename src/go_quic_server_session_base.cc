@@ -14,15 +14,19 @@
 #include "net/quic/quic_spdy_session.h"
 #include "net/quic/reliable_quic_stream.h"
 
+using std::string;
+
 namespace net {
 
 GoQuicServerSessionBase::GoQuicServerSessionBase(
     const QuicConfig& config,
     QuicConnection* connection,
     GoQuicServerSessionVisitor* visitor,
-    const QuicCryptoServerConfig* crypto_config)
+    const QuicCryptoServerConfig* crypto_config,
+    QuicCompressedCertsCache* compressed_certs_cache)
     : QuicSpdySession(connection, config),
       crypto_config_(crypto_config),
+      compressed_certs_cache_(compressed_certs_cache),
       visitor_(visitor),
       bandwidth_resumption_enabled_(false),
       bandwidth_estimate_sent_to_client_(QuicBandwidth::Zero()),
@@ -34,7 +38,8 @@ GoQuicServerSessionBase::~GoQuicServerSessionBase() {
 }
 
 void GoQuicServerSessionBase::Initialize() {
-  crypto_stream_.reset(CreateQuicCryptoServerStream(crypto_config_));
+  crypto_stream_.reset(
+      CreateQuicCryptoServerStream(crypto_config_, compressed_certs_cache_));
   QuicSpdySession::Initialize();
 }
 
@@ -75,24 +80,19 @@ void GoQuicServerSessionBase::OnConfigNegotiated() {
       }
     }
   }
-
-  if (FLAGS_enable_quic_fec &&
-      ContainsQuicTag(config()->ReceivedConnectionOptions(), kFHDR)) {
-    // kFHDR config maps to FEC protection always for headers stream.
-    // TODO(jri): Add crypto stream in addition to headers for kHDR.
-    headers_stream()->set_fec_policy(FEC_PROTECT_ALWAYS);
-  }
 }
 
 void GoQuicServerSessionBase::OnConnectionClosed(QuicErrorCode error,
+                                                 const string& error_details,
                                                  ConnectionCloseSource source) {
-  QuicSession::OnConnectionClosed(error, source);
+  QuicSession::OnConnectionClosed(error, error_details, source);
   // In the unlikely event we get a connection close while doing an asynchronous
   // crypto event, make sure we cancel the callback.
   if (crypto_stream_.get() != nullptr) {
     crypto_stream_->CancelOutstandingCallbacks();
   }
-  visitor_->OnConnectionClosed(connection()->connection_id(), error);
+  visitor_->OnConnectionClosed(connection()->connection_id(), error,
+                               error_details);
 }
 
 void GoQuicServerSessionBase::OnWriteBlocked() {
@@ -195,8 +195,9 @@ bool GoQuicServerSessionBase::ShouldCreateIncomingDynamicStream(QuicStreamId id)
 
   if (id % 2 == 0) {
     DVLOG(1) << "Invalid incoming even stream_id:" << id;
-    connection()->SendConnectionCloseWithDetails(
-        QUIC_INVALID_STREAM_ID, "Client created even numbered stream");
+    connection()->CloseConnection(
+        QUIC_INVALID_STREAM_ID, "Client created even numbered stream",
+        ConnectionCloseBehavior::SEND_CONNECTION_CLOSE_PACKET);
     return false;
   }
   return true;

@@ -50,6 +50,8 @@ void GoQuicSpdyClientStream::OnInitialHeadersComplete(bool fin,
 
 void GoQuicSpdyClientStream::OnTrailingHeadersComplete(bool fin,
                                                        size_t frame_len) {
+  QuicSpdyStream::OnTrailingHeadersComplete(fin, frame_len);
+
   GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(
       go_quic_client_stream_, decompressed_trailers().data(),
       decompressed_trailers().length());

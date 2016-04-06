@@ -41,8 +41,6 @@ void initialize() {
   const char* argv[] = {"test", nullptr};
   base::CommandLine::Init(argc, argv);
   exit_manager = new base::AtExitManager;  // Deleted at the end
-
-  FLAGS_require_strike_register_or_server_nonce = false;
 }
 
 void set_log_level(int level) {
@@ -230,8 +228,8 @@ void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
   IPAddress peer_ip_addr(peer_address_ip, peer_address_len);
   IPEndPoint peer_address(peer_ip_addr, peer_address_port);
 
-  QuicEncryptedPacket packet(
-      buffer, length,
+  QuicReceivedPacket packet(
+      buffer, length, dispatcher->helper()->GetClock()->Now(),
       false /* Do not own the buffer, so will not free buffer in the destructor */);
 
   dispatcher->ProcessPacket(self_address, peer_address, packet);
@@ -306,7 +304,6 @@ struct ConnStat quic_server_session_connection_stat(GoQuicServerSessionBase* ses
                           stats.slowstart_packets_sent,
                           stats.slowstart_packets_lost,
 
-                          stats.packets_revived,
                           stats.packets_dropped,
                           stats.crypto_retransmit_count,
                           stats.loss_timeout_count,
