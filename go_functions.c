@@ -22,8 +22,8 @@ void DeleteGoSession_C(int64_t go_quic_dispatcher, int64_t go_quic_server_sessio
     DeleteGoSession(go_quic_dispatcher, go_quic_server_session);
 }
 
-int GetProof_C(int64_t go_proof_source, void* server_ip, size_t server_ip_sz, char* hostname, size_t hostname_sz, char* server_config, size_t server_config_sz, int ecdsa_ok, char **out_signature, size_t *out_signature_sz) {
-    return GetProof(go_proof_source, server_ip, server_ip_sz, hostname, hostname_sz, server_config, server_config_sz, ecdsa_ok, out_signature, out_signature_sz);
+int GetProof_C(int64_t go_proof_source, char* server_ip, size_t server_ip_sz, char* hostname, size_t hostname_sz, char* server_config, size_t server_config_sz, int quic_version, char* chlo_hash, size_t chlo_hash_len, int ecdsa_ok, char **out_signature, size_t *out_signature_sz) {
+    return GetProof(go_proof_source, server_ip, server_ip_sz, hostname, hostname_sz, server_config, server_config_sz, quic_version, chlo_hash, chlo_hash_len, ecdsa_ok, out_signature, out_signature_sz);
 }
 
 int64_t CreateIncomingDynamicStream_C(int64_t go_quic_server_session, uint32_t id, void* go_quic_simple_server_stream_go_wrapper) {
@@ -80,8 +80,8 @@ void GoQuicSimpleServerStreamOnClose_C(int64_t go_quic_simple_server_stream) {
     GoQuicSimpleServerStreamOnClose(go_quic_simple_server_stream);
 }
 
-int64_t NewProofVerifyJob_C(int64_t go_proof_verifier, const char* hostname, size_t hostname_len, const char* server_config, size_t server_config_len, const char* cert_sct, size_t cert_sct_len, const char* signature, size_t signature_len) {
-    return NewProofVerifyJob(go_proof_verifier, (void *)hostname, hostname_len, (void *)server_config, server_config_len, (void *)cert_sct, cert_sct_len, (void *)signature, signature_len);
+int64_t NewProofVerifyJob_C(int64_t go_proof_verifier, int quic_version, const char* hostname, size_t hostname_len, const char* server_config, size_t server_config_len, const char* chlo_hash, size_t chlo_hash_len, const char* cert_sct, size_t cert_sct_len, const char* signature, size_t signature_len) {
+    return NewProofVerifyJob(go_proof_verifier, quic_version, (void *)hostname, hostname_len, (void *)server_config, server_config_len, (void *)chlo_hash, chlo_hash_len, (void *)cert_sct, cert_sct_len, (void *)signature, signature_len);
 }
 
 void ProofVerifyJobAddCert_C(int64_t job, const char* cert, size_t cert_len) {

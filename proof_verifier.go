@@ -8,6 +8,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/binary"
 	"errors"
 	"log"
 	"unsafe"
@@ -19,8 +20,11 @@ type ProofVerifier struct {
 }
 
 type ProofVerifyJob struct {
+	quicVersion int
+
 	hostname     []byte
 	serverConfig []byte
+	chloHash     []byte
 	certSct      []byte
 	signature    []byte
 	certs        [][]byte
@@ -32,14 +36,27 @@ func CreateProofVerifier() *ProofVerifier {
 	}
 }
 
-var ProofSignatureLabel = []byte{'Q', 'U', 'I', 'C', ' ', 's', 'e', 'r', 'v', 'e', 'r', ' ', 'c', 'o', 'n', 'f', 'i', 'g', ' ', 's', 'i', 'g', 'n', 'a', 't', 'u', 'r', 'e', 0x00}
+// Generate "proof of authenticity" (See "Quic Crypto" docs for details)
+// Length of the prefix used to calculate the signature: length of label + 0x00 byte
+var ProofSignatureLabelOld = []byte{'Q', 'U', 'I', 'C', ' ', 's', 'e', 'r', 'v', 'e', 'r', ' ', 'c', 'o', 'n', 'f', 'i', 'g', ' ', 's', 'i', 'g', 'n', 'a', 't', 'u', 'r', 'e', 0x00}
+var ProofSignatureLabel = []byte{'Q', 'U', 'I', 'C', ' ', 'C', 'H', 'L', 'O', ' ', 'a', 'n', 'd', ' ', 's', 'e', 'r', 'v', 'e', 'r', ' ', 'c', 'o', 'n', 'f', 'i', 'g', ' ', 's', 'i', 'g', 'n', 'a', 't', 'u', 'r', 'e', 0x00}
 
 func (job *ProofVerifyJob) CheckSignature(cert *x509.Certificate) error {
 	switch pub := cert.PublicKey.(type) {
 	case *rsa.PublicKey:
 		// cert.CheckSignature() uses PKCS1v15, not PSS. So we cannot use that on RSA
 		h := sha256.New()
-		h.Write(ProofSignatureLabel)
+
+		if job.quicVersion > 30 {
+			h.Write(ProofSignatureLabel)
+
+			bs := make([]byte, 4)
+			binary.LittleEndian.PutUint32(bs, uint32(len(job.chloHash)))
+			h.Write(bs)
+			h.Write(job.chloHash)
+		} else {
+			h.Write(ProofSignatureLabelOld)
+		}
 		h.Write(job.serverConfig)
 
 		if err := rsa.VerifyPSS(pub, crypto.SHA256, h.Sum(nil), job.signature, nil); err != nil {
@@ -102,17 +119,20 @@ func (job *ProofVerifyJob) Verify() bool {
 }
 
 //export NewProofVerifyJob
-func NewProofVerifyJob(proof_verifier_key int64,
+func NewProofVerifyJob(proof_verifier_key int64, quicVersion int,
 	hostname_c unsafe.Pointer, hostname_sz C.size_t,
 	server_config_c unsafe.Pointer, server_config_sz C.size_t,
+	chlo_hash_c unsafe.Pointer, chlo_hash_sz C.size_t,
 	cert_sct_c unsafe.Pointer, cert_sct_sz C.size_t,
 	signature_c unsafe.Pointer, signature_sz C.size_t) int64 {
 
 	proofVerifier := proofVerifierPtr.Get(proof_verifier_key)
 
 	job := &ProofVerifyJob{
+		quicVersion:  quicVersion,
 		hostname:     C.GoBytes(hostname_c, C.int(hostname_sz)),
 		serverConfig: C.GoBytes(server_config_c, C.int(server_config_sz)),
+		chloHash:     C.GoBytes(chlo_hash_c, C.int(chlo_hash_sz)),
 		certSct:      C.GoBytes(cert_sct_c, C.int(cert_sct_sz)),
 		signature:    C.GoBytes(signature_c, C.int(signature_sz)),
 		certs:        make([][]byte, 0),

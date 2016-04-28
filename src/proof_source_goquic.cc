@@ -35,16 +35,15 @@ bool ProofSourceGoquic::GetProof(const net::IPAddress& server_ip,
   char* c_out_signature;
   size_t c_out_signature_sz;
 
-  if (quic_version > QUIC_VERSION_30) {
-    //TODO(hodduc): QUIC_VERSION_31 support
-    return false;
-  }
-
   auto server_ip_bytes = server_ip.bytes();
+  auto chlo_hash_str = chlo_hash.as_string();
+
   int ret = GetProof_C(go_proof_source_,
                        reinterpret_cast<char*>(server_ip_bytes.data()), server_ip_bytes.size(),
                        (char*)hostname.c_str(), (size_t)hostname.length(),
                        (char*)server_config.c_str(), (size_t)server_config.length(),
+                       (int)quic_version,
+                       (char*)chlo_hash_str.c_str(), (size_t)chlo_hash_str.length(),
                        ecdsa_ok,
                        &c_out_signature, &c_out_signature_sz);
 

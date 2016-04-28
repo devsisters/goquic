@@ -145,6 +145,7 @@ QuicCryptoServerConfig* init_crypto_config(
   crypto_config->set_strike_register_no_startup_period();
   net::EphemeralKeySource* keySource = new GoEphemeralKeySource();
   crypto_config->SetEphemeralKeySource(keySource);
+  crypto_config->set_replay_protection(false);  // TODO(hodduc): Create strike-register client and turn on replay protection again
 
   QuicClock* clock = new QuicClock();  // XXX: Not deleted.
 

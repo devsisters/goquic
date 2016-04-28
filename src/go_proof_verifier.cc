@@ -39,13 +39,16 @@ QuicAsyncStatus GoProofVerifier::VerifyProof(
     return QUIC_FAILURE;
   }
 
+  auto chlo_hash_str = chlo_hash.as_string();
+
   // Convery certs to X509Certificate.
   GoPtr job = NewProofVerifyJob_C(
-      go_proof_verifier_, (char*)(hostname.c_str()),
-      (size_t)(hostname.length()), (char*)(server_config.c_str()),
-      (size_t)(server_config.length()), (char*)(cert_sct.c_str()),
-      (size_t)(cert_sct.length()), (char*)(signature.c_str()),
-      (size_t)(signature.length()));
+      go_proof_verifier_, (int)(quic_version),
+      (char*)(hostname.c_str()), (size_t)(hostname.length()),
+      (char*)(server_config.c_str()), (size_t)(server_config.length()),
+      (char*)(chlo_hash_str.c_str()), (size_t)(chlo_hash_str.length()),
+      (char*)(cert_sct.c_str()), (size_t)(cert_sct.length()),
+      (char*)(signature.c_str()), (size_t)(signature.length()));
 
   for (auto it = certs.begin(); it != certs.end(); it++) {
     ProofVerifyJobAddCert_C(job, (char*)it->c_str(), (size_t)it->length());

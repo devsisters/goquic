@@ -11,27 +11,34 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/binary"
 	"net"
 	"unsafe"
 )
-
-// Generate "proof of authenticity" (See "Quic Crypto" docs for details)
-// Length of the prefix used to calculate the signature: length of label + 0x00 byte
-const kPrefixStr = "QUIC server config signature"
-const kPrefixLen = len(kPrefixStr) + 1
 
 type ProofSource struct {
 	Certificate   tls.Certificate
 	proofSource_c unsafe.Pointer
 }
 
-func (ps *ProofSource) GetProof(addr net.IP, hostname []byte, serverConfig []byte, ecdsaOk bool) (outSignature []byte) {
+func (ps *ProofSource) GetProof(quicVersion int, addr net.IP, hostname []byte, serverConfig []byte, chloHash []byte, ecdsaOk bool) (outSignature []byte) {
 	var err error = nil
+	var bufferToSign *bytes.Buffer
 
-	bufferToSign := bytes.NewBuffer(make([]byte, 0, len(serverConfig)+kPrefixLen))
-	bufferToSign.Write([]byte(kPrefixStr))
-	bufferToSign.Write([]byte("\x00"))
-	bufferToSign.Write(serverConfig)
+	if quicVersion > 30 {
+		bufferToSign = bytes.NewBuffer(nil)
+		bufferToSign.Write(ProofSignatureLabel)
+
+		bs := make([]byte, 4)
+		binary.LittleEndian.PutUint32(bs, uint32(len(chloHash)))
+		bufferToSign.Write(bs)
+		bufferToSign.Write(chloHash)
+		bufferToSign.Write(serverConfig)
+	} else {
+		bufferToSign = bytes.NewBuffer(nil)
+		bufferToSign.Write(ProofSignatureLabelOld)
+		bufferToSign.Write(serverConfig)
+	}
 
 	hasher := crypto.SHA256.New()
 	_, err = hasher.Write(bufferToSign.Bytes())
@@ -86,15 +93,23 @@ func NewProofSource(cert tls.Certificate) *ProofSource {
 }
 
 //export GetProof
-func GetProof(proof_source_key int64, server_ip_c unsafe.Pointer, server_ip_sz C.size_t, hostname_c unsafe.Pointer, hostname_sz_c C.size_t, server_config_c unsafe.Pointer, server_config_sz_c C.size_t, ecdsa_ok_c C.int, out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
+func GetProof(proof_source_key int64,
+	server_ip_c unsafe.Pointer, server_ip_sz C.size_t,
+	hostname_c unsafe.Pointer, hostname_sz_c C.size_t,
+	server_config_c unsafe.Pointer, server_config_sz_c C.size_t,
+	quicVersion int,
+	chlo_hash_c unsafe.Pointer, chlo_hash_sz C.size_t,
+	ecdsa_ok_c C.int, out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
+
 	proofSource := proofSourcePtr.Get(proof_source_key)
 
 	serverIp := net.IP(C.GoBytes(server_ip_c, C.int(server_ip_sz)))
 	hostname := C.GoBytes(hostname_c, C.int(hostname_sz_c))
 	serverConfig := C.GoBytes(server_config_c, C.int(server_config_sz_c))
+	chloHash := C.GoBytes(chlo_hash_c, C.int(chlo_hash_sz))
 	ecdsaOk := int(ecdsa_ok_c) > 0
 
-	sig := proofSource.GetProof(serverIp, hostname, serverConfig, ecdsaOk)
+	sig := proofSource.GetProof(quicVersion, serverIp, hostname, serverConfig, chloHash, ecdsaOk)
 
 	*out_signature_c = C.CString(string(sig)) // Must free C string
 	*out_signature_sz_c = C.size_t(len(sig))
