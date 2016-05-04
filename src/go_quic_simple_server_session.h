@@ -13,9 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "base/containers/hash_tables.h"
 #include "base/macros.h"
-#include "base/memory/scoped_ptr.h"
 #include "net/quic/quic_crypto_server_stream.h"
 #include "net/quic/quic_protocol.h"
 #include "net/quic/quic_spdy_session.h"

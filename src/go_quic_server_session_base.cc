@@ -31,7 +31,8 @@ GoQuicServerSessionBase::GoQuicServerSessionBase(
       bandwidth_resumption_enabled_(false),
       bandwidth_estimate_sent_to_client_(QuicBandwidth::Zero()),
       last_scup_time_(QuicTime::Zero()),
-      last_scup_packet_number_(0) {}
+      last_scup_packet_number_(0),
+      server_push_enabled_(false) {}
 
 GoQuicServerSessionBase::~GoQuicServerSessionBase() {
   DeleteGoSession_C(go_quic_dispatcher_, go_session_);
@@ -57,6 +58,8 @@ void GoQuicServerSessionBase::OnConfigNegotiated() {
       ContainsQuicTag(config()->ReceivedConnectionOptions(), kBWMX);
   bandwidth_resumption_enabled_ =
       last_bandwidth_resumption || max_bandwidth_resumption;
+  server_push_enabled_ =
+    ContainsQuicTag(config()->ReceivedConnectionOptions(), kSPSH);
 
   // If the client has provided a bandwidth estimate from the same serving
   // region as this server, then decide whether to use the data for bandwidth
@@ -65,9 +68,9 @@ void GoQuicServerSessionBase::OnConfigNegotiated() {
       crypto_stream_->PreviousCachedNetworkParams();
   if (cached_network_params != nullptr &&
       cached_network_params->serving_region() == serving_region_) {
-    if (FLAGS_quic_log_received_parameters) {
-      connection()->OnReceiveConnectionState(*cached_network_params);
-    }
+    // Log the received connection parameters, regardless of how they
+    // get used for bandwidth resumption.
+    connection()->OnReceiveConnectionState(*cached_network_params);
 
     if (bandwidth_resumption_enabled_) {
       // Only do bandwidth resumption if estimate is recent enough.
@@ -160,11 +163,20 @@ void GoQuicServerSessionBase::OnCongestionWindowChange(QuicTime now) {
   int32_t max_bandwidth_timestamp = bandwidth_recorder.MaxBandwidthTimestamp();
 
   // Fill the proto before passing it to the crypto stream to send.
+  const int32_t bw_estimate_bytes_per_second =
+      BandwidthToCachedParameterBytesPerSecond(
+          bandwidth_estimate_sent_to_client_);
+  const int32_t max_bw_estimate_bytes_per_second =
+      BandwidthToCachedParameterBytesPerSecond(max_bandwidth_estimate);
+  QUIC_BUG_IF(max_bw_estimate_bytes_per_second < 0)
+      << max_bw_estimate_bytes_per_second;
+  QUIC_BUG_IF(bw_estimate_bytes_per_second < 0) << bw_estimate_bytes_per_second;
+
   CachedNetworkParameters cached_network_params;
   cached_network_params.set_bandwidth_estimate_bytes_per_second(
-      bandwidth_estimate_sent_to_client_.ToBytesPerSecond());
+      bw_estimate_bytes_per_second);
   cached_network_params.set_max_bandwidth_estimate_bytes_per_second(
-      max_bandwidth_estimate.ToBytesPerSecond());
+      max_bw_estimate_bytes_per_second);
   cached_network_params.set_max_bandwidth_timestamp_seconds(
       max_bandwidth_timestamp);
   cached_network_params.set_min_rtt_ms(
@@ -222,6 +234,14 @@ bool GoQuicServerSessionBase::ShouldCreateOutgoingDynamicStream() {
 
 QuicCryptoServerStreamBase* GoQuicServerSessionBase::GetCryptoStream() {
   return crypto_stream_.get();
+}
+
+int32_t GoQuicServerSessionBase::BandwidthToCachedParameterBytesPerSecond(
+    const QuicBandwidth& bandwidth) {
+  int64_t bytes_per_second = bandwidth.ToBytesPerSecond();
+  return (bytes_per_second > static_cast<int64_t>(INT32_MAX)
+              ? INT32_MAX
+              : static_cast<int32_t>(bytes_per_second));
 }
 
 }  // namespace net

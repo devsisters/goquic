@@ -39,18 +39,22 @@ class DeleteSessionsAlarm : public QuicAlarm::Delegate {
 
 }  // namespace
 
-GoQuicDispatcher::GoQuicDispatcher(const QuicConfig& config,
-                                   const QuicCryptoServerConfig* crypto_config,
-                                   const QuicVersionVector& supported_versions,
-                                   QuicConnectionHelperInterface* helper,
-                                   GoPtr go_quic_dispatcher)
+GoQuicDispatcher::GoQuicDispatcher(
+    const QuicConfig& config,
+    const QuicCryptoServerConfig* crypto_config,
+    const QuicVersionVector& supported_versions,
+    QuicConnectionHelperInterface* helper,
+    QuicAlarmFactory* alarm_factory,
+    GoPtr go_quic_dispatcher)
     : config_(config),
       crypto_config_(crypto_config),
       compressed_certs_cache_(
           QuicCompressedCertsCache::kQuicCompressedCertsCacheSize),
-      helper_(helper),
-      delete_sessions_alarm_(helper_->CreateAlarm(new DeleteSessionsAlarm(
-          this))),  // alarm's delegate is deleted by scoped_ptr of QuicAlarm
+      helper_(std::unique_ptr<QuicConnectionHelperInterface>(helper)),
+      alarm_factory_(std::unique_ptr<QuicAlarmFactory>(alarm_factory)),
+      delete_sessions_alarm_(
+          alarm_factory_->CreateAlarm(new DeleteSessionsAlarm(
+          this))),  // alarm's delegate is deleted by std::unique_ptr of QuicAlarm
       supported_versions_(supported_versions),
       current_packet_(nullptr),
       framer_(supported_versions,
@@ -404,6 +408,11 @@ bool GoQuicDispatcher::OnStopWaitingFrame(const QuicStopWaitingFrame& /*frame*/)
   return false;
 }
 
+bool GoQuicDispatcher::OnPaddingFrame(const QuicPaddingFrame& /*frame*/) {
+  DCHECK(false);
+  return false;
+}
+
 bool GoQuicDispatcher::OnPingFrame(const QuicPingFrame& /*frame*/) {
   DCHECK(false);
   return false;
@@ -450,7 +459,8 @@ GoQuicServerSessionBase* GoQuicDispatcher::CreateQuicSession(
     const IPEndPoint& client_address) {
   // The QuicServerSession takes ownership of |connection| below.
   QuicConnection* connection = new QuicConnection(
-      connection_id, client_address, helper_.get(), CreatePerConnectionWriter(),
+      connection_id, client_address, helper_.get(), alarm_factory_.get(),
+      CreatePerConnectionWriter(),
       /* owns_writer= */ true, Perspective::IS_SERVER, supported_versions_);
 
   // Deleted by DeleteSession()
@@ -469,8 +479,9 @@ GoQuicServerSessionBase* GoQuicDispatcher::CreateQuicSession(
 }
 
 GoQuicTimeWaitListManager* GoQuicDispatcher::CreateQuicTimeWaitListManager() {
-  // Deleted by caller's scoped_ptr
-  return new GoQuicTimeWaitListManager(writer_.get(), this, helper_.get());
+  // Deleted by caller's std::unique_ptr
+  return new GoQuicTimeWaitListManager(writer_.get(), this, helper_.get(),
+                                       alarm_factory_.get());
 }
 
 bool GoQuicDispatcher::HandlePacketForTimeWait(

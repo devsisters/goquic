@@ -10,6 +10,7 @@
 #define GO_QUIC_TIME_WAIT_LIST_MANAGER_H_
 
 #include <deque>
+#include <memory>
 
 #include "net/base/linked_hash_map.h"
 #include "net/quic/quic_blocked_writer_interface.h"
@@ -39,10 +40,12 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
  public:
   // writer - the entity that writes to the socket. (Owned by the dispatcher)
   // visitor - the entity that manages blocked writers. (The dispatcher)
-  // helper - used to run clean up alarms. (Owned by the owner of the server)
+  // helper - provides a clock (Owned by the dispatcher)
+  // alarm_factory - used to run clean up alarms. (Owned by the dispatcher)
   GoQuicTimeWaitListManager(QuicPacketWriter* writer,
                             GoQuicServerSessionVisitor* visitor,
-                            QuicConnectionHelperInterface* helper);
+                            QuicConnectionHelperInterface* helper,
+                            QuicAlarmFactory* alarm_factory);
   ~GoQuicTimeWaitListManager() override;
 
   // Adds the given connection_id to time wait state for kTimeWaitPeriod.
@@ -177,7 +180,7 @@ class GoQuicTimeWaitListManager : public QuicBlockedWriterInterface {
 
   // Alarm to clean up connection_ids that have out lived their duration in
   // time wait state.
-  scoped_ptr<QuicAlarm> connection_id_clean_up_alarm_;
+  std::unique_ptr<QuicAlarm> connection_id_clean_up_alarm_;
 
   // Clock to efficiently measure approximate time.
   const QuicClock* clock_;

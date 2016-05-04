@@ -5,6 +5,7 @@
 #include "go_quic_server_packet_writer.h"
 #include "go_quic_simple_server_stream.h"
 #include "go_quic_alarm_go_wrapper.h"
+#include "go_quic_alarm_factory.h"
 #include "proof_source_goquic.h"
 #include "go_ephemeral_key_source.h"
 
@@ -53,7 +54,7 @@ struct GoQuicServerConfig* generate_goquic_crypto_config() {
   QuicClock clock;
   QuicRandom* random_generator = QuicRandom::GetInstance();
 
-  scoped_ptr<QuicServerConfigProtobuf> scfg(
+  std::unique_ptr<QuicServerConfigProtobuf> scfg(
     net::QuicCryptoServerConfig::GenerateConfig(
       random_generator, &clock, QuicCryptoServerConfig::ConfigOptions()));
 
@@ -135,7 +136,7 @@ QuicCryptoServerConfig* init_crypto_config(
     char* source_address_token_secret,
     size_t source_address_token_secret_len) {
 
-  scoped_ptr<QuicServerConfigProtobuf> config(
+  std::unique_ptr<QuicServerConfigProtobuf> config(
       parse_goquic_crypto_config(go_config));
 
   auto secret = string(source_address_token_secret, source_address_token_secret_len);
@@ -149,7 +150,7 @@ QuicCryptoServerConfig* init_crypto_config(
 
   QuicClock* clock = new QuicClock();  // XXX: Not deleted.
 
-  scoped_ptr<CryptoHandshakeMessage> scfg(
+  std::unique_ptr<CryptoHandshakeMessage> scfg(
       crypto_config->AddConfig(config.get(), clock->WallNow()));
 
   return crypto_config;
@@ -174,9 +175,10 @@ GoQuicDispatcher* create_quic_dispatcher(
       new QuicClock();  // Deleted by scoped ptr of GoQuicConnectionHelper
   QuicRandom* random_generator = QuicRandom::GetInstance();
 
-  GoQuicConnectionHelper* helper = new GoQuicConnectionHelper(
-      go_task_runner, clock,
-      random_generator);  // Deleted by delete_go_quic_dispatcher()
+  GoQuicConnectionHelper* helper = new GoQuicConnectionHelper(clock, random_generator);  // Deleted by unique_ptr of dispatcher
+
+  GoQuicAlarmFactory* alarm_factory = new GoQuicAlarmFactory(clock, go_task_runner); // Deleted by unique_ptr of dispatcher
+
   QuicVersionVector versions(net::QuicSupportedVersions());
 
   /* Initialize Configs ------------------------------------------------*/
@@ -199,7 +201,7 @@ GoQuicDispatcher* create_quic_dispatcher(
 
   // Deleted by delete_go_quic_dispatcher()
   GoQuicDispatcher* dispatcher =
-      new GoQuicDispatcher(*config, crypto_config, versions, helper, go_quic_dispatcher);
+      new GoQuicDispatcher(*config, crypto_config, versions, helper, alarm_factory, go_quic_dispatcher);
 
   GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(
       go_writer, dispatcher);  // Deleted by scoped ptr of GoQuicDispatcher
@@ -210,9 +212,7 @@ GoQuicDispatcher* create_quic_dispatcher(
 }
 
 void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher) {
-  QuicConnectionHelperInterface* helper = dispatcher->helper();
   delete dispatcher;
-  delete helper;
 }
 
 void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
@@ -264,7 +264,7 @@ void quic_simple_server_stream_write_or_buffer_data(
     char* buf,
     size_t bufsize,
     int fin) {
-  wrapper->WriteOrBufferData_(StringPiece(buf, bufsize), (fin != 0), nullptr);
+  wrapper->WriteOrBufferData_(base::StringPiece(buf, bufsize), (fin != 0), nullptr);
 }
 
 void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm) {

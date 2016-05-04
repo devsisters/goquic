@@ -3,6 +3,7 @@
 #include "go_quic_client_session.h"
 #include "go_quic_spdy_client_stream.h"
 #include "go_quic_client_packet_writer.h"
+#include "go_quic_alarm_factory.h"
 #include "go_quic_connection_helper.h"
 #include "go_proof_verifier.h"
 
@@ -33,9 +34,9 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(
       new QuicClock();  // Deleted by scoped ptr of GoQuicConnectionHelper
   QuicRandom* random_generator = QuicRandom::GetInstance();
 
-  GoQuicConnectionHelper* helper = new GoQuicConnectionHelper(
-      task_runner, clock,
-      random_generator);  // Deleted by delete_go_quic_client_session()
+  GoQuicConnectionHelper* helper = new GoQuicConnectionHelper(clock, random_generator);  // Deleted by unique_ptr
+
+  GoQuicAlarmFactory* alarm_factory = new GoQuicAlarmFactory(clock, task_runner); // Deleted by unique_ptr
 
   QuicPacketWriter* writer = new GoQuicClientPacketWriter(
       go_writer);  // Deleted by ~QuicConnection() because owns_writer is true
@@ -48,7 +49,7 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(
   // Deleted automatically by scoped ptr of GoQuicClientSession
   QuicConnection* conn = new QuicConnection(
       QuicRandom::GetInstance()->RandUint64(),  // Connection ID
-      server_address, helper, writer,
+      server_address, helper, alarm_factory, writer,
       /* owns_writer= */ true,
       /* is_server= */ Perspective::IS_CLIENT, supported_versions);
 

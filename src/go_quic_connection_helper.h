@@ -13,25 +13,19 @@ using QuicStreamBufferAllocator = SimpleBufferAllocator;
 
 class GoQuicConnectionHelper : public QuicConnectionHelperInterface {
  public:
-  GoQuicConnectionHelper(GoPtr task_runner,
-                         QuicClock* clock,
+  GoQuicConnectionHelper(QuicClock* clock,
                          QuicRandom* random_generator);
   ~GoQuicConnectionHelper() override;
 
   // QuicConnectionHelperInterface
   const QuicClock* GetClock() const override;
   QuicRandom* GetRandomGenerator() override;
-  QuicAlarm* CreateAlarm(QuicAlarm::Delegate* delegate) override;
-  QuicArenaScopedPtr<QuicAlarm> CreateAlarm(
-    QuicArenaScopedPtr<QuicAlarm::Delegate> delegate,
-    QuicConnectionArena* arena) override;
 
   QuicBufferAllocator* GetBufferAllocator() override;
 
  private:
-  GoPtr task_runner_;
 
-  scoped_ptr<QuicClock> clock_;
+  std::unique_ptr<QuicClock> clock_;
   QuicRandom* random_generator_;
   QuicStreamBufferAllocator buffer_allocator_;
 

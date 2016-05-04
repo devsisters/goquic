@@ -1,6 +1,8 @@
 #ifndef GO_QUIC_CLIENT_SESSION_H_
 #define GO_QUIC_CLIENT_SESSION_H_
 
+#include <memory>
+
 #include "net/quic/quic_client_session_base.h"
 #include "net/quic/quic_crypto_client_stream.h"
 #include "net/quic/quic_protocol.h"
@@ -67,7 +69,7 @@ class GoQuicClientSession : public QuicClientSessionBase {
   QuicCryptoClientConfig* crypto_config() { return crypto_config_; }
 
  private:
-  scoped_ptr<QuicCryptoClientStreamBase> crypto_stream_;
+  std::unique_ptr<QuicCryptoClientStreamBase> crypto_stream_;
   QuicServerId server_id_;
   QuicCryptoClientConfig* crypto_config_;
 

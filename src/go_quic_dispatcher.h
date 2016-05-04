@@ -11,8 +11,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "base/containers/hash_tables.h"
-#include "base/memory/scoped_ptr.h"
 #include "net/base/ip_endpoint.h"
 #include "net/base/linked_hash_map.h"
 #include "net/quic/crypto/quic_compressed_certs_cache.h"
@@ -44,14 +42,11 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
                           QuicBlockedWriterInterfacePtrHash>
       WriteBlockedList;
 
-  // Due to the way delete_sessions_closure_ is registered, the Dispatcher must
-  // live until epoll_server Shutdown. |supported_versions| specifies the list
-  // of supported QUIC versions. Takes ownership of |packet_writer_factory|,
-  // which is used to create per-connection writers.
   GoQuicDispatcher(const QuicConfig& config,
                    const QuicCryptoServerConfig* crypto_config,
                    const QuicVersionVector& supported_versions,
                    QuicConnectionHelperInterface* helper,
+                   QuicAlarmFactory* alarm_factory,
                    GoPtr go_quic_dispatcher);
 
   ~GoQuicDispatcher() override;
@@ -136,6 +131,7 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   bool OnStreamFrame(const QuicStreamFrame& frame) override;
   bool OnAckFrame(const QuicAckFrame& frame) override;
   bool OnStopWaitingFrame(const QuicStopWaitingFrame& frame) override;
+  bool OnPaddingFrame(const QuicPaddingFrame& frame) override;
   bool OnPingFrame(const QuicPingFrame& frame) override;
   bool OnRstStreamFrame(const QuicRstStreamFrame& frame) override;
   bool OnConnectionCloseFrame(const QuicConnectionCloseFrame& frame) override;
@@ -148,6 +144,8 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   // XXX(hodduc): Originally this helper is protected, but we need helper() on
   // adaptor.cc so move this to public.
   QuicConnectionHelperInterface* helper() { return helper_.get(); }
+
+  QuicAlarmFactory* alarm_factory() { return alarm_factory_.get(); }
 
  protected:
   virtual GoQuicServerSessionBase* CreateQuicSession(
@@ -236,19 +234,22 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   SessionMap session_map_;
 
   // Entity that manages connection_ids in time wait state.
-  scoped_ptr<GoQuicTimeWaitListManager> time_wait_list_manager_;
+  std::unique_ptr<GoQuicTimeWaitListManager> time_wait_list_manager_;
 
   // The list of closed but not-yet-deleted sessions.
   std::vector<GoQuicServerSessionBase*> closed_session_list_;
 
   // The helper used for all connections. Owned by the server.
-  scoped_ptr<QuicConnectionHelperInterface> helper_;
+  std::unique_ptr<QuicConnectionHelperInterface> helper_;
+
+  // Creates alarms.
+  std::unique_ptr<QuicAlarmFactory> alarm_factory_;
 
   // An alarm which deletes closed sessions.
-  scoped_ptr<QuicAlarm> delete_sessions_alarm_;
+  std::unique_ptr<QuicAlarm> delete_sessions_alarm_;
 
   // The writer to write to the socket with.
-  scoped_ptr<QuicPacketWriter> writer_;
+  std::unique_ptr<QuicPacketWriter> writer_;
 
   // This vector contains QUIC versions which we currently support.
   // This should be ordered such that the highest supported version is the first

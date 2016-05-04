@@ -4,7 +4,6 @@
 #include "net/quic/crypto/key_exchange.h"
 #include "net/quic/crypto/ephemeral_key_source.h"
 #include "net/quic/quic_time.h"
-#include "base/memory/scoped_ptr.h"
 
 namespace net {
 
@@ -20,7 +19,7 @@ class GoEphemeralKeySource : public EphemeralKeySource {
       std::string* public_value) override;
 
  private:
-  scoped_ptr<net::KeyExchange> forward_secure_key_exchange_;
+  std::unique_ptr<net::KeyExchange> forward_secure_key_exchange_;
   QuicTime key_created_time_;
 };
 
