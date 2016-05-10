@@ -97,7 +97,10 @@ To build the library files for your architecture and OS:
 This will fetch `libquic` master and build all the binaries from source. The
 C/C++ files for Go bindings will be all built too.
 
-Currently Linux and Mac OS X and FreeBSD is supported.
+To build static library files, you should have cmake, C/C++ compiler, and 
+ninja-build system (or GNU make).
+
+Currently Linux, Mac OS X and FreeBSD is supported.
 
 ## How to build
 
