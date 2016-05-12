@@ -55,12 +55,12 @@ Benchmark results:
 
 | Payload Size | Requests per Second |
 | ------------ | ------------------- |
-| 30B Payload  | 23832.18 RPS        |
-| 1kB Payload  | 21704.84 RPS        |
-| 5kB Payload  | 9343.58 RPS         |
-| 10kB Payload | 5312.75 RPS         |
+| 30B Payload  | 12131.25 RPS        |
+| 1kB Payload  | 11835.13 RPS        |
+| 5kB Payload  | 7816.21 RPS         |
+| 10kB Payload | 5599.73 RPS         |
 
-On 10kB case, calculating the total network throughput is `435Mbps`.
+On 10kB case, calculating the total network throughput is `458Mbps`.
 
 How many connections per second can this server process?
 
