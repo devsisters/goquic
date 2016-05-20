@@ -1,4 +1,4 @@
-FROM golang
+FROM golang:1.6.2
 MAINTAINER Server Team "se@devsisters.com"
 
 RUN apt-get -qq update && apt-get install -y build-essential cmake ninja-build
