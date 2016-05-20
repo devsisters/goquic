@@ -211,7 +211,10 @@ func (srv *QuicSpdyServer) Serve(listen_addr *net.UDPAddr, writer *ServerWriter,
 // Provide "Alternate-Protocol" header for QUIC
 func AltProtoMiddleware(next http.Handler, port int) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Alternate-Protocol is deprecated.
+		// See https://groups.google.com/a/chromium.org/forum/#!topic/chromium-reviews/aOv41LpPDQY
 		w.Header().Add("Alternate-Protocol", fmt.Sprintf("%d:quic", port))
+		w.Header().Add("Alt-Svc", fmt.Sprintf("quic=\":%d\"; ma=86400; v=\"33,32,31,30,29,28,27,26,25\"", port))
 		next.ServeHTTP(w, r)
 	})
 }
