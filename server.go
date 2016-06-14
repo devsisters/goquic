@@ -117,23 +117,15 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 			var parsed bool = false
 
 			if len(buf) > 0 {
-				switch buf[0] & 0xC {
-				case 0xC:
-					if n >= 9 { // 8-byte connection id
+				switch buf[0] & 0x8 {
+				case 0x8:
+					// 8-byte connection id
+					if n >= 9 {
 						connId = binary.LittleEndian.Uint64(buf[1:9])
 						parsed = true
 					}
-				case 0x8:
-					if n >= 5 { // 4-byte
-						connId = uint64(binary.LittleEndian.Uint32(buf[1:5]))
-						parsed = true
-					}
-				case 0x4:
-					if n >= 2 { // 1-byte
-						connId = uint64(buf[1])
-						parsed = true
-					}
 				default: // connection id is omitted
+					// TODO(hodduc) Use 4-tuple to identify connection when connId is omitted
 					connId = 0
 					parsed = true
 				}
