@@ -67,8 +67,8 @@ void GoQuicSpdyClientStreamOnClose_C(int64_t go_quic_spdy_client_stream) {
     GoQuicSpdyClientStreamOnClose(go_quic_spdy_client_stream);
 }
 
-void GoQuicSimpleServerStreamOnInitialHeadersComplete_C(int64_t go_quic_simple_server_stream, struct GoSpdyHeader* headers) {
-    GoQuicSimpleServerStreamOnInitialHeadersComplete(go_quic_simple_server_stream, headers);
+void GoQuicSimpleServerStreamOnInitialHeadersComplete_C(int64_t go_quic_simple_server_stream, struct GoSpdyHeader* headers, const char *peer_address, uint32_t peer_address_len) {
+    GoQuicSimpleServerStreamOnInitialHeadersComplete(go_quic_simple_server_stream, headers, (void *)peer_address, peer_address_len);
 }
 void GoQuicSimpleServerStreamOnDataAvailable_C(int64_t go_quic_simple_server_stream, const char *data, uint32_t data_len, int is_closed) {
     GoQuicSimpleServerStreamOnDataAvailable(go_quic_simple_server_stream, (void *)data, data_len, is_closed);

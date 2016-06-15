@@ -38,7 +38,7 @@ type SpdyClientStream struct {
 	closed bool
 }
 
-func (stream *SpdyClientStream) OnInitialHeadersComplete(header http.Header) {
+func (stream *SpdyClientStream) OnInitialHeadersComplete(header http.Header, peerAddress string) {
 	stream.header = header
 	stream.headerParsed = true
 }

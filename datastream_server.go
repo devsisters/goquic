@@ -31,6 +31,7 @@ type SimpleServerStream struct {
 	closed           bool
 	streamId         uint32 // Just for logging purpose
 	header           http.Header
+	peerAddress      string
 	buffer           *bytes.Buffer
 	server           *QuicSpdyServer
 	quicServerStream *QuicServerStream
@@ -38,8 +39,9 @@ type SimpleServerStream struct {
 	closeNotifyChan  chan bool
 }
 
-func (stream *SimpleServerStream) OnInitialHeadersComplete(header http.Header) {
+func (stream *SimpleServerStream) OnInitialHeadersComplete(header http.Header, peerAddress string) {
 	stream.header = header
+	stream.peerAddress = peerAddress
 }
 
 func (stream *SimpleServerStream) OnTrailingHeadersComplete(header http.Header) {
@@ -68,7 +70,7 @@ func (stream *SimpleServerStream) ProcessRequest() {
 	req.Proto = header.Get(":version")
 	req.Header = header
 	req.Host = header.Get(":host")
-	// req.RemoteAddr = serverStream. TODO(serialx): Add remote addr
+	req.RemoteAddr = stream.peerAddress
 	rawPath := header.Get(":path")
 
 	url, err := url.ParseRequestURI(rawPath)

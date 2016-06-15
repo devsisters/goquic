@@ -10,7 +10,7 @@ import (
 
 //   (~= QuicSpdy(Server|Client)Stream)
 type DataStreamProcessor interface {
-	OnInitialHeadersComplete(header http.Header)
+	OnInitialHeadersComplete(header http.Header, peerAddress string)
 	OnTrailingHeadersComplete(header http.Header)
 	OnDataAvailable(data []byte, isClosed bool)
 	OnClose()
@@ -83,10 +83,11 @@ func CreateIncomingDynamicStream(session_key int64, stream_id uint32, wrapper_c 
 }
 
 //export GoQuicSimpleServerStreamOnInitialHeadersComplete
-func GoQuicSimpleServerStreamOnInitialHeadersComplete(quic_server_stream_key int64, headers_c *C.struct_GoSpdyHeader) {
+func GoQuicSimpleServerStreamOnInitialHeadersComplete(quic_server_stream_key int64, headers_c *C.struct_GoSpdyHeader, peer_addr unsafe.Pointer, peer_addr_len uint32) {
 	stream := quicServerStreamPtr.Get(quic_server_stream_key)
 	header := createHeader(headers_c)
-	stream.UserStream().OnInitialHeadersComplete(header)
+	peerAddr := C.GoStringN((*C.char)(peer_addr), (C.int)(peer_addr_len))
+	stream.UserStream().OnInitialHeadersComplete(header, peerAddr)
 }
 
 //export GoQuicSimpleServerStreamOnDataAvailable
@@ -106,7 +107,7 @@ func GoQuicSimpleServerStreamOnClose(quic_server_stream_key int64) {
 func GoQuicSpdyClientStreamOnInitialHeadersComplete(quic_client_stream_key int64, headers_c *C.struct_GoSpdyHeader) {
 	stream := quicClientStreamPtr.Get(quic_client_stream_key)
 	header := createHeader(headers_c)
-	stream.UserStream().OnInitialHeadersComplete(header)
+	stream.UserStream().OnInitialHeadersComplete(header, "")
 }
 
 //export GoQuicSpdyClientStreamOnTrailingHeadersComplete

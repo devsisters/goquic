@@ -3,6 +3,7 @@
 #include "go_utils.h"
 
 #include "net/quic/quic_session.h"
+#include "net/quic/quic_spdy_session.h"
 #include "net/quic/spdy_utils.h"
 #include "base/strings/string_piece.h"
 #include "base/strings/string_number_conversions.h"
@@ -32,8 +33,9 @@ void GoQuicSimpleServerStream::OnInitialHeadersComplete(bool fin,
     SendErrorResponse();
   }
 
+  auto peer_address = spdy_session()->connection()->peer_address().ToStringWithoutPort();
   auto hdr = CreateGoSpdyHeader(request_headers_);
-  GoQuicSimpleServerStreamOnInitialHeadersComplete_C(go_quic_simple_server_stream_, hdr);
+  GoQuicSimpleServerStreamOnInitialHeadersComplete_C(go_quic_simple_server_stream_, hdr, peer_address.data(), peer_address.length());
   DeleteGoSpdyHeader(hdr);
 
   MarkHeadersConsumed(decompressed_headers().length());
@@ -50,8 +52,9 @@ void GoQuicSimpleServerStream::OnInitialHeadersComplete(
     SendErrorResponse();
   }
 
+  auto peer_address = spdy_session()->connection()->peer_address().ToStringWithoutPort();
   auto hdr = CreateGoSpdyHeader(request_headers_);
-  GoQuicSimpleServerStreamOnInitialHeadersComplete_C(go_quic_simple_server_stream_, hdr);
+  GoQuicSimpleServerStreamOnInitialHeadersComplete_C(go_quic_simple_server_stream_, hdr, peer_address.data(), peer_address.length());
   DeleteGoSpdyHeader(hdr);
 
   ConsumeHeaderList();
