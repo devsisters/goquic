@@ -20,6 +20,12 @@ class GoQuicSimpleServerStream : public QuicSpdyStream {
   // QuicSpdyStream
   void OnInitialHeadersComplete(bool fin, size_t frame_len) override;
   void OnTrailingHeadersComplete(bool fin, size_t frame_len) override;
+  void OnInitialHeadersComplete(bool fin,
+                                size_t frame_len,
+                                const QuicHeaderList& header_list) override;
+  void OnTrailingHeadersComplete(bool fin,
+                                 size_t frame_len,
+                                 const QuicHeaderList& header_list) override;
 
   // ReliableQuicStream implementation called by the sequencer when there is
   // data (or a FIN) to be read.
@@ -27,15 +33,24 @@ class GoQuicSimpleServerStream : public QuicSpdyStream {
 
   void OnClose() override;
 
-  // we need a proxy because ReliableQuicStream::WriteOrBufferData is protected.
-  // we could access this function from C (go) side.
-  void WriteOrBufferData_(base::StringPiece data,
-                          bool fin,
-                          net::QuicAckListenerInterface* ack_listener);
+  // The response body of error responses.
+  static const char* const kErrorResponseBody;
+  static const char* const kNotFoundResponseBody;
+
+  size_t WriteHeaders(const SpdyHeaderBlock& header_block,
+                      bool fin,
+                      QuicAckListenerInterface* ack_notifier_delegate) override;
+
+ protected:
+  // Sends a basic 500 response using SendHeaders for the headers and WriteData
+  // for the body.
+  virtual void SendErrorResponse();
 
  private:
   GoPtr go_quic_simple_server_stream_;
 
+  SpdyHeaderBlock request_headers_;
+  int64_t content_length_;
   std::string body_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicSimpleServerStream);

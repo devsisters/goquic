@@ -14,11 +14,12 @@
 #include "net/base/ip_endpoint.h"
 #include "net/base/linked_hash_map.h"
 #include "net/quic/crypto/quic_compressed_certs_cache.h"
+#include "net/quic/crypto/quic_random.h"
 #include "net/quic/quic_blocked_writer_interface.h"
 #include "net/quic/quic_connection.h"
 #include "net/quic/quic_protocol.h"
+#include "net/quic/quic_server_session_base.h"
 
-#include "go_quic_server_session_base.h"
 #include "go_quic_time_wait_list_manager.h"
 #include "go_quic_process_packet_interface.h"
 #include "go_structs.h"
@@ -29,9 +30,8 @@ class QuicConfig;
 class QuicCryptoServerConfig;
 
 class GoQuicServerPacketWriter;
-class GoQuicServerSessionBase;
 
-class GoQuicDispatcher : public GoQuicServerSessionVisitor,
+class GoQuicDispatcher : public QuicServerSessionBase::Visitor,
                          public ProcessPacketInterface,
                          public QuicBlockedWriterInterface,
                          public QuicFramerVisitorInterface {
@@ -45,8 +45,9 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   GoQuicDispatcher(const QuicConfig& config,
                    const QuicCryptoServerConfig* crypto_config,
                    const QuicVersionVector& supported_versions,
-                   QuicConnectionHelperInterface* helper,
-                   QuicAlarmFactory* alarm_factory,
+                   std::unique_ptr<QuicConnectionHelperInterface> helper,
+                   std::unique_ptr<QuicServerSessionBase::Helper> session_helper,
+                   std::unique_ptr<QuicAlarmFactory> alarm_factory,
                    GoPtr go_quic_dispatcher);
 
   ~GoQuicDispatcher() override;
@@ -69,7 +70,7 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   // Sends ConnectionClose frames to all connected clients.
   void Shutdown();
 
-  // GoQuicServerSessionVisitor interface implementation:
+  // QuicServerSessionBase::Visitor interface implementation:
   // Ensure that the closed connection is cleaned up asynchronously.
   void OnConnectionClosed(QuicConnectionId connection_id,
                           QuicErrorCode error,
@@ -82,12 +83,7 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   // time-wait list.
   void OnConnectionAddedToTimeWaitList(QuicConnectionId connection_id) override;
 
-  // Called whenever the time wait list manager removes an old connection from
-  // the time-wait list.
-  void OnConnectionRemovedFromTimeWaitList(
-      QuicConnectionId connection_id) override;
-
-  typedef std::unordered_map<QuicConnectionId, GoQuicServerSessionBase*>
+  typedef std::unordered_map<QuicConnectionId, QuicServerSessionBase*>
       SessionMap;
 
   const SessionMap& session_map() const { return session_map_; }
@@ -145,10 +141,8 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   // adaptor.cc so move this to public.
   QuicConnectionHelperInterface* helper() { return helper_.get(); }
 
-  QuicAlarmFactory* alarm_factory() { return alarm_factory_.get(); }
-
  protected:
-  virtual GoQuicServerSessionBase* CreateQuicSession(
+  virtual QuicServerSessionBase* CreateQuicSession(
       QuicConnectionId connection_id,
       const IPEndPoint& client_address);
 
@@ -197,6 +191,12 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
 
   QuicFramer* framer() { return &framer_; }
 
+  QuicServerSessionBase::Helper* session_helper() {
+    return session_helper_.get();
+  }
+
+  QuicAlarmFactory* alarm_factory() { return alarm_factory_.get(); }
+
   QuicPacketWriter* writer() { return writer_.get(); }
 
   // Creates per-connection packet writers out of the QuicDispatcher's shared
@@ -211,6 +211,13 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   virtual bool ShouldCreateSessionForUnknownVersion(QuicTag version_tag);
 
   void SetLastError(QuicErrorCode error);
+
+  // Called when the public header has been parsed and the session has been
+  // looked up, and the session was not found in the active std::list of
+  // sessions.
+  // Returns false if processing should stop after this call.
+  virtual bool OnUnauthenticatedUnknownPublicHeader(
+      const QuicPacketPublicHeader& header);
 
  private:
 
@@ -237,10 +244,13 @@ class GoQuicDispatcher : public GoQuicServerSessionVisitor,
   std::unique_ptr<GoQuicTimeWaitListManager> time_wait_list_manager_;
 
   // The list of closed but not-yet-deleted sessions.
-  std::vector<GoQuicServerSessionBase*> closed_session_list_;
+  std::vector<QuicServerSessionBase*> closed_session_list_;
 
   // The helper used for all connections. Owned by the server.
   std::unique_ptr<QuicConnectionHelperInterface> helper_;
+
+  // The helper used for all sessions.
+  std::unique_ptr<QuicServerSessionBase::Helper> session_helper_;
 
   // Creates alarms.
   std::unique_ptr<QuicAlarmFactory> alarm_factory_;

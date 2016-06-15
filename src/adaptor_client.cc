@@ -114,7 +114,7 @@ void quic_spdy_client_stream_write_or_buffer_data(
     char* buf,
     size_t bufsize,
     int fin) {
-  stream->WriteOrBufferData_(StringPiece(buf, bufsize), (fin != 0), nullptr);
+  stream->WriteOrBufferBody(std::string(buf, bufsize), (fin != 0), nullptr);
 }
 
 void go_quic_client_session_process_packet(GoQuicClientSession* session,

@@ -54,11 +54,11 @@ void GoQuicAlarmDestroy_C(int64_t go_quic_alarm) {
     GoQuicAlarmDestroy(go_quic_alarm);
 }
 
-void GoQuicSpdyClientStreamOnInitialHeadersComplete_C(int64_t go_quic_spdy_client_stream, const char *data, uint32_t data_len) {
-    GoQuicSpdyClientStreamOnInitialHeadersComplete(go_quic_spdy_client_stream, (void *)data, data_len);
+void GoQuicSpdyClientStreamOnInitialHeadersComplete_C(int64_t go_quic_spdy_client_stream, struct GoSpdyHeader* headers) {
+    GoQuicSpdyClientStreamOnInitialHeadersComplete(go_quic_spdy_client_stream, headers);
 }
-void GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(int64_t go_quic_spdy_client_stream, const char *data, uint32_t data_len) {
-    GoQuicSpdyClientStreamOnTrailingHeadersComplete(go_quic_spdy_client_stream, (void *)data, data_len);
+void GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(int64_t go_quic_spdy_client_stream, struct GoSpdyHeader* headers) {
+    GoQuicSpdyClientStreamOnTrailingHeadersComplete(go_quic_spdy_client_stream, headers);
 }
 void GoQuicSpdyClientStreamOnDataAvailable_C(int64_t go_quic_spdy_client_stream, const char *data, uint32_t data_len, int is_closed) {
     GoQuicSpdyClientStreamOnDataAvailable(go_quic_spdy_client_stream, (void *)data, data_len, is_closed);
@@ -67,10 +67,8 @@ void GoQuicSpdyClientStreamOnClose_C(int64_t go_quic_spdy_client_stream) {
     GoQuicSpdyClientStreamOnClose(go_quic_spdy_client_stream);
 }
 
-void GoQuicSimpleServerStreamOnInitialHeadersComplete_C(int64_t go_quic_simple_server_stream, const char *data, uint32_t data_len) {
-    GoQuicSimpleServerStreamOnInitialHeadersComplete(go_quic_simple_server_stream, (void *)data, data_len);
-}
-void GoQuicSimpleServerStreamOnTrailingHeadersComplete_C(int64_t go_quic_simple_server_stream, const char *data, uint32_t data_len) { GoQuicSimpleServerStreamOnTrailingHeadersComplete(go_quic_simple_server_stream, (void *)data, data_len);
+void GoQuicSimpleServerStreamOnInitialHeadersComplete_C(int64_t go_quic_simple_server_stream, struct GoSpdyHeader* headers) {
+    GoQuicSimpleServerStreamOnInitialHeadersComplete(go_quic_simple_server_stream, headers);
 }
 void GoQuicSimpleServerStreamOnDataAvailable_C(int64_t go_quic_simple_server_stream, const char *data, uint32_t data_len, int is_closed) {
     GoQuicSimpleServerStreamOnDataAvailable(go_quic_simple_server_stream, (void *)data, data_len, is_closed);

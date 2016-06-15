@@ -6,6 +6,7 @@
 #include "go_quic_simple_server_stream.h"
 #include "go_quic_alarm_go_wrapper.h"
 #include "go_quic_alarm_factory.h"
+#include "go_quic_simple_server_session_helper.h"
 #include "proof_source_goquic.h"
 #include "go_ephemeral_key_source.h"
 
@@ -166,18 +167,14 @@ GoQuicDispatcher* create_quic_dispatcher(
     GoPtr go_task_runner,
     QuicCryptoServerConfig* crypto_config) {
   QuicConfig* config = new QuicConfig();
-
-  // TODO(serialx, hodduc): What is "secret"?
-  // TODO(hodduc) "crypto_config" should be shared as global constant, but there
-  // is no clean way to do it now T.T
   // Deleted by ~GoQuicDispatcher()
   QuicClock* clock =
       new QuicClock();  // Deleted by scoped ptr of GoQuicConnectionHelper
   QuicRandom* random_generator = QuicRandom::GetInstance();
 
-  GoQuicConnectionHelper* helper = new GoQuicConnectionHelper(clock, random_generator);  // Deleted by unique_ptr of dispatcher
-
-  GoQuicAlarmFactory* alarm_factory = new GoQuicAlarmFactory(clock, go_task_runner); // Deleted by unique_ptr of dispatcher
+  std::unique_ptr<QuicConnectionHelperInterface> helper(new GoQuicConnectionHelper(clock, random_generator));
+  std::unique_ptr<QuicAlarmFactory> alarm_factory(new GoQuicAlarmFactory(clock, go_task_runner));
+  std::unique_ptr<QuicServerSessionBase::Helper> session_helper(new GoQuicSimpleServerSessionHelper(QuicRandom::GetInstance()));
 
   QuicVersionVector versions(net::QuicSupportedVersions());
 
@@ -201,7 +198,7 @@ GoQuicDispatcher* create_quic_dispatcher(
 
   // Deleted by delete_go_quic_dispatcher()
   GoQuicDispatcher* dispatcher =
-      new GoQuicDispatcher(*config, crypto_config, versions, helper, alarm_factory, go_quic_dispatcher);
+      new GoQuicDispatcher(*config, crypto_config, versions, std::move(helper), std::move(session_helper), std::move(alarm_factory), go_quic_dispatcher);
 
   GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(
       go_writer, dispatcher);  // Deleted by scoped ptr of GoQuicDispatcher
@@ -264,7 +261,11 @@ void quic_simple_server_stream_write_or_buffer_data(
     char* buf,
     size_t bufsize,
     int fin) {
-  wrapper->WriteOrBufferData_(base::StringPiece(buf, bufsize), (fin != 0), nullptr);
+  wrapper->WriteOrBufferBody(std::string(buf, bufsize), (fin != 0), nullptr);
+}
+
+void quic_simple_server_stream_write_trailers(GoQuicSimpleServerStream* wrapper, SpdyHeaderBlock* block) {
+  wrapper->WriteTrailers(*block, nullptr);
 }
 
 void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm) {
@@ -279,7 +280,7 @@ void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv) {
   cb->OnWriteComplete(rv);
 }
 
-struct ConnStat quic_server_session_connection_stat(GoQuicServerSessionBase* sess) {
+struct ConnStat quic_server_session_connection_stat(QuicServerSessionBase* sess) {
   QuicConnection* conn = sess->connection();
   QuicConnectionStats stats = conn->GetStats();
 

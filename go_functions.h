@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include "go_structs.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,12 +20,11 @@ void GoQuicAlarmSetImpl_C(int64_t go_quic_alarm, int64_t deadline);
 void GoQuicAlarmCancelImpl_C(int64_t go_quic_alarm);
 void GoQuicAlarmDestroy_C(int64_t go_quic_alarm);
 
-void GoQuicSpdyClientStreamOnInitialHeadersComplete_C(int64_t go_quic_spdy_client_stream, const char *data, uint32_t data_len);
-void GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(int64_t go_quic_spdy_client_stream, const char *data, uint32_t data_len);
+void GoQuicSpdyClientStreamOnInitialHeadersComplete_C(int64_t go_quic_spdy_client_stream, struct GoSpdyHeader* headers);
+void GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(int64_t go_quic_spdy_client_stream, struct GoSpdyHeader* headers);
 void GoQuicSpdyClientStreamOnDataAvailable_C(int64_t go_quic_spdy_client_stream, const char *data, uint32_t data_len, int is_closed);
 void GoQuicSpdyClientStreamOnClose_C(int64_t go_quic_spdy_client_stream);
-void GoQuicSimpleServerStreamOnInitialHeadersComplete_C(int64_t go_quic_spdy_client_stream, const char *data, uint32_t data_len);
-void GoQuicSimpleServerStreamOnTrailingHeadersComplete_C(int64_t go_quic_spdy_client_stream, const char *data, uint32_t data_len);
+void GoQuicSimpleServerStreamOnInitialHeadersComplete_C(int64_t go_quic_spdy_client_stream, struct GoSpdyHeader* headers);
 void GoQuicSimpleServerStreamOnDataAvailable_C(int64_t go_quic_simple_server_stream, const char *data, uint32_t data_len, int is_closed);
 void GoQuicSimpleServerStreamOnClose_C(int64_t go_quic_simple_server_stream);
 

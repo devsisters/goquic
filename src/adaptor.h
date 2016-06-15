@@ -23,13 +23,13 @@ extern "C" {
 typedef void QuicConnection;
 typedef void GoQuicDispatcher;
 typedef void GoQuicSimpleServerStream;
-typedef void GoQuicServerSessionBase;
 typedef void SpdyHeaderBlock;
 typedef void GoQuicAlarmGoWrapper;
 typedef void QuicClock;
 typedef void GoQuicServerPacketWriter;
 typedef void QuicCryptoServerConfig;
 typedef void ProofSourceGoquic;
+typedef void QuicServerSessionBase;
 #endif
 
 void initialize();
@@ -74,15 +74,13 @@ void insert_header_block(SpdyHeaderBlock* map,
 void quic_simple_server_stream_write_headers(GoQuicSimpleServerStream* wrapper,
                                              SpdyHeaderBlock* header,
                                              int is_empty_body);
-void quic_simple_server_stream_write_or_buffer_data(
-    GoQuicSimpleServerStream* wrapper,
-    char* buf,
-    size_t bufsize,
-    int fin);
+void quic_simple_server_stream_write_or_buffer_data(GoQuicSimpleServerStream* wrapper, char* buf, size_t bufsize, int fin);
+void quic_simple_server_stream_write_trailers(GoQuicSimpleServerStream* wrapper, SpdyHeaderBlock* block);
+
 void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm);
 int64_t clock_now(QuicClock* clock);
 void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv);
-struct ConnStat quic_server_session_connection_stat(GoQuicServerSessionBase* sess);
+struct ConnStat quic_server_session_connection_stat(QuicServerSessionBase* sess);
 
 ProofSourceGoquic* init_proof_source_goquic(GoPtr go_proof_source);
 void proof_source_goquic_add_cert(ProofSourceGoquic* proof_source, char* cert_c, size_t cert_sz);

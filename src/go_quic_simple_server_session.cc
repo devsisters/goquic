@@ -20,12 +20,20 @@ namespace net {
 GoQuicSimpleServerSession::GoQuicSimpleServerSession(
     const QuicConfig& config,
     QuicConnection* connection,
-    GoQuicServerSessionVisitor* visitor,
+    QuicServerSessionBase::Visitor* visitor,
+    QuicServerSessionBase::Helper* helper,
     const QuicCryptoServerConfig* crypto_config,
     QuicCompressedCertsCache* compressed_certs_cache)
-    : GoQuicServerSessionBase(config, connection, visitor, crypto_config, compressed_certs_cache) {}
+    : QuicServerSessionBase(config,
+                            connection,
+                            visitor,
+                            helper,
+                            crypto_config,
+                            compressed_certs_cache) {}
 
-GoQuicSimpleServerSession::~GoQuicSimpleServerSession() {}
+GoQuicSimpleServerSession::~GoQuicSimpleServerSession() {
+  DeleteGoSession_C(go_quic_dispatcher_, go_session_);
+}
 
 QuicCryptoServerStreamBase*
 GoQuicSimpleServerSession::CreateQuicCryptoServerStream(

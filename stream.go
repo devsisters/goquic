@@ -10,8 +10,8 @@ import (
 
 //   (~= QuicSpdy(Server|Client)Stream)
 type DataStreamProcessor interface {
-	OnInitialHeadersComplete(data []byte)
-	OnTrailingHeadersComplete(data []byte)
+	OnInitialHeadersComplete(header http.Header)
+	OnTrailingHeadersComplete(header http.Header)
 	OnDataAvailable(data []byte, isClosed bool)
 	OnClose()
 }
@@ -30,6 +30,7 @@ type QuicStream interface {
 	UserStream() DataStreamProcessor
 	WriteHeader(header http.Header, is_body_empty bool)
 	WriteOrBufferData(body []byte, fin bool)
+	WriteTrailers(header http.Header)
 }
 
 /*
@@ -40,6 +41,30 @@ type QuicStream interface {
    QuicStream -- owns -->  DataStreamProcessor
 
 */
+
+func createHeader(headers_c *C.struct_GoSpdyHeader) http.Header {
+	h := make(http.Header)
+	N := int(headers_c.N)
+
+	keysArray := (*[1 << 30](*C.char))(unsafe.Pointer(headers_c.Keys))[:N:N]
+	valuesArray := (*[1 << 30](*C.char))(unsafe.Pointer(headers_c.Values))[:N:N]
+
+	keysLen := (*[1 << 30]C.int)(unsafe.Pointer(headers_c.Keys_len))[:N:N]
+	valuesLen := (*[1 << 30]C.int)(unsafe.Pointer(headers_c.Values_len))[:N:N]
+
+	for i := 0; i < N; i++ {
+		key := C.GoStringN(keysArray[i], keysLen[i])
+		value := C.GoStringN(valuesArray[i], valuesLen[i])
+
+		if v, ok := h[key]; !ok {
+			h[key] = []string{value}
+		} else {
+			h[key] = append(v, value)
+		}
+	}
+
+	return h
+}
 
 //export CreateIncomingDynamicStream
 func CreateIncomingDynamicStream(session_key int64, stream_id uint32, wrapper_c unsafe.Pointer) int64 {
@@ -58,17 +83,10 @@ func CreateIncomingDynamicStream(session_key int64, stream_id uint32, wrapper_c 
 }
 
 //export GoQuicSimpleServerStreamOnInitialHeadersComplete
-func GoQuicSimpleServerStreamOnInitialHeadersComplete(quic_server_stream_key int64, data unsafe.Pointer, data_len uint32) {
+func GoQuicSimpleServerStreamOnInitialHeadersComplete(quic_server_stream_key int64, headers_c *C.struct_GoSpdyHeader) {
 	stream := quicServerStreamPtr.Get(quic_server_stream_key)
-	buf := C.GoBytes(data, C.int(data_len))
-	stream.UserStream().OnInitialHeadersComplete(buf)
-}
-
-//export GoQuicSimpleServerStreamOnTrailingHeadersComplete
-func GoQuicSimpleServerStreamOnTrailingHeadersComplete(quic_server_stream_key int64, data unsafe.Pointer, data_len uint32) {
-	stream := quicServerStreamPtr.Get(quic_server_stream_key)
-	buf := C.GoBytes(data, C.int(data_len))
-	stream.UserStream().OnTrailingHeadersComplete(buf)
+	header := createHeader(headers_c)
+	stream.UserStream().OnInitialHeadersComplete(header)
 }
 
 //export GoQuicSimpleServerStreamOnDataAvailable
@@ -85,17 +103,17 @@ func GoQuicSimpleServerStreamOnClose(quic_server_stream_key int64) {
 }
 
 //export GoQuicSpdyClientStreamOnInitialHeadersComplete
-func GoQuicSpdyClientStreamOnInitialHeadersComplete(quic_client_stream_key int64, data unsafe.Pointer, data_len uint32) {
+func GoQuicSpdyClientStreamOnInitialHeadersComplete(quic_client_stream_key int64, headers_c *C.struct_GoSpdyHeader) {
 	stream := quicClientStreamPtr.Get(quic_client_stream_key)
-	buf := C.GoBytes(data, C.int(data_len))
-	stream.UserStream().OnInitialHeadersComplete(buf)
+	header := createHeader(headers_c)
+	stream.UserStream().OnInitialHeadersComplete(header)
 }
 
 //export GoQuicSpdyClientStreamOnTrailingHeadersComplete
-func GoQuicSpdyClientStreamOnTrailingHeadersComplete(quic_client_stream_key int64, data unsafe.Pointer, data_len uint32) {
+func GoQuicSpdyClientStreamOnTrailingHeadersComplete(quic_client_stream_key int64, headers_c *C.struct_GoSpdyHeader) {
 	stream := quicClientStreamPtr.Get(quic_client_stream_key)
-	buf := C.GoBytes(data, C.int(data_len))
-	stream.UserStream().OnTrailingHeadersComplete(buf)
+	header := createHeader(headers_c)
+	stream.UserStream().OnTrailingHeadersComplete(header)
 }
 
 //export GoQuicSpdyClientStreamOnDataAvailable

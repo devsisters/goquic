@@ -16,9 +16,9 @@
 #include "base/macros.h"
 #include "net/quic/quic_crypto_server_stream.h"
 #include "net/quic/quic_protocol.h"
+#include "net/quic/quic_server_session_base.h"
 #include "net/quic/quic_spdy_session.h"
 
-#include "go_quic_server_session_base.h"
 #include "go_quic_simple_server_stream.h"
 
 namespace net {
@@ -29,15 +29,21 @@ class QuicConnection;
 class QuicCryptoServerConfig;
 class ReliableQuicStream;
 
-class GoQuicSimpleServerSession : public GoQuicServerSessionBase {
+class GoQuicSimpleServerSession : public QuicServerSessionBase {
  public:
   GoQuicSimpleServerSession(const QuicConfig& config,
                             QuicConnection* connection,
-                            GoQuicServerSessionVisitor* visitor,
+                            QuicServerSessionBase::Visitor* visitor,
+                            QuicServerSessionBase::Helper* helper,
                             const QuicCryptoServerConfig* crypto_config,
                             QuicCompressedCertsCache* compressed_certs_cache);
 
   ~GoQuicSimpleServerSession() override;
+
+  void SetGoSession(GoPtr go_quic_dispatcher, GoPtr go_session) {
+    go_quic_dispatcher_ = go_quic_dispatcher;
+    go_session_ = go_session;
+  }
 
  protected:
   // QuicSession methods:
@@ -50,6 +56,10 @@ class GoQuicSimpleServerSession : public GoQuicServerSessionBase {
       QuicCompressedCertsCache* compressed_certs_cache) override;
 
  private:
+
+  GoPtr go_session_;
+  GoPtr go_quic_dispatcher_;
+
   DISALLOW_COPY_AND_ASSIGN(GoQuicSimpleServerSession);
 };
 

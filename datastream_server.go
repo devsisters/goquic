@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-
-	"github.com/devsisters/goquic/spdy"
 )
 
 // implement IncomingDataStreamCreator for Server
@@ -40,15 +38,12 @@ type SimpleServerStream struct {
 	closeNotifyChan  chan bool
 }
 
-func (stream *SimpleServerStream) OnInitialHeadersComplete(headerBuf []byte) {
-	if header, err := spdy.ParseHeaders(bytes.NewReader(headerBuf)); err != nil {
-		// TODO(hodduc) should raise proper error
-	} else {
-		stream.header = header
-	}
+func (stream *SimpleServerStream) OnInitialHeadersComplete(header http.Header) {
+	stream.header = header
 }
 
-func (stream *SimpleServerStream) OnTrailingHeadersComplete(headerBuf []byte) {
+func (stream *SimpleServerStream) OnTrailingHeadersComplete(header http.Header) {
+	// Should not be called
 }
 
 func (stream *SimpleServerStream) OnDataAvailable(data []byte, isClosed bool) {
@@ -108,13 +103,24 @@ func (stream *SimpleServerStream) ProcessRequest() {
 		} else {
 			http.DefaultServeMux.ServeHTTP(w, req)
 		}
-		// TODO:
 
 		stream.sessionFnChan <- func() {
 			if stream.closed {
 				return
 			}
-			stream.quicServerStream.WriteOrBufferData(make([]byte, 0), true)
+
+			trailers := make(http.Header)
+			for key, v := range w.header {
+				if _, ok := w.headerSent[key]; !ok {
+					trailers[key] = v
+				}
+			}
+			// XXX: How about header appending or deleting? is it available?
+			if len(trailers) > 0 {
+				stream.quicServerStream.WriteTrailers(trailers)
+			} else {
+				stream.quicServerStream.WriteOrBufferData(make([]byte, 0), true)
+			}
 		}
 	}()
 }
@@ -131,6 +137,7 @@ type spdyResponseWriter struct {
 	serverStream  *QuicServerStream
 	spdyStream    *SimpleServerStream
 	header        http.Header
+	headerSent    http.Header
 	wroteHeader   bool
 	sessionFnChan chan func()
 }
@@ -179,6 +186,7 @@ func (w *spdyResponseWriter) WriteHeader(statusCode int) {
 		w.serverStream.WriteHeader(copiedHeader, false)
 	}
 	w.wroteHeader = true
+	w.headerSent = copiedHeader
 }
 
 func (w *spdyResponseWriter) CloseNotify() <-chan bool {

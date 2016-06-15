@@ -48,4 +48,17 @@ func (stream *QuicServerStream) WriteOrBufferData(body []byte, fin bool) {
 	}
 }
 
+func (stream *QuicServerStream) WriteTrailers(header http.Header) {
+	header_c := C.initialize_header_block()
+	for key, values := range header {
+		value := strings.Join(values, ", ")
+		// Due to spdy_utils.cc, all trailer headers key should be lower-case (why?)
+		C.insert_header_block(header_c, (*C.char)(unsafe.Pointer(&[]byte(strings.ToLower(key))[0])), C.size_t(len(key)),
+			(*C.char)(unsafe.Pointer(&[]byte(value)[0])), C.size_t(len(value)))
+	}
+
+	C.quic_simple_server_stream_write_trailers(stream.wrapper, header_c)
+	C.delete_header_block(header_c)
+}
+
 // TODO(hodduc): delete(stream.session.quicServerStreams, stream)

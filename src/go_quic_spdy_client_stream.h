@@ -18,7 +18,7 @@ class GoQuicClientSession;
 
 // All this does right now is send an SPDY request, and aggregate the
 // SPDY response.
-class NET_EXPORT_PRIVATE GoQuicSpdyClientStream : public QuicSpdyStream {
+class GoQuicSpdyClientStream : public QuicSpdyStream {
  public:
   GoQuicSpdyClientStream(QuicStreamId id, GoQuicClientSession* session);
   ~GoQuicSpdyClientStream() override;
@@ -33,8 +33,15 @@ class NET_EXPORT_PRIVATE GoQuicSpdyClientStream : public QuicSpdyStream {
   // Override the base class to parse and store headers.
   void OnInitialHeadersComplete(bool fin, size_t frame_len) override;
 
+  // Override the base class to parse and store headers.
+  void OnInitialHeadersComplete(bool fin,
+                                 size_t frame_len,
+                                 const QuicHeaderList& header_list) override;
+
   // Override the base class to parse and store trailers.
-  void OnTrailingHeadersComplete(bool fin, size_t frame_len) override;
+  void OnTrailingHeadersComplete(bool fin,
+                                 size_t frame_len,
+                                 const QuicHeaderList& header_list) override;
 
   // ReliableQuicStream implementation called by the session when there's
   // data for us.
@@ -42,27 +49,31 @@ class NET_EXPORT_PRIVATE GoQuicSpdyClientStream : public QuicSpdyStream {
 
   void OnClose() override;
 
-  // we need a proxy because ReliableQuicStream::WriteOrBufferData is protected.
-  // we could access this function from C (go) side.
-  void WriteOrBufferData_(base::StringPiece data,
-                          bool fin,
-                          net::QuicAckListenerInterface* ack_listener);
-
   // While the server's SetPriority shouldn't be called externally, the creator
   // of client-side streams should be able to set the priority.
   using QuicSpdyStream::SetPriority;
 
+  void set_allow_bidirectional_data(bool value) {
+    allow_bidirectional_data_ = value;
+  }
+
   bool allow_bidirectional_data() const { return allow_bidirectional_data_; }
 
  private:
+  // The parsed headers received from the server.
+  SpdyHeaderBlock response_headers_;
+
+  // The parsed content-length, or -1 if none is specified.
+  int64_t content_length_;
+  int response_code_;
+  size_t header_bytes_read_;
+  GoPtr go_quic_client_stream_;
   // When true allows the sending of a request to continue while the response is
   // arriving.
   // XXX: Currently not supported in goquic
   bool allow_bidirectional_data_;
 
   GoQuicClientSession* session_;
-
-  GoPtr go_quic_client_stream_;
 
   DISALLOW_COPY_AND_ASSIGN(GoQuicSpdyClientStream);
 };

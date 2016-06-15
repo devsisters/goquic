@@ -35,7 +35,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(resp.Trailer)
-	fmt.Println(string(b))
-	fmt.Println(resp.Trailer)
+	fmt.Println("Header:", resp.Header)
+	fmt.Println("Body:", string(b))
+	fmt.Println("Trailer:", resp.Trailer)
 }

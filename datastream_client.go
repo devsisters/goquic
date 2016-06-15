@@ -1,13 +1,11 @@
 package goquic
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"net/http"
 	"time"
 
-	"github.com/devsisters/goquic/spdy"
 	"github.com/oleiade/lane"
 )
 
@@ -40,22 +38,14 @@ type SpdyClientStream struct {
 	closed bool
 }
 
-func (stream *SpdyClientStream) OnInitialHeadersComplete(headerBuf []byte) {
-	if header, err := spdy.ParseHeaders(bytes.NewReader(headerBuf)); err != nil {
-		// TODO(hodduc) should raise proper error
-	} else {
-		stream.header = header
-		stream.headerParsed = true
-	}
+func (stream *SpdyClientStream) OnInitialHeadersComplete(header http.Header) {
+	stream.header = header
+	stream.headerParsed = true
 }
 
-func (stream *SpdyClientStream) OnTrailingHeadersComplete(headerBuf []byte) {
-	if header, err := spdy.ParseHeaders(bytes.NewReader(headerBuf)); err != nil {
-		// TODO(hodduc) should raise proper error
-	} else {
-		stream.trailer = header
-		stream.trailerParsed = true
-	}
+func (stream *SpdyClientStream) OnTrailingHeadersComplete(header http.Header) {
+	stream.trailer = header
+	stream.trailerParsed = true
 }
 
 func (stream *SpdyClientStream) OnDataAvailable(data []byte, isClosed bool) {
@@ -83,8 +73,10 @@ func (stream *SpdyClientStream) Header() (http.Header, error) {
 }
 
 func (stream *SpdyClientStream) Trailer() http.Header {
-	for stream.pendingReads.Empty() {
-		stream.conn.waitForEvents()
+	if !stream.closed {
+		for stream.pendingReads.Empty() {
+			stream.conn.waitForEvents()
+		}
 	}
 
 	if stream.trailerParsed {

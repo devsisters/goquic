@@ -7,15 +7,19 @@
 #include "net/base/net_errors.h"
 #include "net/quic/quic_session.h"
 #include "net/quic/quic_write_blocked_list.h"
+#include "net/quic/spdy_utils.h"
 
 #include "go_functions.h"
 #include "go_quic_client_session.h"
+#include "go_utils.h"
 
 namespace net {
 
 GoQuicSpdyClientStream::GoQuicSpdyClientStream(QuicStreamId id,
                                                GoQuicClientSession* session)
-    : QuicSpdyStream(id, session), allow_bidirectional_data_(false) , session_(session){}
+    : QuicSpdyStream(id, session),
+      allow_bidirectional_data_(false),
+      session_(session) {}
 
 GoQuicSpdyClientStream::~GoQuicSpdyClientStream() {
   UnregisterQuicClientStreamFromSession_C(go_quic_client_stream_);
@@ -40,21 +44,73 @@ void GoQuicSpdyClientStream::OnInitialHeadersComplete(bool fin,
   QuicSpdyStream::OnInitialHeadersComplete(fin, frame_len);
 
   DCHECK(headers_decompressed());
-  GoQuicSpdyClientStreamOnInitialHeadersComplete_C(
-      go_quic_client_stream_, decompressed_headers().data(),
-      decompressed_headers().length());
+  header_bytes_read_ += frame_len;
+  if (!SpdyUtils::ParseHeaders(decompressed_headers().data(),
+                               decompressed_headers().length(),
+                               &content_length_, &response_headers_)) {
+    DLOG(ERROR) << "Failed to parse headers: " << decompressed_headers();
+    Reset(QUIC_BAD_APPLICATION_PAYLOAD);
+    return;
+  }
+
+  if (!ParseHeaderStatusCode(&response_headers_, &response_code_)) {
+    DLOG(ERROR) << "Received invalid response code: "
+                << response_headers_[":status"].as_string();
+    Reset(QUIC_BAD_APPLICATION_PAYLOAD);
+    return;
+  }
+
+  auto hdr = CreateGoSpdyHeader(response_headers_);
+  GoQuicSpdyClientStreamOnInitialHeadersComplete_C(go_quic_client_stream_, hdr);
+  DeleteGoSpdyHeader(hdr);
+
   MarkHeadersConsumed(decompressed_headers().length());
 
-  // session_->OnInitialHeadersComplete(id(), response_headers_);  XXX needed for server push
+  session_->OnInitialHeadersComplete(id(), response_headers_);
 }
 
-void GoQuicSpdyClientStream::OnTrailingHeadersComplete(bool fin,
-                                                       size_t frame_len) {
-  QuicSpdyStream::OnTrailingHeadersComplete(fin, frame_len);
+void GoQuicSpdyClientStream::OnInitialHeadersComplete(
+    bool fin,
+    size_t frame_len,
+    const QuicHeaderList& header_list) {
+  QuicSpdyStream::OnInitialHeadersComplete(fin, frame_len, header_list);
 
-  GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(
-      go_quic_client_stream_, decompressed_trailers().data(),
-      decompressed_trailers().length());
+  DCHECK(headers_decompressed());
+  header_bytes_read_ += frame_len;
+  if (!SpdyUtils::CopyAndValidateHeaders(header_list, &content_length_,
+                                         &response_headers_)) {
+    DLOG(ERROR) << "Failed to parse header list: " << header_list.DebugString();
+    Reset(QUIC_BAD_APPLICATION_PAYLOAD);
+    return;
+  }
+
+  if (!ParseHeaderStatusCode(&response_headers_, &response_code_)) {
+    DLOG(ERROR) << "Received invalid response code: "
+                << response_headers_[":status"].as_string();
+    Reset(QUIC_BAD_APPLICATION_PAYLOAD);
+    return;
+  }
+
+  auto hdr = CreateGoSpdyHeader(response_headers_);
+  GoQuicSpdyClientStreamOnInitialHeadersComplete_C(go_quic_client_stream_, hdr);
+  DeleteGoSpdyHeader(hdr);
+
+  ConsumeHeaderList();
+  DVLOG(1) << "headers complete for stream " << id();
+
+  session_->OnInitialHeadersComplete(id(), response_headers_);
+}
+
+void GoQuicSpdyClientStream::OnTrailingHeadersComplete(
+    bool fin,
+    size_t frame_len,
+    const QuicHeaderList& header_list) {
+  QuicSpdyStream::OnTrailingHeadersComplete(fin, frame_len, header_list);
+
+  auto hdr = CreateGoSpdyHeader(received_trailers());
+  GoQuicSpdyClientStreamOnTrailingHeadersComplete_C(go_quic_client_stream_, hdr);
+  DeleteGoSpdyHeader(hdr);
+
   MarkTrailersConsumed(decompressed_trailers().length());
 }
 
@@ -89,13 +145,6 @@ void GoQuicSpdyClientStream::OnDataAvailable() {
 void GoQuicSpdyClientStream::OnClose() {
   QuicSpdyStream::OnClose();
   GoQuicSpdyClientStreamOnClose_C(go_quic_client_stream_);
-}
-
-void GoQuicSpdyClientStream::WriteOrBufferData_(
-    base::StringPiece data,
-    bool fin,
-    net::QuicAckListenerInterface* ack_listener) {
-  WriteOrBufferData(data, fin, ack_listener);
 }
 
 }  // namespace net

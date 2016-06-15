@@ -16,8 +16,8 @@
 #include "net/quic/quic_flags.h"
 #include "net/quic/quic_framer.h"
 #include "net/quic/quic_protocol.h"
+#include "net/quic/quic_server_session_base.h"
 #include "net/quic/quic_utils.h"
-#include "go_quic_server_session_base.h"
 
 using base::StringPiece;
 
@@ -73,7 +73,7 @@ class GoQuicTimeWaitListManager::QueuedPacket {
 
 GoQuicTimeWaitListManager::GoQuicTimeWaitListManager(
     QuicPacketWriter* writer,
-    GoQuicServerSessionVisitor* visitor,
+    QuicServerSessionBase::Visitor* visitor,
     QuicConnectionHelperInterface* helper,
     QuicAlarmFactory* alarm_factory)
     : time_wait_period_(
@@ -90,17 +90,13 @@ GoQuicTimeWaitListManager::GoQuicTimeWaitListManager(
 GoQuicTimeWaitListManager::~GoQuicTimeWaitListManager() {
   connection_id_clean_up_alarm_->Cancel();
   STLDeleteElements(&pending_packets_queue_);
-  for (ConnectionIdMap::iterator it = connection_id_map_.begin();
-       it != connection_id_map_.end(); ++it) {
-    STLDeleteElements(&it->second.termination_packets);
-  }
 }
 
 void GoQuicTimeWaitListManager::AddConnectionIdToTimeWait(
     QuicConnectionId connection_id,
     QuicVersion version,
     bool connection_rejected_statelessly,
-    std::vector<QuicEncryptedPacket*>* termination_packets) {
+    std::vector<std::unique_ptr<QuicEncryptedPacket>>* termination_packets) {
   if (connection_rejected_statelessly) {
     DCHECK(termination_packets != nullptr && !termination_packets->empty())
         << "Connections that were rejected statelessly must "
@@ -111,7 +107,6 @@ void GoQuicTimeWaitListManager::AddConnectionIdToTimeWait(
   const bool new_connection_id = it == connection_id_map_.end();
   if (!new_connection_id) {  // Replace record if it is reinserted.
     num_packets = it->second.num_packets;
-    STLDeleteElements(&it->second.termination_packets);
     connection_id_map_.erase(it);
   }
   TrimTimeWaitListIfNeeded();
@@ -122,7 +117,7 @@ void GoQuicTimeWaitListManager::AddConnectionIdToTimeWait(
   if (termination_packets != nullptr) {
     data.termination_packets.swap(*termination_packets);
   }
-  connection_id_map_.insert(std::make_pair(connection_id, data));
+  connection_id_map_.emplace(std::make_pair(connection_id, std::move(data)));
   if (new_connection_id) {
     visitor_->OnConnectionAddedToTimeWaitList(connection_id);
   }
@@ -176,7 +171,7 @@ void GoQuicTimeWaitListManager::ProcessPacket(
       DVLOG(3) << "Time wait list sending previous stateless reject response "
                << "for connection " << connection_id;
     }
-    for (QuicEncryptedPacket* packet : connection_data->termination_packets) {
+    for (const auto& packet : connection_data->termination_packets) {
       QueuedPacket* queued_packet =
           new QueuedPacket(server_address, client_address, packet->Clone());
       // Takes ownership of the packet.
@@ -299,10 +294,7 @@ bool GoQuicTimeWaitListManager::MaybeExpireOldestConnection(
     return false;
   }
   // This connection_id has lived its age, retire it now.
-  const QuicConnectionId connection_id = it->first;
-  STLDeleteElements(&it->second.termination_packets);
   connection_id_map_.erase(it);
-  visitor_->OnConnectionRemovedFromTimeWaitList(connection_id);
   return true;
 }
 
@@ -337,7 +329,7 @@ GoQuicTimeWaitListManager::ConnectionIdData::ConnectionIdData(
       connection_rejected_statelessly(connection_rejected_statelessly) {}
 
 GoQuicTimeWaitListManager::ConnectionIdData::ConnectionIdData(
-    const ConnectionIdData& other) = default;
+    ConnectionIdData&& other) = default;
 
 GoQuicTimeWaitListManager::ConnectionIdData::~ConnectionIdData() {}
 

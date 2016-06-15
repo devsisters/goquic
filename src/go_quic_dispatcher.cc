@@ -5,6 +5,7 @@
 #include "base/debug/stack_trace.h"
 #include "base/logging.h"
 #include "base/stl_util.h"
+#include "net/quic/crypto/quic_random.h"
 #include "net/quic/quic_bug_tracker.h"
 #include "net/quic/quic_flags.h"
 #include "net/quic/quic_utils.h"
@@ -43,15 +44,17 @@ GoQuicDispatcher::GoQuicDispatcher(
     const QuicConfig& config,
     const QuicCryptoServerConfig* crypto_config,
     const QuicVersionVector& supported_versions,
-    QuicConnectionHelperInterface* helper,
-    QuicAlarmFactory* alarm_factory,
+    std::unique_ptr<QuicConnectionHelperInterface> helper,
+    std::unique_ptr<QuicServerSessionBase::Helper> session_helper,
+    std::unique_ptr<QuicAlarmFactory> alarm_factory,
     GoPtr go_quic_dispatcher)
     : config_(config),
       crypto_config_(crypto_config),
       compressed_certs_cache_(
           QuicCompressedCertsCache::kQuicCompressedCertsCacheSize),
-      helper_(std::unique_ptr<QuicConnectionHelperInterface>(helper)),
-      alarm_factory_(std::unique_ptr<QuicAlarmFactory>(alarm_factory)),
+      helper_(std::move(helper)),
+      session_helper_(std::move(session_helper)),
+      alarm_factory_(std::move(alarm_factory)),
       delete_sessions_alarm_(
           alarm_factory_->CreateAlarm(new DeleteSessionsAlarm(
           this))),  // alarm's delegate is deleted by std::unique_ptr of QuicAlarm
@@ -120,6 +123,10 @@ bool GoQuicDispatcher::OnUnauthenticatedPublicHeader(
     return false;
   }
 
+  if (!OnUnauthenticatedUnknownPublicHeader(header)) {
+    return false;
+  }
+
   // If the packet is a public reset for a connection ID that is not active,
   // there is nothing we must do or can do.
   if (header.reset_flag) {
@@ -139,28 +146,18 @@ bool GoQuicDispatcher::OnUnauthenticatedPublicHeader(
   QuicVersion version = supported_versions_.front();
   if (header.version_flag) {
     QuicVersion packet_version = header.versions.front();
-    if (framer_.IsSupportedVersion(packet_version)) {
-      version = packet_version;
-    } else {
-      if (FLAGS_quic_stateless_version_negotiation) {
-        if (ShouldCreateSessionForUnknownVersion(framer_.last_version_tag())) {
-          return true;
-        }
-        // Since the version is not supported, send a version negotiation
-        // packet and stop processing the current packet.
-        time_wait_list_manager()->SendVersionNegotiationPacket(
-            connection_id, supported_versions_, current_server_address_,
-            current_client_address_);
-        return false;
-      } else {
-        // Packets set to be processed but having an unsupported version will
-        // cause a connection to be created.  The connection will handle
-        // sending a version negotiation packet.
-        // TODO(ianswett): This will malfunction if the full header of the
-        // packet causes a parsing error when parsed using the server's
-        // preferred version.
+    if (!framer_.IsSupportedVersion(packet_version)) {
+      if (ShouldCreateSessionForUnknownVersion(framer_.last_version_tag())) {
+        return true;
       }
+      // Since the version is not supported, send a version negotiation
+      // packet and stop processing the current packet.
+      time_wait_list_manager()->SendVersionNegotiationPacket(
+          connection_id, supported_versions_, current_server_address_,
+          current_client_address_);
+      return false;
     }
+    version = packet_version;
   }
   // Set the framer's version and continue processing.
   framer_.set_version(version);
@@ -186,7 +183,7 @@ bool GoQuicDispatcher::OnUnauthenticatedHeader(const QuicPacketHeader& header) {
   switch (fate) {
     case kFateProcess: {
       // Create a session and process the packet.
-      GoQuicServerSessionBase* session =
+      QuicServerSessionBase* session =
           CreateQuicSession(connection_id, current_client_address_);
       DVLOG(1) << "Created new session for " << connection_id;
       session_map_.insert(std::make_pair(connection_id, session));
@@ -287,7 +284,7 @@ bool GoQuicDispatcher::HasPendingWrites() const {
 
 void GoQuicDispatcher::Shutdown() {
   while (!session_map_.empty()) {
-    GoQuicServerSessionBase* session = session_map_.begin()->second;
+    QuicServerSessionBase* session = session_map_.begin()->second;
     session->connection()->CloseConnection(
         QUIC_PEER_GOING_AWAY, "Server shutdown imminent",
         ConnectionCloseBehavior::SEND_CONNECTION_CLOSE_PACKET);
@@ -341,11 +338,6 @@ void GoQuicDispatcher::OnConnectionAddedToTimeWaitList(
   DVLOG(1) << "Connection " << connection_id << " added to time wait list.";
 }
 
-void GoQuicDispatcher::OnConnectionRemovedFromTimeWaitList(
-    QuicConnectionId connection_id) {
-  DVLOG(1) << "Connection " << connection_id << " removed from time wait list.";
-}
-
 void GoQuicDispatcher::OnPacket() {}
 
 void GoQuicDispatcher::OnError(QuicFramer* framer) {
@@ -360,14 +352,11 @@ bool GoQuicDispatcher::ShouldCreateSessionForUnknownVersion(QuicTag version_tag)
 
 bool GoQuicDispatcher::OnProtocolVersionMismatch(
     QuicVersion /*received_version*/) {
-  if (FLAGS_quic_stateless_version_negotiation) {
-    QUIC_BUG_IF(
-        !time_wait_list_manager_->IsConnectionIdInTimeWait(
-            current_connection_id_) &&
-        !ShouldCreateSessionForUnknownVersion(framer_.last_version_tag()))
-        << "Unexpected version mismatch: "
-        << QuicUtils::TagToString(framer_.last_version_tag());
-  }
+  QUIC_BUG_IF(!time_wait_list_manager_->IsConnectionIdInTimeWait(
+                  current_connection_id_) &&
+              !ShouldCreateSessionForUnknownVersion(framer_.last_version_tag()))
+      << "Unexpected version mismatch: "
+      << QuicUtils::TagToString(framer_.last_version_tag());
 
   // Keep processing after protocol mismatch - this will be dealt with by the
   // time wait list or connection that we will create.
@@ -454,18 +443,18 @@ void GoQuicDispatcher::OnPacketComplete() {
   DCHECK(false);
 }
 
-GoQuicServerSessionBase* GoQuicDispatcher::CreateQuicSession(
+QuicServerSessionBase* GoQuicDispatcher::CreateQuicSession(
     QuicConnectionId connection_id,
     const IPEndPoint& client_address) {
-  // The QuicServerSession takes ownership of |connection| below.
+  // The QuicServerSessionBase takes ownership of |connection| below.
   QuicConnection* connection = new QuicConnection(
       connection_id, client_address, helper_.get(), alarm_factory_.get(),
       CreatePerConnectionWriter(),
       /* owns_writer= */ true, Perspective::IS_SERVER, supported_versions_);
 
-  // Deleted by DeleteSession()
-  GoQuicServerSessionBase* session = new GoQuicSimpleServerSession(
-      config_, connection, this, crypto_config_, &compressed_certs_cache_);
+  GoQuicSimpleServerSession* session = new GoQuicSimpleServerSession(
+      config_, connection, this, session_helper_.get(), crypto_config_,
+      &compressed_certs_cache_);
 
   session->SetGoSession(go_quic_dispatcher_,
                         GoPtr(CreateGoSession_C(go_quic_dispatcher_, session)));
@@ -508,6 +497,11 @@ QuicPacketWriter* GoQuicDispatcher::CreatePerConnectionWriter() {
 
 void GoQuicDispatcher::SetLastError(QuicErrorCode error) {
   last_error_ = error;
+}
+
+bool GoQuicDispatcher::OnUnauthenticatedUnknownPublicHeader(
+    const QuicPacketPublicHeader& header) {
+  return true;
 }
 
 }  // namespace net
