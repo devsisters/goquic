@@ -16,4 +16,11 @@ QuicConnectionId GoQuicSimpleServerSessionHelper::GenerateConnectionIdForReject(
   return random_->RandUint64();
 }
 
+bool GoQuicSimpleServerSessionHelper::CanAcceptClientHello(
+    const CryptoHandshakeMessage& message,
+    const IPEndPoint& self_address,
+    std::string* error_details) const {
+  return true;
+}
+
 }  // namespace net
