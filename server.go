@@ -89,6 +89,8 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 		if !ok {
 			return errors.New("ListenPacket did not return net.UDPConn")
 		}
+		udp_conn.SetReadBuffer(1024 * 1024)  // 1MB
+		udp_conn.SetWriteBuffer(1024 * 1024) // 1MB
 		connArray[i] = udp_conn
 
 		listen_addr, err := net.ResolveUDPAddr("udp", udp_conn.LocalAddr().String())
@@ -104,7 +106,7 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 
 	// N producers
 	readFunc := func(conn *net.UDPConn) {
-		buf := make([]byte, 65535)
+		buf := make([]byte, 3000) // MTU (kDefaultPacketSize) * 2 = 3000
 
 		for {
 			n, peer_addr, err := conn.ReadFromUDP(buf)

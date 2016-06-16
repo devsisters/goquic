@@ -19,7 +19,6 @@ type QuicServerSession struct {
 	quicServerSession unsafe.Pointer
 	quicServerStreams map[*QuicServerStream]bool
 	streamCreator     IncomingDataStreamCreator // == session
-	remoteAddr        *net.UDPAddr
 }
 
 type QuicEncryptedPacket struct {
@@ -69,7 +68,6 @@ func CreateGoSession(dispatcher_key int64, session_c unsafe.Pointer) int64 {
 		quicServerSession: session_c,
 		quicServerStreams: make(map[*QuicServerStream]bool),
 		streamCreator:     userSession,
-		// TODO(serialx): Set remoteAddr here
 	}
 
 	// This is to prevent garbage collection. This is cleaned up on DeleteGoSession()
