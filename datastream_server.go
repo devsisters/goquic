@@ -112,6 +112,12 @@ func (stream *SimpleServerStream) ProcessRequest() {
 			http.DefaultServeMux.ServeHTTP(w, req)
 		}
 
+		err := w.w.Flush()
+		if err != nil {
+			fmt.Println("?????", err)
+			return // XXX
+		}
+
 		stream.sessionFnChan <- func() {
 			if stream.closed {
 				return
