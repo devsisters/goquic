@@ -133,7 +133,7 @@ func (stream *SimpleServerStream) ProcessRequest() {
 			if len(trailers) > 0 {
 				stream.quicServerStream.WriteTrailers(trailers)
 			} else {
-				stream.quicServerStream.WriteOrBufferData(make([]byte, 0), true)
+				stream.quicServerStream.WriteOrBufferData(nil, true)
 			}
 		}
 	}()
@@ -199,12 +199,7 @@ func (w *spdyResponseWriter) CloseNotify() <-chan bool {
 }
 
 func (w *spdyResponseWriter) Flush() {
-	// TODO(serialx): Support flush
-	// Maybe it's not neccessary because QUIC sends packets in a paced interval.
-	// I cannot find any flush related functions in current QUIC code,
-	// and samples needing Flush seems to work fine.
-	// This functionality maybe needed in the future when we plan to buffer user
-	// writes in the Go side.
+	w.w.Flush()
 }
 
 type spdyResponseBufferedWriter struct {

@@ -7,6 +7,7 @@
 #include "go_quic_alarm_go_wrapper.h"
 #include "go_quic_alarm_factory.h"
 #include "go_quic_simple_server_session_helper.h"
+#include "go_utils.h"
 #include "proof_source_goquic.h"
 #include "go_ephemeral_key_source.h"
 
@@ -251,9 +252,15 @@ void insert_header_block(SpdyHeaderBlock* block,
 }
 
 void quic_simple_server_stream_write_headers(GoQuicSimpleServerStream* wrapper,
-                                             SpdyHeaderBlock* block,
+                                             int header_size,
+                                             char* header_keys,
+                                             int* header_key_len,
+                                             char* header_values,
+                                             int* header_value_len,
                                              int is_empty_body) {
-  wrapper->WriteHeaders(*block, is_empty_body, nullptr);
+  SpdyHeaderBlock block;
+  CreateSpdyHeaderBlock(block, header_size, header_keys, header_key_len, header_values, header_value_len);
+  wrapper->WriteHeaders(block, is_empty_body, nullptr);
 }
 
 void quic_simple_server_stream_write_or_buffer_data(
@@ -264,8 +271,15 @@ void quic_simple_server_stream_write_or_buffer_data(
   wrapper->WriteOrBufferBody(std::string(buf, bufsize), (fin != 0), nullptr);
 }
 
-void quic_simple_server_stream_write_trailers(GoQuicSimpleServerStream* wrapper, SpdyHeaderBlock* block) {
-  wrapper->WriteTrailers(*block, nullptr);
+void quic_simple_server_stream_write_trailers(GoQuicSimpleServerStream* wrapper,
+                                              int header_size,
+                                              char* header_keys,
+                                              int* header_key_len,
+                                              char* header_values,
+                                              int* header_value_len) {
+  SpdyHeaderBlock block;
+  CreateSpdyHeaderBlock(block, header_size, header_keys, header_key_len, header_values, header_value_len);
+  wrapper->WriteTrailers(block, nullptr);
 }
 
 void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm) {

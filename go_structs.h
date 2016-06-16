@@ -76,12 +76,13 @@ struct GoQuicServerConfig {
 };
 
 struct GoSpdyHeader {
-  const char** Keys;
-  int* Keys_len;
+  int N;  // Size of header
+  int* Keys_len;   // Length of each keys in header
+  int* Values_len; // Length of each values in header
 
+  // Used on C side to pass headers to Go.
+  const char** Keys;
   const char** Values;
-  int* Values_len;
-  int N;
 };
 
 typedef int64_t GoPtr;

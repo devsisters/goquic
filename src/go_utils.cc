@@ -33,5 +33,16 @@ void DeleteGoSpdyHeader(GoSpdyHeader* go_header) {
   delete(go_header);
 }
 
+void CreateSpdyHeaderBlock(SpdyHeaderBlock& block, int N, char* key_ptr, int* key_len, char* value_ptr, int* value_len) {
+  for (int i = 0; i < N; i++) {
+    // Though StringPiece has constructors for (const char *, size_t)
+    // std::string is needed here, to deep-copy every buffers.
+    block[base::StringPiece(std::string(key_ptr, key_len[i]))] =
+      base::StringPiece(std::string(value_ptr, value_len[i]));
+    key_ptr += key_len[i];
+    value_ptr += value_len[i];
+  }
+}
+
 }
 

@@ -4,7 +4,10 @@ package goquic
 // #include "src/adaptor.h"
 import "C"
 import (
+	"bytes"
+	"fmt"
 	"net/http"
+	"strings"
 	"unsafe"
 )
 
@@ -64,6 +67,32 @@ func createHeader(headers_c *C.struct_GoSpdyHeader) http.Header {
 	}
 
 	return h
+}
+
+func digSpdyHeader(header http.Header) ([]byte, []C.int, []byte, []C.int) {
+	var keys, values bytes.Buffer
+	var keylen, valuelen []C.int
+
+	keylen = make([]C.int, 0, len(header))
+	valuelen = make([]C.int, 0, len(header))
+
+	for key, mvalue := range header {
+		value := strings.Join(mvalue, ", ")
+
+		// Due to spdy_utils.cc, all trailer headers key should be lower-case (why?)
+		nk, errk := keys.WriteString(strings.ToLower(key))
+		nv, errv := values.WriteString(value)
+
+		keylen = append(keylen, C.int(nk))
+		valuelen = append(valuelen, C.int(nv))
+
+		if errk != nil || errv != nil {
+			fmt.Println("buffer write failed", errk, errv)
+			break
+		}
+	}
+
+	return keys.Bytes(), keylen, values.Bytes(), valuelen
 }
 
 //export CreateIncomingDynamicStream

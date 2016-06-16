@@ -9,6 +9,7 @@ class SpdyHeaderBlock;
 
 GoSpdyHeader* CreateGoSpdyHeader(const SpdyHeaderBlock& header_block);
 void DeleteGoSpdyHeader(GoSpdyHeader* go_header);
+void CreateSpdyHeaderBlock(SpdyHeaderBlock& block, int N, char* key_ptr, int* key_len, char* value_ptr, int* value_len);
 
 }
 

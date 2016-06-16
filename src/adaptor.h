@@ -72,10 +72,19 @@ void insert_header_block(SpdyHeaderBlock* map,
                          size_t value_len);
 
 void quic_simple_server_stream_write_headers(GoQuicSimpleServerStream* wrapper,
-                                             SpdyHeaderBlock* header,
+                                             int header_size,
+                                             char* header_keys,
+                                             int* header_key_len,
+                                             char* header_values,
+                                             int* header_value_len,
                                              int is_empty_body);
 void quic_simple_server_stream_write_or_buffer_data(GoQuicSimpleServerStream* wrapper, char* buf, size_t bufsize, int fin);
-void quic_simple_server_stream_write_trailers(GoQuicSimpleServerStream* wrapper, SpdyHeaderBlock* block);
+void quic_simple_server_stream_write_trailers(GoQuicSimpleServerStream* wrapper,
+                                              int header_size,
+                                              char* header_keys,
+                                              int* header_key_len,
+                                              char* header_values,
+                                              int* header_value_len);
 
 void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm);
 int64_t clock_now(QuicClock* clock);
