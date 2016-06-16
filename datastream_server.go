@@ -1,6 +1,7 @@
 package goquic
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -95,11 +96,16 @@ func (stream *SimpleServerStream) ProcessRequest() {
 
 	go func() {
 		w := &spdyResponseWriter{
-			serverStream:  stream.quicServerStream,
-			spdyStream:    stream,
-			header:        make(http.Header),
-			sessionFnChan: stream.sessionFnChan,
+			serverStream: stream.quicServerStream,
+			spdyStream:   stream,
+			header:       make(http.Header),
 		}
+		sw := &spdyResponseBufferedWriter{
+			serverStream: stream.quicServerStream,
+			spdyStream:   stream,
+		}
+		w.w = bufio.NewWriter(sw)
+
 		if stream.server.Handler != nil {
 			stream.server.Handler.ServeHTTP(w, req)
 		} else {
@@ -134,14 +140,13 @@ func (stream *SimpleServerStream) closeNotify() <-chan bool {
 	return stream.closeNotifyChan
 }
 
-// TODO(hodduc): Somehow support trailing headers
 type spdyResponseWriter struct {
-	serverStream  *QuicServerStream
-	spdyStream    *SimpleServerStream
-	header        http.Header
-	headerSent    http.Header
-	wroteHeader   bool
-	sessionFnChan chan func()
+	serverStream *QuicServerStream
+	spdyStream   *SimpleServerStream
+	header       http.Header
+	headerSent   http.Header
+	wroteHeader  bool
+	w            *bufio.Writer
 }
 
 func (w *spdyResponseWriter) Header() http.Header {
@@ -153,15 +158,7 @@ func (w *spdyResponseWriter) Write(buffer []byte) (int, error) {
 		w.WriteHeader(http.StatusOK)
 	}
 
-	copiedBuffer := make([]byte, len(buffer))
-	copy(copiedBuffer, buffer)
-	w.sessionFnChan <- func() {
-		if w.spdyStream.closed {
-			return
-		}
-		w.serverStream.WriteOrBufferData(copiedBuffer, false)
-	}
-	return len(buffer), nil
+	return w.w.Write(buffer)
 }
 
 func cloneHeader(h http.Header) http.Header {
@@ -179,7 +176,7 @@ func (w *spdyResponseWriter) WriteHeader(statusCode int) {
 		return
 	}
 	copiedHeader := cloneHeader(w.header)
-	w.sessionFnChan <- func() {
+	w.spdyStream.sessionFnChan <- func() {
 		copiedHeader.Set(":status", strconv.Itoa(statusCode))
 		copiedHeader.Set(":version", "HTTP/1.1")
 		if w.spdyStream.closed {
@@ -202,4 +199,19 @@ func (w *spdyResponseWriter) Flush() {
 	// and samples needing Flush seems to work fine.
 	// This functionality maybe needed in the future when we plan to buffer user
 	// writes in the Go side.
+}
+
+type spdyResponseBufferedWriter struct {
+	serverStream *QuicServerStream
+	spdyStream   *SimpleServerStream
+}
+
+func (sw *spdyResponseBufferedWriter) Write(buffer []byte) (int, error) {
+	sw.spdyStream.sessionFnChan <- func() {
+		if sw.spdyStream.closed {
+			return
+		}
+		sw.serverStream.WriteOrBufferData(buffer, false)
+	}
+	return len(buffer), nil
 }
