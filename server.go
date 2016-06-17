@@ -27,6 +27,7 @@ type QuicSpdyServer struct {
 	numOfServers  int
 	isSecure      bool
 	statisticsReq [](chan statCallback)
+	bufpool       *BytesBufferPool
 }
 
 func (srv *QuicSpdyServer) Statistics() (*ServerStatistics, error) {
@@ -64,6 +65,7 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 	writerArray := make([](*ServerWriter), srv.numOfServers)
 	connArray := make([](*net.UDPConn), srv.numOfServers)
 	srv.statisticsReq = make([](chan statCallback), srv.numOfServers)
+	srv.bufpool = NewBytesBufferPool(1000, 3000) // 3000 = MTU (kMaxPacketSize) * 2
 
 	if srv.ServerConfig == nil {
 		srv.ServerConfig = GenerateSerializedServerConfig()
@@ -106,9 +108,9 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 
 	// N producers
 	readFunc := func(conn *net.UDPConn) {
-		buf := make([]byte, 3000) // MTU (kDefaultPacketSize) * 2 = 3000
-
 		for {
+			buf := srv.bufpool.Get()
+
 			n, peer_addr, err := conn.ReadFromUDP(buf)
 			if err != nil {
 				// TODO(serialx): Don't panic and keep calm...
@@ -138,10 +140,7 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 				continue
 			}
 
-			buf_new := make([]byte, n)
-			copy(buf_new, buf[:n])
-
-			readChanArray[connId%uint64(srv.numOfServers)] <- UdpData{Addr: peer_addr, Buf: buf_new}
+			readChanArray[connId%uint64(srv.numOfServers)] <- UdpData{Addr: peer_addr, Buf: buf, N: n}
 			// TODO(hodduc): Minimize heap uses of buf. Consider using sync.Pool standard library to implement buffer pool.
 		}
 	}
@@ -184,7 +183,9 @@ func (srv *QuicSpdyServer) Serve(listen_addr *net.UDPAddr, writer *ServerWriter,
 			if !ok {
 				break
 			}
-			dispatcher.ProcessPacket(listen_addr, result.Addr, result.Buf)
+			dispatcher.ProcessPacket(listen_addr, result.Addr, result.Buf[:result.N])
+			srv.bufpool.Put(result.Buf)
+
 		case <-dispatcher.TaskRunner.WaitTimer():
 			dispatcher.TaskRunner.DoTasks()
 		case fn, ok := <-sessionFnChan:

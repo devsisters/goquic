@@ -11,6 +11,7 @@ import (
 type UdpData struct {
 	Addr *net.UDPAddr
 	Buf  []byte
+	N    int
 }
 
 type ServerWriter struct {
@@ -38,9 +39,9 @@ func writeToUDP(go_writer_key int64, peer_ip unsafe.Pointer, peer_ip_sz C.size_t
 			Port: int(peer_port),
 		}
 
-		serverWriterPtr.Get(go_writer_key).Ch <- UdpData{Buf: buf, Addr: peer_addr}
+		serverWriterPtr.Get(go_writer_key).Ch <- UdpData{Buf: buf, Addr: peer_addr, N: int(length_c)}
 	} else {
-		clientWriterPtr.Get(go_writer_key).Ch <- UdpData{Buf: buf}
+		clientWriterPtr.Get(go_writer_key).Ch <- UdpData{Buf: buf, N: int(length_c)}
 	}
 }
 
