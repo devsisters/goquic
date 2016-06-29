@@ -118,24 +118,24 @@ concurrency increases.</p>
 <tbody>
 <tr>
 <td>30B Payload</td>
-<td>23832.18 RPS</td>
+<td>12131.25 RPS</td>
 </tr>
 <tr>
 <td>1kB Payload</td>
-<td>21704.84 RPS</td>
+<td>11835.13 RPS</td>
 </tr>
 <tr>
 <td>5kB Payload</td>
-<td>9343.58 RPS</td>
+<td>7816.21  RPS</td>
 </tr>
 <tr>
 <td>10kB Payload</td>
-<td>5312.75 RPS</td>
+<td>5599.73 RPS</td>
 </tr>
 </tbody>
 </table>
 
-<p>On the 10kB case, calculating the total network throughput is <code>435Mbps</code>.</p>
+<p>On the 10kB case, calculating the total network throughput is <code>458Mbps</code>.</p>
 
 <p>How many connections per second can this server process?</p>
 
@@ -149,15 +149,23 @@ per request. The benchmark results are <code>2905.58 CPS</code>.</p>
 
 <p>I used to create a QUIC reverse proxy of an existing site just for fun. So to enable people to experiment with QUIC, we've released a docker image that acts as a reverse proxy for the site of your choice. It enables QUIC along with HTTP/2, so you will enjoy the full bleeding edge of web browsing.</p>
 
-<pre><code>$ docker run -p 8080:8080 -p 8080:8080/udp devsisters/quic-reverse-proxy --port=8080 http://{BACKEND_HOST:PORT}
-</code></pre>
-
-<pre><code>$ docker run -p 8080:8080 -p 8080:8080/udp devsisters/quic-reverse-proxy --port=8080 http://devsisters.github.io/goquic/
+<pre><code>$ docker run \
+   -d --net="host"
+   -v /PATH/TO/CERT:/opt/configs/cert
+   -v /PATH/TO/CERT_PRIVATE_KEY:/opt/configs/key
+   --ulimit nofile=32768 devsisters/quic-reverse-proxy:releasemode
+      -cert=/opt/configs/cert
+      -key=/opt/configs/key
+      -addr=bind_ip
+      -port=443
+      -n=4
+      -loglevel=2
+      -- http://{BACKEND_HOST:PORT}
 </code></pre>
 
 <p>After that, you may try to connect the container with your Chrome browser. We recommend that you install <a href="https://chrome.google.com/webstore/detail/http2-and-spdy-indicator/mpbpobfflnpcgagjijhmgnchggcjblin">Chrome HTTP/2 and SPDY indicator</a>. Then you can see red lightning marks <img src="images/icon-quic.png"> on the right side of the address bar when QUIC is enabled.</p>
 
-<p>Since <a href="https://groups.google.com/a/chromium.org/forum/#!topic/proto-quic/hkAYHWz7mTk">Google QUIC team turned down insecure QUIC</a>, most recent Chrome Canary (>= 46.0) may not be able to connect to our quic proxy container. We have a plan to release a https supporting reverse-proxy image soon.</p>
+<p>If you are using Google Chrome Stable Release (<= 51.0) as client, you should enable quic-host-whitelist command line flag to whitelist your domain. (See <a href="https://groups.google.com/a/chromium.org/forum/#!topic/proto-quic/1K79SVSLEiU"> here</a>). Most recent version of Google Chrome Canary doesn't require whitelisting, since It uses QUIC 32 (or higher) as default.</p>
 
 <p>Have fun! :)</p>
 
