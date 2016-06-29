@@ -208,11 +208,14 @@ type spdyResponseBufferedWriter struct {
 }
 
 func (sw *spdyResponseBufferedWriter) Write(buffer []byte) (int, error) {
+	copiedBuf := make([]byte, len(buffer))
+	copy(copiedBuf, buffer)
+
 	sw.spdyStream.sessionFnChan <- func() {
 		if sw.spdyStream.closed {
 			return
 		}
-		sw.serverStream.WriteOrBufferData(buffer, false)
+		sw.serverStream.WriteOrBufferData(copiedBuf, false)
 	}
 	return len(buffer), nil
 }

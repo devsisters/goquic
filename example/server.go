@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/devsisters/goquic"
 )
@@ -28,15 +29,24 @@ func httpHandler(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Trailer", "AtEnd1, AtEnd2")
 	w.Header().Add("Trailer", "AtEnd3")
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8") // normal header
+	w.Header().Set("Content-Type", "text/html; charset=utf-8") // normal header
 	w.WriteHeader(http.StatusOK)
 
 	w.Header().Set("AtEnd1", "value 1")
-	io.WriteString(w, "This HTTP response has both headers before this text and trailers at the end.\n")
+	io.WriteString(w, "This HTTP response has both headers before this text and trailers at the end.<br/>")
+	io.WriteString(w, "<a href='/numbers'>Numbers test (0~9999)</a><br/>")
+	io.WriteString(w, "<a href='/files'>Files</a><br/>")
 	io.WriteString(w, req.RemoteAddr)
 	io.WriteString(w, "\n")
 	w.Header().Set("AtEnd2", "value 2")
 	w.Header().Set("AtEnd3", "value 3") // These will appear as trailers.
+}
+
+func numbersHandler(w http.ResponseWriter, req *http.Request) {
+	for i := 0; i < 10000; i++ {
+		io.WriteString(w, strconv.Itoa(i))
+		io.WriteString(w, "\n")
+	}
 }
 
 func statisticsHandler(server *goquic.QuicSpdyServer) http.HandlerFunc {
@@ -84,6 +94,7 @@ func main() {
 	addrStr := fmt.Sprintf("%s:%d", addr, port)
 
 	http.HandleFunc("/", httpHandler)
+	http.HandleFunc("/numbers", numbersHandler)
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir(serveRoot))))
 
 	var tlsConfig *tls.Config
