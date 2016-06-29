@@ -150,18 +150,70 @@ per request. The benchmark results are <code>2905.58 CPS</code>.</p>
 <p>I used to create a QUIC reverse proxy of an existing site just for fun. So to enable people to experiment with QUIC, we've released a docker image that acts as a reverse proxy for the site of your choice. It enables QUIC along with HTTP/2, so you will enjoy the full bleeding edge of web browsing.</p>
 
 <pre><code>$ docker run \
-   -d --net="host"
-   -v /PATH/TO/CERT:/opt/configs/cert
-   -v /PATH/TO/CERT_PRIVATE_KEY:/opt/configs/key
-   --ulimit nofile=32768 devsisters/quic-reverse-proxy:releasemode
-      -cert=/opt/configs/cert
-      -key=/opt/configs/key
-      -addr=bind_ip
-      -port=443
-      -n=4
-      -loglevel=2
+   -d --net="host" \
+   -v /PATH/TO/CERT:/opt/configs/cert \
+   -v /PATH/TO/CERT_PRIVATE_KEY:/opt/configs/key \
+   --ulimit nofile=32768 devsisters/quic-reverse-proxy:releasemode \
+      -cert=/opt/configs/cert \
+      -key=/opt/configs/key \
+      -addr=BIND_IP \
+      -port=443 \
+      -n=4 \
+      -loglevel=2 \
       -- http://{BACKEND_HOST:PORT}
 </code></pre>
+
+<p>You may use following parameters.
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-addr</td>
+<td>IPv4 or IPv6 address to listen. Default: 0.0.0.0</td>
+</tr>
+<tr>
+<td>-port</td>
+<td>port number to listen. Default: 8080</td>
+</tr>
+<tr>
+<td>-n</td>
+<td>Number of concurrent quic dispatchers. Set this higher than #(num of cores) to get best performance. Default: 1</td>
+</tr>
+<tr>
+<td>-quic_only</td>
+<td>Use QUIC only (not listen HTTP/2 as fallback). Default: false</td>
+</tr>
+<tr>
+<td>-use_sslv3</td>
+<td>Use SSLv3 instead of TLS on HTTP/1.1. HTTP/2 and quic are not affected. Default: false</td>
+</tr>
+<tr>
+<td>-cert</td>
+<td>Path to SSL certificate. Should be encoded in X.509 PEM. REQUIRED</td>
+</tr>
+<tr>
+<td>-key</td>
+<td>Path to SSL private key. Should be encoded in X.509 PEM. REQUIRED</td>
+</tr>
+<tr>
+<td>-scfg</td>
+<td>Path to Server config object. Should be encoded in JSON. <br/>
+If you have several proxies behind one domain to balance loads, you should generate server config and provide that config file to every proxies. <br/>
+To ensure 0-rtt connection regardless of actual proxy, every proxies should share same sever-config object. <br/>
+If you do not need this, just ignore. New one will be generated if not provided.
+</td>
+</tr>
+
+</tbody>
+</table>
+
+</p>
+
 
 <p>After that, you may try to connect the container with your Chrome browser. We recommend that you install <a href="https://chrome.google.com/webstore/detail/http2-and-spdy-indicator/mpbpobfflnpcgagjijhmgnchggcjblin">Chrome HTTP/2 and SPDY indicator</a>. Then you can see red lightning marks <img src="images/icon-quic.png"> on the right side of the address bar when QUIC is enabled.</p>
 
