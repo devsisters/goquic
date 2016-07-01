@@ -91,7 +91,8 @@ should not trust any unverifiable third-party binaries.
 To build the library files for your architecture and OS:
 
 ```bash
-./build_libs.sh
+./build_libs.sh (for debug build)
+GOQUIC_BUILD=Release ./build_libs.sh (for release build)
 ```
 
 This will fetch `libquic` master and build all the binaries from source. The
