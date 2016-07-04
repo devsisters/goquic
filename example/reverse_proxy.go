@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	_ "net/http/pprof"
 	"net/url"
 	"os"
 
@@ -110,6 +111,10 @@ func main() {
 			log.Printf("Cannot open %s, new serverConfig will be generated", serverConfig)
 		}
 	}
+
+	go func() {
+		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
+	}()
 
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
