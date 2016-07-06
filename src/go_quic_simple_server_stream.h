@@ -37,7 +37,7 @@ class GoQuicSimpleServerStream : public QuicSpdyStream {
   static const char* const kErrorResponseBody;
   static const char* const kNotFoundResponseBody;
 
-  size_t WriteHeaders(const SpdyHeaderBlock& header_block,
+  size_t WriteHeaders(SpdyHeaderBlock header_block,
                       bool fin,
                       QuicAckListenerInterface* ack_notifier_delegate) override;
 

@@ -260,7 +260,7 @@ void quic_simple_server_stream_write_headers(GoQuicSimpleServerStream* wrapper,
                                              int is_empty_body) {
   SpdyHeaderBlock block;
   CreateSpdyHeaderBlock(block, header_size, header_keys, header_key_len, header_values, header_value_len);
-  wrapper->WriteHeaders(block, is_empty_body, nullptr);
+  wrapper->WriteHeaders(std::move(block), is_empty_body, nullptr);
 }
 
 void quic_simple_server_stream_write_or_buffer_data(

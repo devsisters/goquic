@@ -2,6 +2,8 @@
 #include "go_functions.h"
 #include "go_utils.h"
 
+#include <utility>
+
 #include "net/quic/quic_session.h"
 #include "net/quic/quic_spdy_session.h"
 #include "net/quic/spdy_utils.h"
@@ -131,19 +133,19 @@ void GoQuicSimpleServerStream::SendErrorResponse() {
   headers[":status"] = "500";
   headers["content-length"] = base::UintToString(strlen(kErrorResponseBody));
 
-  WriteHeaders(headers, false, nullptr);
+  WriteHeaders(std::move(headers), false, nullptr);
   WriteOrBufferBody(kErrorResponseBody, true, nullptr);
 }
 
 size_t GoQuicSimpleServerStream::WriteHeaders(
-    const SpdyHeaderBlock& header_block,
+    SpdyHeaderBlock header_block,
     bool fin,
     QuicAckListenerInterface* ack_notifier_delegate) {
 
   if (!reading_stopped()) {
     StopReading();
   }
-  return QuicSpdyStream::WriteHeaders(header_block, fin, ack_notifier_delegate);
+  return QuicSpdyStream::WriteHeaders(std::move(header_block), fin, ack_notifier_delegate);
 }
 
 void GoQuicSimpleServerStream::OnClose() {
