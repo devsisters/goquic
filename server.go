@@ -209,7 +209,7 @@ func AltProtoMiddleware(next http.Handler, port int) http.Handler {
 		// Alternate-Protocol is deprecated.
 		// See https://groups.google.com/a/chromium.org/forum/#!topic/chromium-reviews/aOv41LpPDQY
 		w.Header().Add("Alternate-Protocol", fmt.Sprintf("%d:quic", port))
-		w.Header().Add("Alt-Svc", fmt.Sprintf("quic=\":%d\"; ma=86400; v=\"34,33,32,31,30,29,28,27,26,25\"", port))
+		w.Header().Add("Alt-Svc", fmt.Sprintf("quic=\":%d\"; ma=86400; v=\"34,33,32,31,30\"", port))
 		next.ServeHTTP(w, r)
 	})
 }
