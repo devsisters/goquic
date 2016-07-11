@@ -6,6 +6,7 @@
 #include "go_quic_alarm_factory.h"
 #include "go_quic_connection_helper.h"
 #include "go_proof_verifier.h"
+#include "go_utils.h"
 
 #include "net/base/ip_address.h"
 #include "net/base/ip_endpoint.h"
@@ -104,9 +105,15 @@ int quic_client_session_num_active_requests(GoQuicClientSession* session) {
 }
 
 void quic_spdy_client_stream_write_headers(GoQuicSpdyClientStream* stream,
-                                           MapStrStr* header,
+                                           int header_size,
+                                           char* header_keys,
+                                           int* header_key_len,
+                                           char* header_values,
+                                           int* header_value_len,
                                            int is_empty_body) {
-  stream->WriteHeaders(std::move(*(SpdyHeaderBlock*)header), is_empty_body, nullptr);
+  SpdyHeaderBlock block;
+  CreateSpdyHeaderBlock(block, header_size, header_keys, header_key_len, header_values, header_value_len);
+  stream->WriteHeaders(std::move(block), is_empty_body, nullptr);
 }
 
 void quic_spdy_client_stream_write_or_buffer_data(
