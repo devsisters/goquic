@@ -61,7 +61,8 @@ echo "GOOS: $GOOS"
 echo "OPTION: $OPT"
 
 if [ ! -d libquic ]; then
-    git submodule init && git submodule update
+    echo "try git submodule init && git submodule update first"
+    exit 1
 fi
 
 if [ ! -z $BUILD_CLEAN ]; then

@@ -4,7 +4,8 @@
 
 lib
 build
-libquic
+
+libquic/build
 
 *.pem
 *.key
