@@ -2,7 +2,6 @@
 *.swo
 tags
 build/
-libquic
 libgoquic.a
 nbproject/
 lib/

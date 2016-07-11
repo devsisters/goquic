@@ -1,0 +1,3 @@
+[submodule "libquic"]
+	path = libquic
+	url = https://github.com/devsisters/libquic
