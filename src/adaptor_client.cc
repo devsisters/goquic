@@ -106,7 +106,7 @@ int quic_client_session_num_active_requests(GoQuicClientSession* session) {
 void quic_spdy_client_stream_write_headers(GoQuicSpdyClientStream* stream,
                                            MapStrStr* header,
                                            int is_empty_body) {
-  stream->WriteHeaders(*(SpdyHeaderBlock*)header, is_empty_body, nullptr);
+  stream->WriteHeaders(std::move(*(SpdyHeaderBlock*)header), is_empty_body, nullptr);
 }
 
 void quic_spdy_client_stream_write_or_buffer_data(

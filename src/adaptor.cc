@@ -279,7 +279,7 @@ void quic_simple_server_stream_write_trailers(GoQuicSimpleServerStream* wrapper,
                                               int* header_value_len) {
   SpdyHeaderBlock block;
   CreateSpdyHeaderBlock(block, header_size, header_keys, header_key_len, header_values, header_value_len);
-  wrapper->WriteTrailers(block, nullptr);
+  wrapper->WriteTrailers(std::move(block), nullptr);
 }
 
 void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm) {
