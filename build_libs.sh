@@ -1,5 +1,28 @@
 #!/bin/sh -e
 
+while getopts "arh" opt; do
+  case $opt in
+    a)
+      BUILD_CLEAN=1
+      ;;
+    r)
+      if [ -z $GOQUIC_BUILD ]; then
+        GOQUIC_BUILD="Release"
+      else
+        echo "Both GOQUIC_BUILD and -r provided. Please provide only either one."
+        exit 1;
+      fi
+      ;;
+    h)
+      echo "Usage: ./build_libs.sh [-a] [-r] [-h]"
+      echo "  -a: Force rebuild all"
+      echo "  -r: Release build"
+      echo "  -h: Help"
+      exit 1;
+      ;;
+  esac
+done
+
 ARCH_TYPE=$(uname -m)
 OS_TYPE=$(uname -s)
 
@@ -27,8 +50,10 @@ fi
 
 if [ "$GOQUIC_BUILD" = "Release" ]; then
     OPT="-DCMAKE_BUILD_TYPE=Release"
+    BUILD_DIR="build/release"
 else
     OPT=""
+    BUILD_DIR="build/debug"
 fi
 
 echo "GOARCH: $GOARCH"
@@ -36,22 +61,23 @@ echo "GOOS: $GOOS"
 echo "OPTION: $OPT"
 
 if [ ! -d libquic ]; then
-    git clone https://github.com/devsisters/libquic.git
+    git submodule init && git submodule update
 fi
 
-cd libquic
-rm -fr build
-mkdir -p build
-cd build
+if [ ! -z $BUILD_CLEAN ]; then
+  rm -fr libquic/$BUILD_DIR
+fi
+mkdir -p libquic/$BUILD_DIR
 
-cmake -GNinja $OPT ..
-ninja
+cd libquic/$BUILD_DIR
+cmake -GNinja $OPT ../..
+cd -
 
-cd ../..
+ninja -Clibquic/$BUILD_DIR
 
 TARGET_DIR=lib/${GOOS}_${GOARCH}/
 mkdir -p $TARGET_DIR
-cp libquic/build/boringssl/crypto/libcrypto.a libquic/build/boringssl/ssl/libssl.a libquic/build/libquic.a libquic/build/protobuf/libprotobuf.a $TARGET_DIR
+cp libquic/$BUILD_DIR/boringssl/crypto/libcrypto.a libquic/$BUILD_DIR/boringssl/ssl/libssl.a libquic/$BUILD_DIR/libquic.a libquic/$BUILD_DIR/protobuf/libprotobuf.a $TARGET_DIR
 
 rm -fr build libgoquic.a
 
