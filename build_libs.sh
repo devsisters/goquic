@@ -83,9 +83,9 @@ cp libquic/$BUILD_DIR/boringssl/crypto/libcrypto.a libquic/$BUILD_DIR/boringssl/
 rm -fr build libgoquic.a
 
 if [ $GOOS = "freebsd" ]; then
-    gmake -j
+    GOQUIC_BUILD=$GOQUIC_BUILD gmake -j
 else
-    make -j
+    GOQUIC_BUILD=$GOQUIC_BUILD make -j
 fi
 mv libgoquic.a $TARGET_DIR
 
