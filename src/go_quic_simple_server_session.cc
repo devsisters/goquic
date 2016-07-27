@@ -66,6 +66,8 @@ GoQuicSimpleServerStream* GoQuicSimpleServerSession::CreateOutgoingDynamicStream
     return nullptr;
   }
 
+  // Should not be called!
+
   GoQuicSimpleServerStream* stream =
       new GoQuicSimpleServerStream(GetNextOutgoingStreamId(), this);
   stream->SetPriority(priority);
