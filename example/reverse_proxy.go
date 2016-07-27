@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
@@ -13,6 +14,8 @@ import (
 	_ "net/http/pprof"
 	"net/url"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/devsisters/goquic"
 	"github.com/gorilla/handlers"
@@ -111,6 +114,21 @@ func main() {
 			log.Printf("Cannot open %s, new serverConfig will be generated", serverConfig)
 		}
 	}
+
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, syscall.SIGUSR1)
+
+	go func() {
+		for {
+			<-sigc
+			fmt.Println("Got Signal 1. Dump C++ pprof to /tmp/prof")
+			goquic.ExtractProf()
+
+			b := bytes.NewBuffer(nil)
+			goquic.DebugInfo(b)
+			fmt.Println(string(b.Bytes()))
+		}
+	}()
 
 	go func() {
 		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))

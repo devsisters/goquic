@@ -1,7 +1,7 @@
 FROM golang:1.6.2
 MAINTAINER Server Team "se@devsisters.com"
 
-RUN apt-get -qq update && apt-get install -y build-essential cmake ninja-build
+RUN apt-get -qq update && apt-get install -y build-essential cmake ninja-build libgoogle-perftools-dev
 ADD . /go/src/github.com/devsisters/goquic
 
 WORKDIR /go/src/github.com/devsisters/goquic

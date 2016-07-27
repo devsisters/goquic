@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
@@ -9,7 +10,11 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 
 	"github.com/devsisters/goquic"
 )
@@ -40,6 +45,10 @@ func httpHandler(w http.ResponseWriter, req *http.Request) {
 	io.WriteString(w, "\n")
 	w.Header().Set("AtEnd2", "value 2")
 	w.Header().Set("AtEnd3", "value 3") // These will appear as trailers.
+
+	b := bytes.NewBuffer(nil)
+	goquic.DebugInfo(b)
+	io.WriteString(w, string(b.Bytes()))
 }
 
 func numbersHandler(w http.ResponseWriter, req *http.Request) {
@@ -122,6 +131,32 @@ func main() {
 	}
 
 	http.Handle("/statistics/json", statisticsHandler(server))
+
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, syscall.SIGUSR1)
+
+	sigc2 := make(chan os.Signal, 1)
+	signal.Notify(sigc2, syscall.SIGUSR2)
+
+	go func() {
+		for {
+			<-sigc
+			fmt.Println("Got Signal 1. Dump C++ pprof to /tmp/prof")
+			goquic.ExtractProf()
+
+			b := bytes.NewBuffer(nil)
+			goquic.DebugInfo(b)
+			fmt.Println(string(b.Bytes()))
+		}
+	}()
+
+	go func() {
+		for {
+			<-sigc2
+			fmt.Println("Got Signal 2. Print HEAPCHECK result.")
+			goquic.NoGlobalLeaks()
+		}
+	}()
 
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)

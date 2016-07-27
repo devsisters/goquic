@@ -8,14 +8,24 @@ package goquic
 // #cgo darwin,386 LDFLAGS: -L${SRCDIR}/lib/darwin_386
 // #cgo freebsd,amd64 LDFLAGS: -L${SRCDIR}/lib/freebsd_amd64
 // #cgo freebsd,386 LDFLAGS: -L${SRCDIR}/lib/freebsd_386
-// #cgo linux,amd64 LDFLAGS: -L${SRCDIR}/lib/linux_amd64
-// #cgo linux,386 LDFLAGS: -L${SRCDIR}/lib/linux_386
+// #cgo linux,amd64 LDFLAGS: -L${SRCDIR}/lib/linux_amd64 -ltcmalloc
+// #cgo linux,386 LDFLAGS: -L${SRCDIR}/lib/linux_386 -ltcmalloc
 // #include <stddef.h>
 // #include "src/adaptor.h"
+// #include "src/heap_checker.h"
 import "C"
 
 //go:generate python ptr_gen.py ProofSource ProofVerifier ProofVerifyJob TaskRunner ServerWriter ClientWriter QuicDispatcher QuicServerSession GoQuicAlarm QuicServerStream QuicClientStream
 
 func SetLogLevel(level int) {
 	C.set_log_level(C.int(level))
+}
+
+// NoGlobalLeaks calls HeapLeakChecker::NoGlobalLeaks.
+func NoGlobalLeaks() bool {
+	return C.NoGlobalLeaks() != 0
+}
+
+func ExtractProf() {
+	C.ExtractProf()
 }
