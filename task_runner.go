@@ -91,7 +91,9 @@ func (t *TaskRunner) RunAlarm(alarm *GoQuicAlarm) {
 	} else {
 		heap.Fix(t.alarmHeap, item.heapIdx)
 	}
-	t.resetTimer()
+	if t.alarmHeap.Len() != 0 && t.deadlineTop != t.alarmHeap.items[0].deadline {
+		t.resetTimer()
+	}
 }
 
 func (t *TaskRunner) CancelAlarm(alarm *GoQuicAlarm) {
@@ -99,7 +101,9 @@ func (t *TaskRunner) CancelAlarm(alarm *GoQuicAlarm) {
 	if item.heapIdx >= 0 {
 		heap.Remove(t.alarmHeap, item.heapIdx)
 	}
-	t.resetTimer()
+	if t.alarmHeap.Len() != 0 && t.deadlineTop != t.alarmHeap.items[0].deadline {
+		t.resetTimer()
+	}
 }
 
 func (t *TaskRunner) resetTimer() {
@@ -107,11 +111,7 @@ func (t *TaskRunner) resetTimer() {
 		return
 	}
 
-	if t.deadlineTop == t.alarmHeap.items[0].deadline {
-		return
-	} else {
-		t.deadlineTop = t.alarmHeap.items[0].deadline
-	}
+	t.deadlineTop = t.alarmHeap.items[0].deadline
 
 	now := t.alarmHeap.items[0].alarm.Now()
 	duration_i64 := t.alarmHeap.items[0].deadline - now
@@ -122,11 +122,7 @@ func (t *TaskRunner) resetTimer() {
 	// Go duration: Nanoseconds
 	duration := time.Duration(duration_i64) * time.Microsecond
 
-	if t.timer == nil {
-		t.timer = time.NewTimer(duration)
-	} else {
-		t.timer.Reset(duration)
-	}
+	t.timer.Reset(duration)
 }
 
 func (t *TaskRunner) DoTasks() {
