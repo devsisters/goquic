@@ -61,9 +61,9 @@ GoQuicClientSession* create_go_quic_client_session_and_initialize(
   // TODO(hodduc) "crypto_config" should be shared as global constant, but there
   // is no clean way to do it now T.T
   // Deleted by ~GoQuicClientSession()
-  ProofVerifier* proof_verifier = new GoProofVerifier(go_proof_verifier);
+  std::unique_ptr<GoProofVerifier> proof_verifier(new GoProofVerifier(go_proof_verifier));
   QuicCryptoClientConfig* crypto_config =
-      new QuicCryptoClientConfig(proof_verifier);
+      new QuicCryptoClientConfig(std::move(proof_verifier));
   // TODO(hodduc): crypto_config proofverifier?
 
   GoQuicClientSession* session = new GoQuicClientSession(

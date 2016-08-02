@@ -200,6 +200,7 @@ GoQuicDispatcher::GoQuicDispatcher(
       delete_sessions_alarm_(
           alarm_factory_->CreateAlarm(new DeleteSessionsAlarm(
           this))),  // alarm's delegate is deleted by std::unique_ptr of QuicAlarm
+      buffered_packets_(this, helper_->GetClock(), alarm_factory_.get()),
       supported_versions_(supported_versions),
       disable_quic_pre_30_(FLAGS_quic_disable_pre_30),
       allowed_supported_versions_(supported_versions),
@@ -262,6 +263,7 @@ bool GoQuicDispatcher::OnUnauthenticatedPublicHeader(
   QuicConnectionId connection_id = header.connection_id;
   SessionMap::iterator it = session_map_.find(connection_id);
   if (it != session_map_.end()) {
+    DCHECK(!buffered_packets_.HasBufferedPackets(connection_id));
     it->second->ProcessUdpPacket(current_server_address_,
                                  current_client_address_, *current_packet_);
     return false;
@@ -336,6 +338,16 @@ bool GoQuicDispatcher::OnUnauthenticatedHeader(const QuicPacketHeader& header) {
       session_map_.insert(std::make_pair(connection_id, session));
       session->ProcessUdpPacket(current_server_address_,
                                 current_client_address_, *current_packet_);
+      std::list<QuicBufferedPacketStore::BufferedPacket> packets =
+          buffered_packets_.DeliverPackets(connection_id);
+      for (const auto& packet : packets) {
+        SessionMap::iterator it = session_map_.find(connection_id);
+        if (it == session_map_.end()) {
+          break;
+        }
+        it->second->ProcessUdpPacket(packet.server_address,
+                                     packet.client_address, *packet.packet);
+      }
       break;
     }
     case kFateTimeWait:
@@ -596,6 +608,10 @@ void GoQuicDispatcher::OnPacketComplete() {
   DCHECK(false);
 }
 
+void GoQuicDispatcher::OnExpiredPackets(
+    QuicConnectionId connection_id,
+    QuicBufferedPacketStore::BufferedPacketList early_arrived_packets) {}
+
 QuicServerSessionBase* GoQuicDispatcher::CreateQuicSession(
     QuicConnectionId connection_id,
     const IPEndPoint& client_address) {
@@ -697,9 +713,10 @@ GoQuicDispatcher::QuicPacketFate GoQuicDispatcher::MaybeRejectStatelessly(
                           &rejector);
   if (!ChloExtractor::Extract(*current_packet_, supported_versions_,
                               &validator)) {
-    // TODO(rch): Since there was no CHLO in this packet, buffer it until one
-    // arrives.
-    DLOG(ERROR) << "Dropping undecryptable packet.";
+    DVLOG(1) << "Buffering undecryptable packet.";
+    buffered_packets_.EnqueuePacket(connection_id, *current_packet_,
+                                    current_server_address_,
+                                    current_client_address_);
     return kFateDrop;
   }
 

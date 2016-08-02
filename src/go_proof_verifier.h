@@ -35,7 +35,7 @@ class NET_EXPORT_PRIVATE GoProofVerifier : public ProofVerifier {
                               const ProofVerifyContext* context,
                               std::string* error_details,
                               std::unique_ptr<ProofVerifyDetails>* details,
-                              ProofVerifierCallback* callback) override;
+                              std::unique_ptr<ProofVerifierCallback> callback) override;
 
  private:
   GoPtr go_proof_verifier_;

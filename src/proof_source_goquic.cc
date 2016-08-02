@@ -62,4 +62,22 @@ bool ProofSourceGoquic::GetProof(const net::IPAddress& server_ip,
   //TODO(hodduc): cache?
 }
 
+void ProofSourceGoquic::GetProof(const IPAddress& server_ip,
+                                   const std::string& hostname,
+                                   const std::string& server_config,
+                                   QuicVersion quic_version,
+                                   base::StringPiece chlo_hash,
+                                   bool ecdsa_ok,
+                                   std::unique_ptr<Callback> callback) {
+  // As a transitional implementation, just call the synchronous version of
+  // GetProof, then invoke the callback with the results and destroy it.
+  scoped_refptr<ProofSource::Chain> chain;
+  std::string signature;
+  std::string leaf_cert_sct;
+  const bool ok =
+      GetProof(server_ip, hostname, server_config, quic_version, chlo_hash,
+               ecdsa_ok, &chain, &signature, &leaf_cert_sct);
+  callback->Run(ok, chain, signature, leaf_cert_sct);
+}
+
 }    // namespace net

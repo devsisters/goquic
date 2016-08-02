@@ -24,7 +24,7 @@ QuicAsyncStatus GoProofVerifier::VerifyProof(
     const ProofVerifyContext* context,
     std::string* error_details,
     std::unique_ptr<ProofVerifyDetails>* details,
-    ProofVerifierCallback* callback) {
+    std::unique_ptr<ProofVerifierCallback> callback) {
   // XXX(hodduc): Should we implement verifying on go-side asynchronously?
   // XXX(hodduc): QUIC_VERSION_31 support
 

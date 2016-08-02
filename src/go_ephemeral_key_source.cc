@@ -14,7 +14,7 @@ std::string GoEphemeralKeySource::CalculateForwardSecureKey(
     std::string* public_value) {
   // Cache forward_secure_key_exchange for 10 seconds
   if (forward_secure_key_exchange_.get() == nullptr ||
-      now.Subtract(key_created_time_).ToSeconds() > 10) {
+      (now - key_created_time_).ToSeconds() > 10) {
     forward_secure_key_exchange_.reset(key_exchange->NewKeyPair(rand));
     key_created_time_ = now;
   }

@@ -36,7 +36,7 @@ class GoQuicAlarmGoWrapper : public QuicAlarm {
   GoPtr go_quic_alarm_;
 
   int64_t quic_clock_to_int64(QuicTime time) {
-    return time.Subtract(QuicTime::Zero()).ToMicroseconds();
+    return (time - QuicTime::Zero()).ToMicroseconds();
   }
 };
 }

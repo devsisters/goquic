@@ -138,12 +138,13 @@ QuicCryptoServerConfig* init_crypto_config(
     char* source_address_token_secret,
     size_t source_address_token_secret_len) {
 
+  std::unique_ptr<ProofSourceGoquic> proof_source_ptr(proof_source);
   std::unique_ptr<QuicServerConfigProtobuf> config(
       parse_goquic_crypto_config(go_config));
 
   auto secret = string(source_address_token_secret, source_address_token_secret_len);
   QuicCryptoServerConfig* crypto_config = new QuicCryptoServerConfig(
-      secret, QuicRandom::GetInstance(), proof_source);
+      secret, QuicRandom::GetInstance(), std::move(proof_source_ptr));
 
   crypto_config->set_strike_register_no_startup_period();
   net::EphemeralKeySource* keySource = new GoEphemeralKeySource();
@@ -287,7 +288,7 @@ void go_quic_alarm_fire(GoQuicAlarmGoWrapper* go_quic_alarm) {
 }
 
 int64_t clock_now(QuicClock* quic_clock) {
-  return quic_clock->Now().Subtract(QuicTime::Zero()).ToMicroseconds();
+  return (quic_clock->Now() - QuicTime::Zero()).ToMicroseconds();
 }
 
 void packet_writer_on_write_complete(GoQuicServerPacketWriter* cb, int rv) {

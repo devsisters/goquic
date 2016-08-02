@@ -34,6 +34,14 @@ class ProofSourceGoquic : public ProofSource {
                 std::string* out_signature,
                 std::string* out_leaf_cert_sct) override;
 
+  void GetProof(const IPAddress& server_ip,
+                const std::string& hostname,
+                const std::string& server_config,
+                QuicVersion quic_version,
+                base::StringPiece chlo_hash,
+                bool ecdsa_ok,
+                std::unique_ptr<Callback> callback) override;
+
  private:
   GoPtr go_proof_source_;
   //std::map<std::string, std::vector<std::string>*> certs_cache_;
