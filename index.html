@@ -149,11 +149,12 @@ per request. The benchmark results are <code>2905.58 CPS</code>.</p>
 
 <p>I used to create a QUIC reverse proxy of an existing site just for fun. So to enable people to experiment with QUIC, we've released a docker image that acts as a reverse proxy for the site of your choice. It enables QUIC along with HTTP/2, so you will enjoy the full bleeding edge of web browsing.</p>
 
-<pre><code>$ docker run \
+<pre><code>$ docker pull quay.io/devsisters/quic-reverse-proxy:release
+$ docker run \
    -d --net="host" \
    -v /PATH/TO/CERT:/opt/configs/cert \
    -v /PATH/TO/CERT_PRIVATE_KEY:/opt/configs/key \
-   --ulimit nofile=32768 devsisters/quic-reverse-proxy:releasemode \
+   --ulimit nofile=32768 quay.io/devsisters/quic-reverse-proxy:release \
       -cert=/opt/configs/cert \
       -key=/opt/configs/key \
       -addr=BIND_IP \
