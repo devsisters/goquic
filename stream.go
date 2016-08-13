@@ -77,18 +77,19 @@ func digSpdyHeader(header http.Header) ([]byte, []C.int, []byte, []C.int) {
 	valuelen = make([]C.int, 0, len(header))
 
 	for key, mvalue := range header {
-		value := strings.Join(mvalue, ", ")
+		for index := range mvalue {
 
-		// Due to spdy_utils.cc, all trailer headers key should be lower-case (why?)
-		nk, errk := keys.WriteString(strings.ToLower(key))
-		nv, errv := values.WriteString(value)
+			// Due to spdy_utils.cc, all trailer headers key should be lower-case (why?)
+			nk, errk := keys.WriteString(strings.ToLower(key))
+			nv, errv := values.WriteString(mvalue[index])
 
-		keylen = append(keylen, C.int(nk))
-		valuelen = append(valuelen, C.int(nv))
+			keylen = append(keylen, C.int(nk))
+			valuelen = append(valuelen, C.int(nv))
 
-		if errk != nil || errv != nil {
-			fmt.Println("buffer write failed", errk, errv)
-			break
+			if errk != nil || errv != nil {
+				fmt.Println("buffer write failed", errk, errv)
+				break
+			}
 		}
 	}
 
