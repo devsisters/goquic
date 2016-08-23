@@ -35,7 +35,7 @@ void GoQuicSimpleServerStream::OnInitialHeadersComplete(bool fin,
     SendErrorResponse();
   }
 
-  auto peer_address = spdy_session()->connection()->peer_address().ToStringWithoutPort();
+  auto peer_address = spdy_session()->connection()->peer_address().ToString();
   auto hdr = CreateGoSpdyHeader(request_headers_);
   GoQuicSimpleServerStreamOnInitialHeadersComplete_C(go_quic_simple_server_stream_, hdr, peer_address.data(), peer_address.length());
   DeleteGoSpdyHeader(hdr);
@@ -54,7 +54,7 @@ void GoQuicSimpleServerStream::OnInitialHeadersComplete(
     SendErrorResponse();
   }
 
-  auto peer_address = spdy_session()->connection()->peer_address().ToStringWithoutPort();
+  auto peer_address = spdy_session()->connection()->peer_address().ToString();
   auto hdr = CreateGoSpdyHeader(request_headers_);
   GoQuicSimpleServerStreamOnInitialHeadersComplete_C(go_quic_simple_server_stream_, hdr, peer_address.data(), peer_address.length());
   DeleteGoSpdyHeader(hdr);

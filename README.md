@@ -1,6 +1,8 @@
 goquic, QUIC support for Go
 ===========================
 
+[![Docker Repository on Quay](https://quay.io/repository/devsisters/quic-reverse-proxy/status "Docker Repository on Quay")](https://quay.io/repository/devsisters/quic-reverse-proxy)
+
 This is a work-in-progress QUIC implementation for Go. This is based on
 [libquic](https://github.com/devsisters/libquic) library, which is in turn based
 on original QUIC implementation on [Chromium](http://www.chromium.org/quic).
