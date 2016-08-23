@@ -25,6 +25,18 @@
 			"path": "golang.org/x/net/http2",
 			"revision": "7394c112eae4dba7e96bfcfe738e6373d61772b4",
 			"revisionTime": "2016-08-19T20:57:39Z"
+		},
+		{
+			"checksumSHA1": "EYNaHp7XdLWRydUCE0amEkKAtgk=",
+			"path": "golang.org/x/net/http2/hpack",
+			"revision": "7394c112eae4dba7e96bfcfe738e6373d61772b4",
+			"revisionTime": "2016-08-19T20:57:39Z"
+		},
+		{
+			"checksumSHA1": "yhndhWXMs/VSEDLks4dNyFMQStA=",
+			"path": "golang.org/x/net/lex/httplex",
+			"revision": "7394c112eae4dba7e96bfcfe738e6373d61772b4",
+			"revisionTime": "2016-08-19T20:57:39Z"
 		}
 	],
 	"rootPath": "github.com/devsisters/goquic"
