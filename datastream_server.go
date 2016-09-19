@@ -70,7 +70,7 @@ func (stream *SimpleServerStream) ProcessRequest() {
 	req.RequestURI = header.Get(":path")
 	req.Proto = header.Get(":version")
 	req.Header = header
-	req.Host = header.Get(":host")
+	req.Host = header.Get(":authority")
 	req.RemoteAddr = stream.peerAddress
 	rawPath := header.Get(":path")
 
@@ -82,7 +82,7 @@ func (stream *SimpleServerStream) ProcessRequest() {
 	}
 
 	url.Scheme = header.Get(":scheme")
-	url.Host = header.Get(":host")
+	url.Host = header.Get(":authority")
 	req.URL = url
 	// TODO(serialx): To buffered async read
 	req.Body = ioutil.NopCloser(stream.buffer)
