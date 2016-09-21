@@ -18,6 +18,9 @@ namespace net {
 GoQuicSpdyClientStream::GoQuicSpdyClientStream(QuicStreamId id,
                                                GoQuicClientSession* session)
     : QuicSpdyStream(id, session),
+      content_length_(-1),
+      response_code_(0),
+      header_bytes_read_(0),
       allow_bidirectional_data_(false),
       session_(session) {}
 
