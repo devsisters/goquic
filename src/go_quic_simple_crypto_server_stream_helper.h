@@ -1,18 +1,19 @@
-#ifndef GO_QUIC_SIMPLE_SERVER_SESSION_HELPER_H_
-#define GO_QUIC_SIMPLE_SERVER_SESSION_HELPER_H_
+#ifndef GO_QUIC_SIMPLE_CRYPTO_SERVER_STREAM_HELPER_H_
+#define GO_QUIC_SIMPLE_CRYPTO_SERVER_STREAM_HELPER_H_
 
 #include "net/quic/core/crypto/quic_random.h"
-#include "net/quic/core/quic_server_session_base.h"
+#include "net/quic/core/quic_crypto_server_stream.h"
 
 namespace net {
 
 // Simple helper for server sessions which generates a new random
 // connection ID for stateless rejects.
-class GoQuicSimpleServerSessionHelper : public QuicCryptoServerStream::Helper {
+class GoQuicSimpleCryptoServerStreamHelper
+    : public QuicCryptoServerStream::Helper {
  public:
-  explicit GoQuicSimpleServerSessionHelper(QuicRandom* random);
+  explicit GoQuicSimpleCryptoServerStreamHelper(QuicRandom* random);
 
-  ~GoQuicSimpleServerSessionHelper() override;
+  ~GoQuicSimpleCryptoServerStreamHelper() override;
 
   QuicConnectionId GenerateConnectionIdForReject(
       QuicConnectionId /*connection_id*/) const override;
@@ -27,4 +28,4 @@ class GoQuicSimpleServerSessionHelper : public QuicCryptoServerStream::Helper {
 
 }  // namespace net
 
-#endif  // GO_QUIC_SIMPLE_SERVER_SESSION_HELPER_H_
+#endif  // GO_QUIC_SIMPLE_CRYPTO_SERVER_STREAM_HELPER_H_

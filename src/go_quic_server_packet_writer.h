@@ -9,9 +9,9 @@
 #include "base/callback.h"
 #include "net/base/ip_address.h"
 #include "net/base/ip_endpoint.h"
-#include "net/quic/quic_connection.h"
-#include "net/quic/quic_packet_writer.h"
-#include "net/quic/quic_protocol.h"
+#include "net/quic/core/quic_connection.h"
+#include "net/quic/core/quic_packet_writer.h"
+#include "net/quic/core/quic_protocol.h"
 #include "go_structs.h"
 
 namespace net {
@@ -27,15 +27,19 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
                            QuicBlockedWriterInterface* blocked_writer);
   ~GoQuicServerPacketWriter() override;
 
-  // Use this method to write packets rather than WritePacket:
-  // GoQuicServerPacketWriter requires a callback to exist for every
-  // write, which will be called once the write completes.
-  virtual WriteResult WritePacketWithCallback(const char* buffer,
-                                              size_t buf_len,
-                                              const IPAddress& self_address,
-                                              const IPEndPoint& peer_address,
-                                              PerPacketOptions* options,
-                                              WriteCallback callback);
+  // Wraps WritePacket, and ensures that |callback| is run on successful write.
+  WriteResult WritePacketWithCallback(const char* buffer,
+                                      size_t buf_len,
+                                      const IPAddress& self_address,
+                                      const IPEndPoint& peer_address,
+                                      PerPacketOptions* options,
+                                      WriteCallback callback);
+
+  WriteResult WritePacket(const char* buffer,
+                          size_t buf_len,
+                          const IPAddress& self_address,
+                          const IPEndPoint& peer_address,
+                          PerPacketOptions* options) override;
 
   void OnWriteComplete(int rv);
 
@@ -44,14 +48,6 @@ class GoQuicServerPacketWriter : public QuicPacketWriter {
   bool IsWriteBlocked() const override;
   void SetWritable() override;
   QuicByteCount GetMaxPacketSize(const IPEndPoint& peer_address) const override;
-
- protected:
-  // Do not call WritePacket on its own -- use WritePacketWithCallback
-  WriteResult WritePacket(const char* buffer,
-                          size_t buf_len,
-                          const IPAddress& self_address,
-                          const IPEndPoint& peer_address,
-                          PerPacketOptions* options) override;
 
  private:
   GoPtr go_writer_;

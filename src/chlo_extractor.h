@@ -5,8 +5,8 @@
 #ifndef NET_TOOLS_QUIC_CHLO_EXTRACTOR_H_
 #define NET_TOOLS_QUIC_CHLO_EXTRACTOR_H_
 
-#include "net/quic/crypto/crypto_handshake_message.h"
-#include "net/quic/quic_protocol.h"
+#include "net/quic/core/crypto/crypto_handshake_message.h"
+#include "net/quic/core/quic_protocol.h"
 
 namespace net {
 
@@ -31,7 +31,7 @@ class ChloExtractor {
                       const QuicVersionVector& versions,
                       Delegate* delegate);
 
-  ChloExtractor(ChloExtractor&) = delete;
+  ChloExtractor(const ChloExtractor&) = delete;
   ChloExtractor operator=(const ChloExtractor&) = delete;
 };
 

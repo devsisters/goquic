@@ -68,4 +68,14 @@ QuicAsyncStatus GoProofVerifier::VerifyProof(
   }
 }
 
+QuicAsyncStatus GoProofVerifier::VerifyCertChain(
+     const std::string& hostname,
+     const std::vector<std::string>& certs,
+     const ProofVerifyContext* context,
+     std::string* error_details,
+     std::unique_ptr<ProofVerifyDetails>* details,
+     std::unique_ptr<ProofVerifierCallback> callback) {
+  // TODO(hodduc)
+}
+
 }  // namespace net

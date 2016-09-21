@@ -7,11 +7,11 @@
 #include "go_functions.h"
 
 #include "base/logging.h"
-#include "net/quic/proto/cached_network_parameters.pb.h"
-#include "net/quic/quic_connection.h"
-#include "net/quic/quic_flags.h"
-#include "net/quic/quic_spdy_session.h"
-#include "net/quic/reliable_quic_stream.h"
+#include "net/quic/core/proto/cached_network_parameters.pb.h"
+#include "net/quic/core/quic_connection.h"
+#include "net/quic/core/quic_flags.h"
+#include "net/quic/core/quic_spdy_session.h"
+#include "net/quic/core/reliable_quic_stream.h"
 
 using std::string;
 
@@ -21,7 +21,7 @@ GoQuicSimpleServerSession::GoQuicSimpleServerSession(
     const QuicConfig& config,
     QuicConnection* connection,
     QuicServerSessionBase::Visitor* visitor,
-    QuicServerSessionBase::Helper* helper,
+    QuicCryptoServerStream::Helper* helper,
     const QuicCryptoServerConfig* crypto_config,
     QuicCompressedCertsCache* compressed_certs_cache)
     : QuicServerSessionBase(config,
@@ -41,7 +41,7 @@ GoQuicSimpleServerSession::CreateQuicCryptoServerStream(
     QuicCompressedCertsCache* compressed_certs_cache) {
   return new QuicCryptoServerStream(crypto_config, compressed_certs_cache,
                                     FLAGS_enable_quic_stateless_reject_support,
-                                    this);
+                                    this, stream_helper());
 }
 
 QuicSpdyStream* GoQuicSimpleServerSession::CreateIncomingDynamicStream(

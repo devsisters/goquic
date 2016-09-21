@@ -1,6 +1,6 @@
 #include "adaptor.h"
 
-#include "go_quic_dispatcher.h"
+#include "go_quic_simple_dispatcher.h"
 #include "go_quic_connection_helper.h"
 #include "go_quic_server_packet_writer.h"
 #include "go_quic_simple_server_stream.h"
@@ -11,12 +11,12 @@
 #include "proof_source_goquic.h"
 #include "go_ephemeral_key_source.h"
 
-#include "net/quic/quic_connection.h"
-#include "net/quic/quic_clock.h"
-#include "net/quic/quic_time.h"
-#include "net/quic/quic_protocol.h"
-#include "net/quic/crypto/quic_random.h"
-#include "net/quic/crypto/crypto_server_config_protobuf.h"
+#include "net/quic/core/quic_connection.h"
+#include "net/quic/core/quic_clock.h"
+#include "net/quic/core/quic_time.h"
+#include "net/quic/core/quic_protocol.h"
+#include "net/quic/core/crypto/quic_random.h"
+#include "net/quic/core/crypto/crypto_server_config_protobuf.h"
 #include "net/base/ip_address.h"
 #include "net/base/ip_endpoint.h"
 #include "base/strings/string_piece.h"
@@ -163,7 +163,7 @@ void delete_crypto_config(QuicCryptoServerConfig* crypto_config) {
   delete crypto_config;
 }
 
-GoQuicDispatcher* create_quic_dispatcher(
+GoQuicSimpleDispatcher* create_quic_dispatcher(
     GoPtr go_writer,
     GoPtr go_quic_dispatcher,
     GoPtr go_task_runner,
@@ -176,9 +176,12 @@ GoQuicDispatcher* create_quic_dispatcher(
 
   std::unique_ptr<QuicConnectionHelperInterface> helper(new GoQuicConnectionHelper(clock, random_generator));
   std::unique_ptr<QuicAlarmFactory> alarm_factory(new GoQuicAlarmFactory(clock, go_task_runner));
-  std::unique_ptr<QuicServerSessionBase::Helper> session_helper(new GoQuicSimpleServerSessionHelper(QuicRandom::GetInstance()));
+  std::unique_ptr<QuicCryptoServerStream::Helper> session_helper(new GoQuicSimpleServerSessionHelper(QuicRandom::GetInstance()));
+  // XXX: quic_server uses QuicSimpleCryptoServerStreamHelper, 
+  // while quic_simple_server uses QuicSimpleServerSessionHelper.
+  // Pick one and remove the other later
 
-  QuicVersionVector versions(net::QuicSupportedVersions());
+  QuicVersionManager* version_manager = new QuicVersionManager(net::AllSupportedVersions());
 
   /* Initialize Configs ------------------------------------------------*/
 
@@ -199,8 +202,9 @@ GoQuicDispatcher* create_quic_dispatcher(
   /* Initialize Configs Ends ----------------------------------------*/
 
   // Deleted by delete_go_quic_dispatcher()
-  GoQuicDispatcher* dispatcher =
-      new GoQuicDispatcher(*config, crypto_config, versions, std::move(helper), std::move(session_helper), std::move(alarm_factory), go_quic_dispatcher);
+  GoQuicSimpleDispatcher* dispatcher =
+      new GoQuicSimpleDispatcher(*config, crypto_config, version_manager,
+          std::move(helper), std::move(session_helper), std::move(alarm_factory), go_quic_dispatcher);
 
   GoQuicServerPacketWriter* writer = new GoQuicServerPacketWriter(
       go_writer, dispatcher);  // Deleted by scoped ptr of GoQuicDispatcher
@@ -210,11 +214,11 @@ GoQuicDispatcher* create_quic_dispatcher(
   return dispatcher;
 }
 
-void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher) {
+void delete_go_quic_dispatcher(GoQuicSimpleDispatcher* dispatcher) {
   delete dispatcher;
 }
 
-void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
+void quic_dispatcher_process_packet(GoQuicSimpleDispatcher* dispatcher,
                                     uint8_t* self_address_ip,
                                     size_t self_address_len,
                                     uint16_t self_address_port,

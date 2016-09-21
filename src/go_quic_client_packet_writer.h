@@ -3,7 +3,7 @@
 
 #include "net/base/ip_address.h"
 #include "net/base/ip_endpoint.h"
-#include "net/quic/quic_packet_writer.h"
+#include "net/quic/core/quic_packet_writer.h"
 #include "go_structs.h"
 
 namespace net {
