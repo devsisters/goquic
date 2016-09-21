@@ -102,7 +102,15 @@ func main() {
 		tlsConfig = &tls.Config{MinVersion: tls.VersionSSL30}
 	}
 
-	server, err := goquic.NewServer(addrStr, cert, key, numOfServers, http.DefaultServeMux, http.DefaultServeMux, tlsConfig)
+	var quicHdr, nonQuicHdr http.Handler
+
+	if !quicOnly {
+		nonQuicHdr = http.DefaultServeMux
+	}
+
+	quicHdr = http.DefaultServeMux
+
+	server, err := goquic.NewServer(addrStr, cert, key, numOfServers, quicHdr, nonQuicHdr, tlsConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
