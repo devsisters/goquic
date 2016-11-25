@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/handlers"
 )
 
+var proxyUrl string
 var numOfServers int
 var port int
 var addr string
@@ -29,6 +30,7 @@ var usesslv3 bool
 var serverConfig string
 
 func init() {
+	flag.StringVar(&proxyUrl, "proxy_url", "", "Backend url")
 	flag.IntVar(&numOfServers, "n", 1, "Number of concurrent quic dispatchers")
 	flag.IntVar(&port, "port", 8080, "TCP/UDP port number to listen")
 	flag.StringVar(&addr, "addr", "0.0.0.0", "TCP/UDP listen address")
@@ -40,7 +42,6 @@ func init() {
 	flag.StringVar(&serverConfig, "scfg", "", "Server config JSON file. If not provided, new one will be generated")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s backend_url\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Options:\n")
 		flag.PrintDefaults()
 	}
@@ -63,12 +64,16 @@ func main() {
 	flag.Parse()
 	goquic.SetLogLevel(logLevel)
 
-	if flag.NArg() != 1 {
+
+	if len(proxyUrl) == 0 {
+		log.Fatal("Required proxy_url option!")
 		flag.Usage()
-		return
 	}
 
-	proxyUrl := flag.Arg(0)
+	if len(cert) == 0 || len(key) == 0 {
+		log.Fatal("QUIC doesn't support non-encrypted mode anymore. Please provide -cert and -key option!")
+		flag.Usage()
+	}
 
 	log.Printf("About to listen on %s. Go to https://%s:%d/", addr, addr, port)
 	addrStr := fmt.Sprintf("%s:%d", addr, port)
