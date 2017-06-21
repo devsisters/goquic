@@ -86,6 +86,7 @@ func (stream *SimpleServerStream) ProcessRequest() {
 	req.URL = url
 	// TODO(serialx): To buffered async read
 	req.Body = ioutil.NopCloser(stream.buffer)
+	req.ContentLength = int64(stream.buffer.Len())
 
 	// Remove SPDY headers
 	for k, _ := range header {
