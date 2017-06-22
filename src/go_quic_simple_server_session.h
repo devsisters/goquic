@@ -14,10 +14,10 @@
 #include <vector>
 
 #include "base/macros.h"
-#include "net/quic/quic_crypto_server_stream.h"
-#include "net/quic/quic_protocol.h"
-#include "net/quic/quic_server_session_base.h"
-#include "net/quic/quic_spdy_session.h"
+#include "net/quic/core/quic_crypto_server_stream.h"
+#include "net/quic/core/quic_protocol.h"
+#include "net/quic/core/quic_server_session_base.h"
+#include "net/quic/core/quic_spdy_session.h"
 
 #include "go_quic_simple_server_stream.h"
 
@@ -34,7 +34,7 @@ class GoQuicSimpleServerSession : public QuicServerSessionBase {
   GoQuicSimpleServerSession(const QuicConfig& config,
                             QuicConnection* connection,
                             QuicServerSessionBase::Visitor* visitor,
-                            QuicServerSessionBase::Helper* helper,
+                            QuicCryptoServerStream::Helper* helper,
                             const QuicCryptoServerConfig* crypto_config,
                             QuicCompressedCertsCache* compressed_certs_cache);
 

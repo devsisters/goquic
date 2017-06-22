@@ -2,9 +2,9 @@
 #define GO_QUIC_ALARM_FACTORY_H_
 
 #include "go_structs.h"
-#include "net/quic/quic_alarm.h"
-#include "net/quic/quic_alarm_factory.h"
-#include "net/quic/quic_clock.h"
+#include "net/quic/core/quic_alarm.h"
+#include "net/quic/core/quic_alarm_factory.h"
+#include "net/quic/core/quic_clock.h"
 
 namespace net {
 

@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "net/quic/quic_spdy_stream.h"
+#include "net/quic/core/quic_spdy_stream.h"
 #include "go_structs.h"
 
 namespace net {

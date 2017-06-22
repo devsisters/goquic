@@ -4,9 +4,9 @@
 
 #include <utility>
 
-#include "net/quic/quic_session.h"
-#include "net/quic/quic_spdy_session.h"
-#include "net/quic/spdy_utils.h"
+#include "net/quic/core/quic_session.h"
+#include "net/quic/core/quic_spdy_session.h"
+#include "net/quic/core/spdy_utils.h"
 #include "base/strings/string_piece.h"
 #include "base/strings/string_number_conversions.h"
 

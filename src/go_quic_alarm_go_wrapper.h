@@ -1,8 +1,8 @@
 #ifndef __GO_QUIC_ALARM_GO_WRAPPER_H__
 #define __GO_QUIC_ALARM_GO_WRAPPER_H__
 #include "go_functions.h"
-#include "net/quic/quic_clock.h"
-#include "net/quic/quic_alarm.h"
+#include "net/quic/core/quic_clock.h"
+#include "net/quic/core/quic_alarm.h"
 #include "base/logging.h"
 #include <iostream>
 

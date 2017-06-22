@@ -3,7 +3,7 @@
 
 #include <map>
 
-#include "net/quic/crypto/proof_source.h"
+#include "net/quic/core/crypto/proof_source.h"
 #include "net/base/host_port_pair.h"
 #include "go_structs.h"
 
@@ -29,7 +29,6 @@ class ProofSourceGoquic : public ProofSource {
                 const std::string& server_config,
                 QuicVersion quic_version,
                 base::StringPiece chlo_hash,
-                bool ecdsa_ok,
                 scoped_refptr<ProofSource::Chain>* out_chain,
                 std::string* out_signature,
                 std::string* out_leaf_cert_sct) override;
@@ -39,7 +38,6 @@ class ProofSourceGoquic : public ProofSource {
                 const std::string& server_config,
                 QuicVersion quic_version,
                 base::StringPiece chlo_hash,
-                bool ecdsa_ok,
                 std::unique_ptr<Callback> callback) override;
 
  private:

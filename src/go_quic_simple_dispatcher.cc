@@ -1,0 +1,48 @@
+// Copyright (c) 2012 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+#include "go_quic_simple_dispatcher.h"
+#include "go_quic_simple_server_session.h"
+#include "go_functions.h"
+
+namespace net {
+
+GoQuicSimpleDispatcher::GoQuicSimpleDispatcher(
+    const QuicConfig& config,
+    const QuicCryptoServerConfig* crypto_config,
+    QuicVersionManager* version_manager,
+    std::unique_ptr<QuicConnectionHelperInterface> helper,
+    std::unique_ptr<QuicCryptoServerStream::Helper> session_helper,
+    std::unique_ptr<QuicAlarmFactory> alarm_factory,
+    GoPtr go_quic_dispatcher)
+    : GoQuicDispatcher(config,
+                       crypto_config,
+                       version_manager,
+                       std::move(helper),
+                       std::move(session_helper),
+                       std::move(alarm_factory),
+                       go_quic_dispatcher) {}
+
+GoQuicSimpleDispatcher::~GoQuicSimpleDispatcher() {}
+
+QuicServerSessionBase* GoQuicSimpleDispatcher::CreateQuicSession(
+    QuicConnectionId connection_id,
+    const IPEndPoint& client_address) {
+  // The QuicServerSessionBase takes ownership of |connection| below.
+  QuicConnection* connection = new QuicConnection(
+      connection_id, client_address, helper(), alarm_factory(),
+      CreatePerConnectionWriter(),
+      /* owns_writer= */ true, Perspective::IS_SERVER, GetSupportedVersions());
+
+  GoQuicSimpleServerSession* session =
+      new GoQuicSimpleServerSession(config(), connection, this, session_helper(),
+                                  crypto_config(), compressed_certs_cache());
+
+  GoPtr dispatcher = go_quic_dispatcher();
+  session->SetGoSession(dispatcher, GoPtr(CreateGoSession_C(dispatcher, session)));
+  session->Initialize();
+  return session;
+}
+
+}  // namespace net

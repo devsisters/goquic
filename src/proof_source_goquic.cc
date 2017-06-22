@@ -28,7 +28,6 @@ bool ProofSourceGoquic::GetProof(const net::IPAddress& server_ip,
                              const std::string& server_config,
                              QuicVersion quic_version,
                              base::StringPiece chlo_hash,
-                             bool ecdsa_ok,
                              scoped_refptr<ProofSource::Chain>* out_chain,
                              std::string* out_signature,
                              std::string* out_leaf_cert_sct) {
@@ -44,7 +43,6 @@ bool ProofSourceGoquic::GetProof(const net::IPAddress& server_ip,
                        (char*)server_config.c_str(), (size_t)server_config.length(),
                        (int)quic_version,
                        (char*)chlo_hash_str.c_str(), (size_t)chlo_hash_str.length(),
-                       ecdsa_ok,
                        &c_out_signature, &c_out_signature_sz);
 
   if (!ret) {
@@ -67,17 +65,15 @@ void ProofSourceGoquic::GetProof(const IPAddress& server_ip,
                                    const std::string& server_config,
                                    QuicVersion quic_version,
                                    base::StringPiece chlo_hash,
-                                   bool ecdsa_ok,
                                    std::unique_ptr<Callback> callback) {
   // As a transitional implementation, just call the synchronous version of
   // GetProof, then invoke the callback with the results and destroy it.
   scoped_refptr<ProofSource::Chain> chain;
   std::string signature;
   std::string leaf_cert_sct;
-  const bool ok =
-      GetProof(server_ip, hostname, server_config, quic_version, chlo_hash,
-               ecdsa_ok, &chain, &signature, &leaf_cert_sct);
-  callback->Run(ok, chain, signature, leaf_cert_sct);
+  const bool ok = GetProof(server_ip, hostname, server_config, quic_version,
+                           chlo_hash, &chain, &signature, &leaf_cert_sct);
+  callback->Run(ok, chain, signature, leaf_cert_sct, nullptr /* details */);
 }
 
 }    // namespace net

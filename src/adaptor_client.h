@@ -9,7 +9,7 @@
 #include "go_quic_client_session.h"
 #include "go_quic_spdy_client_stream.h"
 #include "net/base/ip_endpoint.h"
-#include "net/quic/quic_protocol.h"
+#include "net/quic/core/quic_protocol.h"
 using namespace net;
 
 extern "C" {

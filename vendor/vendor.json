@@ -1,0 +1,43 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "6/9VW/AyJyjRXLu+nbhqGYvOO2k=",
+			"path": "github.com/gorilla/handlers",
+			"revision": "a5775781a543af3c6b9f5baf10995e4d14168950",
+			"revisionTime": "2016-08-16T18:47:29Z"
+		},
+		{
+			"checksumSHA1": "GNxRPEHfnfvmhuLZM5KDOTvlLAc=",
+			"path": "github.com/oleiade/lane",
+			"revision": "3053869314bb02cb983dc2205da8ea2abe46fa96",
+			"revisionTime": "2016-08-17T06:58:15Z"
+		},
+		{
+			"checksumSHA1": "00kIGjHPVVmXIsu5JxHaNdZtGGg=",
+			"path": "github.com/vanillahsu/go_reuseport",
+			"revision": "087e013b0a0c193ca9b1bb21f453b74aa9b31138",
+			"revisionTime": "2014-06-03T07:39:48Z"
+		},
+		{
+			"checksumSHA1": "3YDeFG6PJWWoPAucRUfFuDVPVfs=",
+			"path": "golang.org/x/net/http2",
+			"revision": "7394c112eae4dba7e96bfcfe738e6373d61772b4",
+			"revisionTime": "2016-08-19T20:57:39Z"
+		},
+		{
+			"checksumSHA1": "EYNaHp7XdLWRydUCE0amEkKAtgk=",
+			"path": "golang.org/x/net/http2/hpack",
+			"revision": "7394c112eae4dba7e96bfcfe738e6373d61772b4",
+			"revisionTime": "2016-08-19T20:57:39Z"
+		},
+		{
+			"checksumSHA1": "yhndhWXMs/VSEDLks4dNyFMQStA=",
+			"path": "golang.org/x/net/lex/httplex",
+			"revision": "7394c112eae4dba7e96bfcfe738e6373d61772b4",
+			"revisionTime": "2016-08-19T20:57:39Z"
+		}
+	],
+	"rootPath": "github.com/devsisters/goquic"
+}

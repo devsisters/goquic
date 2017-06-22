@@ -1,8 +1,8 @@
 #include "go_quic_connection_helper.h"
 
-#include "net/quic/quic_connection.h"
-#include "net/quic/quic_clock.h"
-#include "net/quic/crypto/quic_random.h"
+#include "net/quic/core/quic_connection.h"
+#include "net/quic/core/quic_clock.h"
+#include "net/quic/core/crypto/quic_random.h"
 
 namespace net {
 

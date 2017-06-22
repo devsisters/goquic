@@ -1,9 +1,9 @@
 #ifndef __GO_EPHEMERAL_KEY_SOURCE__H__
 #define __GO_EPHEMERAL_KEY_SOURCE__H__
 
-#include "net/quic/crypto/key_exchange.h"
-#include "net/quic/crypto/ephemeral_key_source.h"
-#include "net/quic/quic_time.h"
+#include "net/quic/core/crypto/key_exchange.h"
+#include "net/quic/core/crypto/ephemeral_key_source.h"
+#include "net/quic/core/quic_time.h"
 
 namespace net {
 

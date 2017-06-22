@@ -21,7 +21,7 @@ type ProofSource struct {
 	proofSource_c unsafe.Pointer
 }
 
-func (ps *ProofSource) GetProof(quicVersion int, addr net.IP, hostname []byte, serverConfig []byte, chloHash []byte, ecdsaOk bool) (outSignature []byte) {
+func (ps *ProofSource) GetProof(quicVersion int, addr net.IP, hostname []byte, serverConfig []byte, chloHash []byte) (outSignature []byte) {
 	var err error = nil
 	var bufferToSign *bytes.Buffer
 
@@ -99,7 +99,7 @@ func GetProof(proof_source_key int64,
 	server_config_c unsafe.Pointer, server_config_sz_c C.size_t,
 	quicVersion int,
 	chlo_hash_c unsafe.Pointer, chlo_hash_sz C.size_t,
-	ecdsa_ok_c C.int, out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
+	out_signature_c **C.char, out_signature_sz_c *C.size_t) C.int {
 
 	proofSource := proofSourcePtr.Get(proof_source_key)
 
@@ -107,9 +107,8 @@ func GetProof(proof_source_key int64,
 	hostname := C.GoBytes(hostname_c, C.int(hostname_sz_c))
 	serverConfig := C.GoBytes(server_config_c, C.int(server_config_sz_c))
 	chloHash := C.GoBytes(chlo_hash_c, C.int(chlo_hash_sz))
-	ecdsaOk := int(ecdsa_ok_c) > 0
 
-	sig := proofSource.GetProof(quicVersion, serverIp, hostname, serverConfig, chloHash, ecdsaOk)
+	sig := proofSource.GetProof(quicVersion, serverIp, hostname, serverConfig, chloHash)
 
 	*out_signature_c = C.CString(string(sig)) // Must free C string
 	*out_signature_sz_c = C.size_t(len(sig))

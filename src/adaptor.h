@@ -6,13 +6,13 @@
 #include "go_structs.h"
 
 #ifdef __cplusplus
-#include "go_quic_dispatcher.h"
+#include "go_quic_simple_dispatcher.h"
 #include "go_quic_simple_server_stream.h"
 #include "go_quic_alarm_go_wrapper.h"
 #include "go_quic_server_packet_writer.h"
 #include "proof_source_goquic.h"
-#include "net/quic/quic_connection.h"
-#include "net/quic/quic_protocol.h"
+#include "net/quic/core/quic_connection.h"
+#include "net/quic/core/quic_protocol.h"
 #include "net/base/ip_endpoint.h"
 #include "net/spdy/spdy_header_block.h"
 
@@ -21,7 +21,7 @@ using namespace net;
 extern "C" {
 #else
 typedef void QuicConnection;
-typedef void GoQuicDispatcher;
+typedef void GoQuicSimpleDispatcher;
 typedef void GoQuicSimpleServerStream;
 typedef void SpdyHeaderBlock;
 typedef void GoQuicAlarmGoWrapper;
@@ -48,12 +48,12 @@ QuicCryptoServerConfig* init_crypto_config(
 
 void delete_crypto_config(QuicCryptoServerConfig* config);
 
-GoQuicDispatcher* create_quic_dispatcher(GoPtr go_writer_,
+GoQuicSimpleDispatcher* create_quic_dispatcher(GoPtr go_writer_,
                                          GoPtr go_quic_dispatcher,
                                          GoPtr go_task_runner,
                                          QuicCryptoServerConfig* crypto_config);
-void delete_go_quic_dispatcher(GoQuicDispatcher* dispatcher);
-void quic_dispatcher_process_packet(GoQuicDispatcher* dispatcher,
+void delete_go_quic_dispatcher(GoQuicSimpleDispatcher* dispatcher);
+void quic_dispatcher_process_packet(GoQuicSimpleDispatcher* dispatcher,
                                     uint8_t* self_address_ip,
                                     size_t self_address_len,
                                     uint16_t self_address_port,

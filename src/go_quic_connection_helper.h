@@ -1,8 +1,8 @@
 #ifndef GO_QUIC_CONNECTION_HELPER_H_
 #define GO_QUIC_CONNECTION_HELPER_H_
-#include "net/quic/quic_connection.h"
-#include "net/quic/quic_clock.h"
-#include "net/quic/quic_simple_buffer_allocator.h"
+#include "net/quic/core/quic_connection.h"
+#include "net/quic/core/quic_clock.h"
+#include "net/quic/core/quic_simple_buffer_allocator.h"
 #include "go_structs.h"
 
 namespace net {

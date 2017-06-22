@@ -1,7 +1,7 @@
 #include "go_quic_client_session.h"
 
-#include "net/quic/crypto/crypto_protocol.h"
-#include "net/quic/quic_server_id.h"
+#include "net/quic/core/crypto/crypto_protocol.h"
+#include "net/quic/core/quic_server_id.h"
 #include "go_quic_spdy_client_stream.h"
 
 using std::string;

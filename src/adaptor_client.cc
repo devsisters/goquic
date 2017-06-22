@@ -10,10 +10,10 @@
 
 #include "net/base/ip_address.h"
 #include "net/base/ip_endpoint.h"
-#include "net/quic/quic_connection.h"
-#include "net/quic/quic_clock.h"
-#include "net/quic/quic_protocol.h"
-#include "net/quic/crypto/quic_random.h"
+#include "net/quic/core/quic_connection.h"
+#include "net/quic/core/quic_clock.h"
+#include "net/quic/core/quic_protocol.h"
+#include "net/quic/core/crypto/quic_random.h"
 #include "base/strings/string_piece.h"
 
 using namespace net;

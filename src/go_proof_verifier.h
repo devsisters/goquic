@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "net/quic/crypto/proof_verifier.h"
+#include "net/quic/core/crypto/proof_verifier.h"
 #include "go_structs.h"
 
 namespace net {
@@ -37,6 +37,13 @@ class NET_EXPORT_PRIVATE GoProofVerifier : public ProofVerifier {
                               std::unique_ptr<ProofVerifyDetails>* details,
                               std::unique_ptr<ProofVerifierCallback> callback) override;
 
+  QuicAsyncStatus VerifyCertChain(
+    const std::string& hostname,
+    const std::vector<std::string>& certs,
+    const ProofVerifyContext* context,
+    std::string* error_details,
+    std::unique_ptr<ProofVerifyDetails>* details,
+    std::unique_ptr<ProofVerifierCallback> callback) override;
  private:
   GoPtr go_proof_verifier_;
 

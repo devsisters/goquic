@@ -5,9 +5,9 @@
 #include "go_quic_spdy_client_stream.h"
 
 #include "net/base/net_errors.h"
-#include "net/quic/quic_session.h"
-#include "net/quic/quic_write_blocked_list.h"
-#include "net/quic/spdy_utils.h"
+#include "net/quic/core/quic_session.h"
+#include "net/quic/core/quic_write_blocked_list.h"
+#include "net/quic/core/spdy_utils.h"
 
 #include "go_functions.h"
 #include "go_quic_client_session.h"
@@ -18,6 +18,9 @@ namespace net {
 GoQuicSpdyClientStream::GoQuicSpdyClientStream(QuicStreamId id,
                                                GoQuicClientSession* session)
     : QuicSpdyStream(id, session),
+      content_length_(-1),
+      response_code_(0),
+      header_bytes_read_(0),
       allow_bidirectional_data_(false),
       session_(session) {}
 
