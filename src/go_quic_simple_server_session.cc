@@ -32,6 +32,7 @@ GoQuicSimpleServerSession::GoQuicSimpleServerSession(
                             compressed_certs_cache) {}
 
 GoQuicSimpleServerSession::~GoQuicSimpleServerSession() {
+  delete connection();
   DeleteGoSession_C(go_quic_dispatcher_, go_session_);
 }
 
