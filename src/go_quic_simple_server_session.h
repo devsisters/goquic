@@ -31,6 +31,7 @@ class ReliableQuicStream;
 
 class GoQuicSimpleServerSession : public QuicServerSessionBase {
  public:
+  // Takes ownership of |connection|.
   GoQuicSimpleServerSession(const QuicConfig& config,
                             QuicConnection* connection,
                             QuicServerSessionBase::Visitor* visitor,
