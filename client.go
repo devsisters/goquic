@@ -59,7 +59,7 @@ func (q *QuicRoundTripper) RoundTrip(request *http.Request) (*http.Response, err
 	conn, exists = q.conns[hostname]
 	q.connsLock.RUnlock()
 	if !q.keepConnection || !exists {
-		conn_new, err := Dial("udp4", hostname)
+		conn_new, err := Dial("udp", hostname)
 		if err != nil {
 			fmt.Println("error occured!", err)
 			return nil, err
