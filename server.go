@@ -81,7 +81,7 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 		wch := make(chan UdpData, 500) // TODO(serialx, hodduc): Optimize buffer size
 		statch := make(chan statCallback, 0)
 
-		conn, err := reuseport.NewReusablePortPacketConn("udp4", addr)
+		conn, err := reuseport.NewReusablePortPacketConn("udp", addr)
 		if err != nil {
 			return err
 		}
