@@ -69,7 +69,14 @@ func (stream *SimpleServerStream) ProcessRequest() {
 	req.Method = header.Get(":method")
 	req.RequestURI = header.Get(":path")
 	req.Proto = header.Get(":version")
-	req.Header = header
+	req.Header = make(map[string][]string, len(header))
+	for k, v := range header {
+		// Remove SPDY headers
+		if len(k) > 0 && k[0] == ':' {
+			continue
+		}
+		req.Header[http.CanonicalHeaderKey(k)] = v
+	}
 	req.Host = header.Get(":authority")
 	req.RemoteAddr = stream.peerAddress
 	rawPath := header.Get(":path")
@@ -87,13 +94,6 @@ func (stream *SimpleServerStream) ProcessRequest() {
 	// TODO(serialx): To buffered async read
 	req.Body = ioutil.NopCloser(stream.buffer)
 	req.ContentLength = int64(stream.buffer.Len())
-
-	// Remove SPDY headers
-	for k, _ := range header {
-		if len(k) > 0 && k[0] == ':' {
-			header.Del(k)
-		}
-	}
 
 	go func() {
 		w := &spdyResponseWriter{
