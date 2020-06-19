@@ -116,6 +116,10 @@ func (srv *QuicSpdyServer) ListenAndServe() error {
 				// TODO(serialx): Don't panic and keep calm...
 				panic(err)
 			}
+			// Ignore zero length packet
+			if n == 0 {
+				continue
+			}
 
 			var connId uint64 = 0
 			var parsed bool = false
