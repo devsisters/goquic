@@ -3,11 +3,11 @@ goquic, QUIC support for Go
 
 [![Docker Repository on Quay](https://quay.io/repository/devsisters/quic-reverse-proxy/status "Docker Repository on Quay")](https://quay.io/repository/devsisters/quic-reverse-proxy)
 
-This is a work-in-progress QUIC implementation for Go. This is based on
+This is a standardised QUIC implementation for Go. This is based on
 [libquic](https://github.com/devsisters/libquic) library, which is in turn based
 on original QUIC implementation on [Chromium](http://www.chromium.org/quic).
 
-QUIC is an experimental protocol aimed at reducing web latency over that of TCP.
+QUIC is an standardised protocol conforming with https://datatracker.ietf.org/doc/html/rfc9000 aimed at reducing web latency over that of TCP.
 On the surface, QUIC is very similar to TCP+TLS+SPDY implemented on UDP. Because
 TCP is implement in operating system kernels, and middlebox firmware, making
 significant changes to TCP is next to impossible. However, since QUIC is built
